@@ -417,3 +417,32 @@ test("EarthworkPanel: 初期状態のガイドメッセージが表示される"
   await page.getByRole("button", { name: "土量" }).click();
   await expect(page.getByText("地形パネルで XYZ ファイルを読み込んでから基準面標高を設定し、土量を計算します。")).toBeVisible();
 });
+
+test("LeftMenu: 線形設計パネルに切り替わり作成ボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await expect(page.getByRole("heading", { name: "線形設計", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "線形を作成" })).toBeVisible();
+});
+
+test("AlignmentPanel: 設計速度セレクターと線形名入力が表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await expect(page.getByRole("combobox", { name: "設計速度" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "線形名" })).toBeVisible();
+});
+
+test("AlignmentPanel: 線形を作成してIP点追加フォームが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await page.getByRole("textbox", { name: "線形名" }).fill("テスト路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await expect(page.getByRole("button", { name: "テスト路線", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "IP 点を追加" })).toBeVisible();
+});
+
+test("AlignmentPanel: 初期状態のガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await expect(page.getByText("設計速度を選択して線形を作成し、IP 点を追加することで平面線形を設計します。")).toBeVisible();
+});

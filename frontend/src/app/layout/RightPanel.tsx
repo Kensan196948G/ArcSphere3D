@@ -13,6 +13,7 @@ import MeasurePanel from "@/features/measure/MeasurePanel";
 import PointCloudPanel from "@/features/pointcloud/PointCloudPanel";
 import TerrainPanel from "@/features/terrain/TerrainPanel";
 import EarthworkPanel from "@/features/earthwork/EarthworkPanel";
+import AlignmentPanel from "@/features/alignment/AlignmentPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -68,11 +69,7 @@ export default function RightPanel() {
       case "earthwork":
         return <EarthworkPanel />;
       case "alignment":
-        return (
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            平面線形設計 — 近日実装予定
-          </p>
-        );
+        return <AlignmentPanel />;
       case "cad":
         return (
           <p className="text-[11px] text-slate-400 dark:text-slate-500">

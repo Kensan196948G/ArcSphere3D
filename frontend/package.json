@@ -6,7 +6,7 @@
   "description": "ArcSphere3D — AI Native Web 3D CAD Platform (frontend)",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/copy-web-ifc.mjs && tsc --noEmit && NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build": "node scripts/copy-web-ifc.mjs && tsc --noEmit && NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "preview": "vite preview --port 5173",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
