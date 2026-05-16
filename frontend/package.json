@@ -14,6 +14,9 @@
     "test:e2e": "xvfb-run --auto-servernum playwright test"
   },
   "dependencies": {
+    "@types/proj4": "^2.5.6",
+    "maplibre-gl": "^5.24.0",
+    "proj4": "^2.20.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",

@@ -7,6 +7,8 @@ import LayerPanel from "@/features/layer/LayerPanel";
 import MaterialPanel from "@/features/material/MaterialPanel";
 import AIPanel from "@/features/ai/AIPanel";
 import SettingsPanel from "@/features/settings/SettingsPanel";
+import IFCPropertyPanel from "@/features/bim/IFCPropertyPanel";
+import GisPanel from "@/features/gis/GisPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -16,6 +18,13 @@ const PANEL_TITLES: Record<string, string> = {
   material: "マテリアル",
   ai: "AI アシスト",
   settings: "設定",
+  gis: "GIS 背景地図",
+  measure: "計測",
+  pointcloud: "点群",
+  terrain: "地形 / TIN",
+  earthwork: "土量計算",
+  alignment: "線形設計",
+  cad: "CAD 読み込み",
 };
 
 export default function RightPanel() {
@@ -37,17 +46,51 @@ export default function RightPanel() {
       case "layer":
         return <LayerPanel />;
       case "bim":
-        return (
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            BIM 機能は準備中です。IFC ファイルはモデルパネルで読み込めます。
-          </p>
-        );
+        return <IFCPropertyPanel />;
       case "material":
         return <MaterialPanel />;
       case "ai":
         return <AIPanel />;
       case "settings":
         return <SettingsPanel />;
+      case "gis":
+        return <GisPanel />;
+      case "measure":
+        return (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            計測ツール — 近日実装予定
+          </p>
+        );
+      case "pointcloud":
+        return (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            点群ビューワー — 近日実装予定
+          </p>
+        );
+      case "terrain":
+        return (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            TIN 地形モデル — 近日実装予定
+          </p>
+        );
+      case "earthwork":
+        return (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            土量計算 — 近日実装予定
+          </p>
+        );
+      case "alignment":
+        return (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            平面線形設計 — 近日実装予定
+          </p>
+        );
+      case "cad":
+        return (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            STEP / CAD 読み込み — 近日実装予定
+          </p>
+        );
       default:
         return null;
     }

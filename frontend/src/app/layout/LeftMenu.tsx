@@ -6,6 +6,13 @@ const items: { id: PanelId; icon: string; label: string }[] = [
   { id: "layer", icon: "🧱", label: "レイヤー" },
   { id: "bim", icon: "🏗️", label: "BIM" },
   { id: "material", icon: "🎨", label: "マテリアル" },
+  { id: "gis", icon: "🗺️", label: "GIS" },
+  { id: "measure", icon: "📏", label: "計測" },
+  { id: "pointcloud", icon: "☁️", label: "点群" },
+  { id: "terrain", icon: "🏔️", label: "地形" },
+  { id: "earthwork", icon: "⛏️", label: "土量" },
+  { id: "alignment", icon: "🛣️", label: "線形" },
+  { id: "cad", icon: "📐", label: "CAD" },
   { id: "ai", icon: "🤖", label: "AI アシスト" },
   { id: "settings", icon: "⚙️", label: "設定" },
 ];

@@ -18,6 +18,7 @@ import {
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { useSceneStore, type SceneObject } from "@/state/sceneStore";
+import { useIfcStore } from "@/state/ifcStore";
 import { useThemeStore } from "@/state/themeStore";
 import { useViewportStore } from "@/state/viewportStore";
 import { setActiveScene, setTransformControls } from "@/lib/threeContext";
@@ -30,7 +31,10 @@ const GRID_COLORS = {
   light: [0x9ca3af, 0xd1d5db] as [number, number],
 };
 
-function setSelectionHighlight(objects: SceneObject[], selectedId: string | null) {
+function setSelectionHighlight(
+  objects: SceneObject[],
+  selectedId: string | null,
+) {
   objects.forEach(({ id, object }) => {
     object.traverse((child) => {
       const m = child as Mesh;
@@ -71,7 +75,11 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     // --- Camera ---
     const camera = new PerspectiveCamera(45, w / h, 0.1, 1000);
     const DEFAULT_CAM_POS = { x: 6, y: 5, z: 8 };
-    camera.position.set(DEFAULT_CAM_POS.x, DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
+    camera.position.set(
+      DEFAULT_CAM_POS.x,
+      DEFAULT_CAM_POS.y,
+      DEFAULT_CAM_POS.z,
+    );
     camera.lookAt(0, 0, 0);
 
     // --- Renderer ---
@@ -80,7 +88,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       renderer = new WebGLRenderer({ antialias: true, alpha: false });
     } catch {
       // WebGL not available (headless browsers, old GPU drivers)
-      useSceneStore.getState().log("[viewport] WebGL unavailable — 3D rendering disabled");
+      useSceneStore
+        .getState()
+        .log("[viewport] WebGL unavailable — 3D rendering disabled");
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR));
@@ -200,7 +210,10 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       if (state.bgColor !== prev.bgColor) {
         scene.background = new Color(state.bgColor);
       }
-      if (state.showGrid !== prev.showGrid || state.gridSize !== prev.gridSize) {
+      if (
+        state.showGrid !== prev.showGrid ||
+        state.gridSize !== prev.gridSize
+      ) {
         rebuildGrid(state.gridSize);
       }
       if (state.showAxes !== prev.showAxes) {
@@ -219,7 +232,8 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
           const mat = m.material;
           if (Array.isArray(mat)) {
             mat.forEach((x) => {
-              if (x instanceof MeshStandardMaterial) x.wireframe = state.wireframe;
+              if (x instanceof MeshStandardMaterial)
+                x.wireframe = state.wireframe;
             });
           } else if (mat instanceof MeshStandardMaterial) {
             mat.wireframe = state.wireframe;
@@ -227,7 +241,11 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
         });
       }
       if (state._cameraResetCount !== prev._cameraResetCount) {
-        camera.position.set(DEFAULT_CAM_POS.x, DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
+        camera.position.set(
+          DEFAULT_CAM_POS.x,
+          DEFAULT_CAM_POS.y,
+          DEFAULT_CAM_POS.z,
+        );
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0.5, 0);
         controls.update();
@@ -303,8 +321,21 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
           entry = store.objects.find((o) => o.object === node);
         }
         if (entry) store.select(entry.id);
+
+        // Check for IFC expressID walking up from the hit mesh.
+        let ifcNode: Object3D | null = hitObj;
+        while (ifcNode) {
+          if (ifcNode.userData.ifcExpressId != null) {
+            useIfcStore
+              .getState()
+              .selectElement(ifcNode.userData.ifcExpressId as number);
+            break;
+          }
+          ifcNode = ifcNode.parent;
+        }
       } else {
         store.select(null);
+        useIfcStore.getState().selectElement(null);
       }
     };
 

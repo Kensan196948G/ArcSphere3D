@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="ArcSphere3D — AI Native Web 3D CAD Platform" />
     <title>ArcSphere3D</title>
+    <!-- maplibre-gl CSP build: served from public/ to avoid rollup OOM during transform -->
+    <link rel="stylesheet" href="/maplibre-gl/maplibre-gl.css" />
+    <script defer src="/maplibre-gl/maplibre-gl.js"></script>
     <!-- web-ifc IIFE: defer avoids blocking HTML parse; still executes before module scripts (source order) -->
     <script defer src="/web-ifc/web-ifc-api.js"></script>
   </head>
