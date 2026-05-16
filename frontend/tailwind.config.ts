@@ -2,15 +2,16 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         arc: {
-          bg: "#0b1020",
-          panel: "#121830",
-          accent: "#5eead4",
-          accent2: "#818cf8",
-          muted: "#6b7280",
+          bg: "var(--arc-bg)",
+          panel: "var(--arc-panel)",
+          accent: "var(--arc-accent)",
+          accent2: "var(--arc-accent2)",
+          muted: "var(--arc-muted)",
         },
       },
       fontFamily: {

@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── ライトモード（デフォルト） ── */
+:root {
+  --arc-bg: #f8fafc;
+  --arc-panel: #f1f5f9;
+  --arc-accent: #0d9488;
+  --arc-accent2: #6366f1;
+  --arc-muted: #64748b;
+}
+
+/* ── ダークモード ── */
+.dark {
+  --arc-bg: #0b1020;
+  --arc-panel: #121830;
+  --arc-accent: #5eead4;
+  --arc-accent2: #818cf8;
+  --arc-muted: #6b7280;
+}
+
 html,
 body,
 #root {

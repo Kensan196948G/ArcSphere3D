@@ -75,40 +75,41 @@ test("page loads with 3D viewport and header", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("ArcSphere3D")).toBeVisible();
   await expect(page.getByText("MVP")).toBeVisible();
-  // Canvas for Three.js viewport should be present
-  await expect(page.locator("canvas")).toBeVisible();
+  // Viewport container should be present (canvas may not exist when WebGL is unavailable)
+  await expect(page.locator("[data-testid='viewport-canvas']")).toBeVisible();
 });
 
-test("Sign In button opens login modal", async ({ page }) => {
+test("ログインボタンでモーダルが開く", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
-  await expect(page.getByLabel("Email")).toBeVisible();
-  await expect(page.getByLabel("Password")).toBeVisible();
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
+  await expect(page.getByLabel("メールアドレス")).toBeVisible();
+  await expect(page.getByLabel("パスワード")).toBeVisible();
 });
 
-test("login modal closes on backdrop click", async ({ page }) => {
+test("ログインモーダルはバックドロップクリックで閉じる", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign In" }).click();
+  await page.getByRole("button", { name: "ログイン" }).click();
   // Click outside the modal (the backdrop overlay)
   await page.locator(".fixed.inset-0").click({ position: { x: 10, y: 10 } });
-  await expect(page.getByLabel("Email")).not.toBeVisible();
+  await expect(page.getByLabel("メールアドレス")).not.toBeVisible();
 });
 
-test("successful login shows Sign Out and Projects panel", async ({ page }) => {
+test("ログイン成功でログアウトボタンとプロジェクトパネルが表示される", async ({ page }) => {
   await setupApiMocks(page);
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.getByLabel("Email").fill("demo@arcsphere3d.dev");
-  await page.getByLabel("Password").fill("arcsphere-demo");
-  await page.getByRole("button", { name: "Sign In" }).last().click();
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
 
-  await expect(page.getByRole("button", { name: "Sign Out" })).toBeVisible();
-  await expect(page.getByText("Projects")).toBeVisible();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  // RightPanel のセクション見出し（h2）でプロジェクトパネルの存在を確認
+  await expect(page.getByRole("heading", { name: "プロジェクト" })).toBeVisible();
 });
 
-test("login with wrong credentials shows error", async ({ page }) => {
+test("誤った認証情報でエラーが表示される", async ({ page }) => {
   await page.route("**/api/auth/login", async (route) => {
     await route.fulfill({
       status: 401,
@@ -117,23 +118,23 @@ test("login with wrong credentials shows error", async ({ page }) => {
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.getByLabel("Email").fill("wrong@example.com");
-  await page.getByLabel("Password").fill("wrongpassword");
-  await page.getByRole("button", { name: "Sign In" }).last().click();
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("wrong@example.com");
+  await page.getByLabel("パスワード").fill("wrongpassword");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
   // Error message should appear
-  await expect(page.locator(".text-rose-400")).toBeVisible();
+  await expect(page.locator(".text-rose-500")).toBeVisible();
 });
 
-test("after login: project list is shown and files can be listed", async ({ page }) => {
+test("ログイン後: プロジェクト一覧表示とファイル一覧取得", async ({ page }) => {
   await setupApiMocks(page);
   await page.goto("/");
 
   // Login
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.getByLabel("Password").fill("arcsphere-demo");
-  await page.getByRole("button", { name: "Sign In" }).last().click();
-  await expect(page.getByRole("button", { name: "Sign Out" })).toBeVisible();
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
 
   // Select project from dropdown
   await page.selectOption("select", MOCK_PROJECT.id);
@@ -142,18 +143,19 @@ test("after login: project list is shown and files can be listed", async ({ page
   await expect(page.getByText("cube.stl")).toBeVisible();
 });
 
-test("sign out clears auth and hides Projects panel", async ({ page }) => {
+test("ログアウトで認証クリアとプロジェクトパネル非表示", async ({ page }) => {
   await setupApiMocks(page);
   await page.goto("/");
 
   // Login
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.getByLabel("Password").fill("arcsphere-demo");
-  await page.getByRole("button", { name: "Sign In" }).last().click();
-  await expect(page.getByRole("button", { name: "Sign Out" })).toBeVisible();
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
 
   // Sign out
-  await page.getByRole("button", { name: "Sign Out" }).click();
-  await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
-  await expect(page.getByText("Projects")).not.toBeVisible();
+  await page.getByRole("button", { name: "ログアウト" }).click();
+  await expect(page.getByRole("button", { name: "ログイン" })).toBeVisible();
+  // ログアウト後は RightPanel のプロジェクトセクション見出し（h2）が消える
+  await expect(page.getByRole("heading", { name: "プロジェクト" })).not.toBeVisible();
 });

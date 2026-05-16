@@ -1,13 +1,22 @@
 import { useState } from "react";
 import { useAuthStore } from "@/state/authStore";
 import { useSceneStore } from "@/state/sceneStore";
+import { useThemeStore } from "@/state/themeStore";
+import { useUiStore } from "@/state/uiStore";
 import LoginModal from "@/features/auth/LoginModal";
 
 export default function Header() {
   const objectCount = useSceneStore((s) => s.objects.length);
   const token = useAuthStore((s) => s.token);
   const logout = useAuthStore((s) => s.logout);
+  const { theme, toggle } = useThemeStore();
+  const setActivePanel = useUiStore((s) => s.setActivePanel);
   const [showLogin, setShowLogin] = useState(false);
+
+  function handleLogout() {
+    logout();
+    setActivePanel("model");
+  }
 
   return (
     <>
@@ -16,28 +25,39 @@ export default function Header() {
           <span className="text-lg font-semibold tracking-wide text-arc-accent">
             ⌬ ArcSphere3D
           </span>
-          <span className="rounded bg-slate-700/60 px-2 py-0.5 text-xs uppercase text-slate-300">
+          <span className="rounded bg-slate-700/30 px-2 py-0.5 text-xs uppercase text-slate-400 dark:bg-slate-700/60 dark:text-slate-300">
             MVP
           </span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-slate-400">
-          <span>Objects: {objectCount}</span>
-          <span className="text-slate-500">v0.1.0</span>
+        <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <span>オブジェクト: {objectCount}</span>
+          <span className="text-slate-400 dark:text-slate-500">v0.1.0</span>
+
+          {/* ライト/ダーク切り替え */}
+          <button
+            type="button"
+            onClick={toggle}
+            title={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+            className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+
           {token ? (
             <button
               type="button"
-              onClick={logout}
-              className="rounded bg-slate-700/60 px-2 py-0.5 text-slate-300 hover:bg-slate-700"
+              onClick={handleLogout}
+              className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
             >
-              Sign Out
+              ログアウト
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setShowLogin(true)}
-              className="rounded bg-arc-accent/80 px-2 py-0.5 text-slate-900 hover:bg-arc-accent"
+              className="rounded bg-arc-accent/80 px-2 py-0.5 text-white hover:bg-arc-accent dark:text-slate-900"
             >
-              Sign In
+              ログイン
             </button>
           )}
         </div>

@@ -8,8 +8,7 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-
-export type SupportedExt = "stl" | "obj" | "gltf" | "glb";
+export type SupportedExt = "stl" | "obj" | "gltf" | "glb" | "ifc";
 
 const DEFAULT_MATERIAL = new MeshStandardMaterial({
   color: 0x9ca3af,
@@ -21,8 +20,8 @@ export function extOf(filename: string): SupportedExt | null {
   const m = filename.toLowerCase().match(/\.([a-z0-9]+)$/);
   if (!m) return null;
   const ext = m[1];
-  if (ext === "stl" || ext === "obj" || ext === "gltf" || ext === "glb") {
-    return ext;
+  if (ext === "stl" || ext === "obj" || ext === "gltf" || ext === "glb" || ext === "ifc") {
+    return ext as SupportedExt;
   }
   return null;
 }
@@ -79,6 +78,11 @@ export async function loadFromUrl(url: string, filename: string): Promise<Object
         );
       });
     }
+    case "ifc": {
+      const buf = await res.arrayBuffer();
+      const { loadIfc } = await import("./ifcLoader");
+      return await loadIfc(buf, filename);
+    }
   }
 }
 
@@ -123,6 +127,11 @@ export async function loadFile(file: File): Promise<Object3D> {
           (err) => reject(err),
         );
       });
+    }
+    case "ifc": {
+      const buf = await readArrayBuffer(file);
+      const { loadIfc } = await import("./ifcLoader");
+      return await loadIfc(buf, file.name);
     }
   }
 }

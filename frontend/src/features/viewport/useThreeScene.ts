@@ -15,16 +15,11 @@ import {
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { useSceneStore } from "@/state/sceneStore";
+import { useViewportStore } from "@/state/viewportStore";
 import { setActiveScene, setTransformControls } from "@/lib/threeContext";
 
 const MAX_DPR = 2;
 
-/**
- * Mounts a Three.js scene into the given container.
- * Returns a cleanup function (handled internally via useEffect).
- *
- * StrictMode-safe: full disposal of renderer, controls, geometry, materials.
- */
 export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
   const initRef = useRef(false);
 
@@ -38,31 +33,68 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
 
     // --- Scene ---
     const scene = new Scene();
-    scene.background = new Color("#0b1020");
+    const vp = useViewportStore.getState();
+    scene.background = new Color(vp.bgColor);
 
     // --- Camera ---
     const camera = new PerspectiveCamera(45, w / h, 0.1, 1000);
-    camera.position.set(6, 5, 8);
+    const DEFAULT_CAM_POS = { x: 6, y: 5, z: 8 };
+    camera.position.set(DEFAULT_CAM_POS.x, DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
     camera.lookAt(0, 0, 0);
 
     // --- Renderer ---
-    const renderer = new WebGLRenderer({ antialias: true, alpha: false });
+    let renderer: WebGLRenderer;
+    try {
+      renderer = new WebGLRenderer({ antialias: true, alpha: false });
+    } catch {
+      // WebGL not available (headless browsers, old GPU drivers)
+      useSceneStore.getState().log("[viewport] WebGL unavailable — 3D rendering disabled");
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR));
     renderer.setSize(w, h);
     container.appendChild(renderer.domElement);
 
     // --- Lights ---
-    const ambient = new AmbientLight(0xffffff, 0.6);
-    const dir = new DirectionalLight(0xffffff, 0.9);
+    const ambient = new AmbientLight(0xffffff, vp.ambientIntensity);
+    const dir = new DirectionalLight(0xffffff, vp.dirIntensity);
     dir.position.set(8, 12, 6);
     scene.add(ambient, dir);
 
-    // --- Helpers ---
-    const grid = new GridHelper(20, 20, 0x4b5563, 0x1f2937);
-    const axes = new AxesHelper(2);
-    scene.add(grid, axes);
+    // --- Helpers (mutable refs so viewportStore can swap them) ---
+    let grid: GridHelper | null = null;
+    let axes: AxesHelper | null = null;
 
-    // --- Demo cube (removable via right panel) ---
+    function rebuildGrid(size: number) {
+      if (grid) {
+        scene.remove(grid);
+        grid.dispose();
+      }
+      if (useViewportStore.getState().showGrid) {
+        grid = new GridHelper(size, size, 0x4b5563, 0x1f2937);
+        scene.add(grid);
+      } else {
+        grid = null;
+      }
+    }
+
+    function rebuildAxes() {
+      if (axes) {
+        scene.remove(axes);
+        axes.dispose();
+      }
+      if (useViewportStore.getState().showAxes) {
+        axes = new AxesHelper(2);
+        scene.add(axes);
+      } else {
+        axes = null;
+      }
+    }
+
+    rebuildGrid(vp.gridSize);
+    rebuildAxes();
+
+    // --- Demo cube ---
     const cubeGeom = new BoxGeometry(1.5, 1.5, 1.5);
     const cubeMat = new MeshStandardMaterial({
       color: 0x5eead4,
@@ -86,9 +118,7 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     controls.target.set(0, 0.5, 0);
     controls.update();
 
-    // --- Transform gizmo (MVP: Move/Rotate/Scale) ---
-    // In three r169 TransformControls is no longer an Object3D — its gizmo
-    // visuals live on `getHelper()`, which is what we attach to the scene.
+    // --- Transform gizmo ---
     const tcontrols = new TransformControls(camera, renderer.domElement);
     tcontrols.setSize(0.9);
     tcontrols.addEventListener("dragging-changed", (e) => {
@@ -97,12 +127,11 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     const gizmoHelper = tcontrols.getHelper();
     scene.add(gizmoHelper);
 
-    // Expose to FileLoader / UI.
     setActiveScene(scene);
     setTransformControls(tcontrols);
     useSceneStore.getState().log("[viewport] WebGL initialised");
 
-    // --- React<>Three bridge: react to selection / mode changes ---
+    // --- sceneStore subscription ---
     const applyStoreState = (
       selectedId: string | null,
       mode: "translate" | "rotate" | "scale",
@@ -120,7 +149,7 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     };
     const initial = useSceneStore.getState();
     applyStoreState(initial.selectedId, initial.transformMode);
-    const unsubscribe = useSceneStore.subscribe((state, prev) => {
+    const unsubScene = useSceneStore.subscribe((state, prev) => {
       if (
         state.selectedId !== prev.selectedId ||
         state.transformMode !== prev.transformMode ||
@@ -130,7 +159,46 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       }
     });
 
-    // --- Keyboard shortcuts: W=translate, E=rotate, R=scale, Esc=deselect ---
+    // --- viewportStore subscription ---
+    const unsubViewport = useViewportStore.subscribe((state, prev) => {
+      if (state.bgColor !== prev.bgColor) {
+        scene.background = new Color(state.bgColor);
+      }
+      if (state.showGrid !== prev.showGrid || state.gridSize !== prev.gridSize) {
+        rebuildGrid(state.gridSize);
+      }
+      if (state.showAxes !== prev.showAxes) {
+        rebuildAxes();
+      }
+      if (state.ambientIntensity !== prev.ambientIntensity) {
+        ambient.intensity = state.ambientIntensity;
+      }
+      if (state.dirIntensity !== prev.dirIntensity) {
+        dir.intensity = state.dirIntensity;
+      }
+      if (state.wireframe !== prev.wireframe) {
+        scene.traverse((obj) => {
+          const m = obj as Mesh;
+          if (!m.isMesh) return;
+          const mat = m.material;
+          if (Array.isArray(mat)) {
+            mat.forEach((x) => {
+              if (x instanceof MeshStandardMaterial) x.wireframe = state.wireframe;
+            });
+          } else if (mat instanceof MeshStandardMaterial) {
+            mat.wireframe = state.wireframe;
+          }
+        });
+      }
+      if (state._cameraResetCount !== prev._cameraResetCount) {
+        camera.position.set(DEFAULT_CAM_POS.x, DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z);
+        camera.lookAt(0, 0, 0);
+        controls.target.set(0, 0.5, 0);
+        controls.update();
+      }
+    });
+
+    // --- Keyboard shortcuts ---
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -166,10 +234,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", onKey);
-      unsubscribe();
+      unsubScene();
+      unsubViewport();
       ro.disconnect();
-      // Detach gizmo BEFORE traversing so its internal meshes aren't disposed
-      // by the scene-wide dispose pass.
       tcontrols.detach();
       scene.remove(gizmoHelper);
       tcontrols.dispose();
@@ -186,7 +253,6 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       renderer.domElement.remove();
       setActiveScene(null);
       setTransformControls(null);
-      // Clear store so the next mount starts clean (StrictMode double-mount).
       useSceneStore.setState({
         objects: [],
         logs: [],

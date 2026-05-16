@@ -37,46 +37,46 @@ export default function ProjectPanel() {
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    log(`[project] uploading ${file.name}…`);
+    log(`[project] ${file.name} をアップロード中…`);
     const meta = await uploadFile(token, file);
-    if (meta) log(`[project] uploaded ${meta.filename}`);
+    if (meta) log(`[project] ${meta.filename} のアップロード完了`);
     e.target.value = "";
   }
 
   async function handleOpen(fileId: string, filename: string) {
     const result = await getDownloadUrl(token, fileId);
     if (!result) return;
-    log(`[project] loading ${filename} from S3…`);
+    log(`[project] S3 から ${filename} を読み込み中…`);
     try {
       const obj = await loadFromUrl(result.url, filename);
       const id = crypto.randomUUID();
       obj.name = filename;
       addObject({ id, name: filename, object: obj });
-      log(`[project] ✓ ${filename} added to scene`);
+      log(`[project] ✓ ${filename} をシーンに追加`);
     } catch (err) {
-      log(`[project] ✗ failed to load ${filename}: ${String(err)}`);
+      log(`[project] ✗ ${filename} の読み込みに失敗: ${String(err)}`);
     }
   }
 
   async function handleDelete(fileId: string, filename: string) {
     await deleteFile(token, fileId);
-    log(`[project] deleted ${filename}`);
+    log(`[project] ${filename} を削除`);
   }
 
   return (
     <div className="flex flex-col gap-3 text-xs">
-      {/* Project selector */}
+      {/* プロジェクト選択 */}
       <div>
-        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-          Project
+        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          プロジェクト
         </label>
         <select
           value={selectedProjectId ?? ""}
           onChange={(e) => handleSelectProject(e.target.value)}
-          className="w-full rounded bg-slate-700 px-2 py-1 text-slate-200 outline-none focus:ring-1 focus:ring-arc-accent"
+          className="w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
         >
           <option value="" disabled>
-            — select project —
+            — プロジェクトを選択 —
           </option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
@@ -86,40 +86,40 @@ export default function ProjectPanel() {
         </select>
       </div>
 
-      {/* Create project */}
+      {/* プロジェクト作成 */}
       <form onSubmit={handleCreateProject} className="flex gap-1">
         <input
           type="text"
           value={newProjectName}
           onChange={(e) => setNewProjectName(e.target.value)}
-          placeholder="New project name"
-          className="flex-1 rounded bg-slate-700 px-2 py-1 text-slate-200 outline-none focus:ring-1 focus:ring-arc-accent"
+          placeholder="新しいプロジェクト名"
+          className="flex-1 rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
         />
         <button
           type="submit"
           disabled={creating || !newProjectName.trim()}
-          className="rounded bg-arc-accent/70 px-2 py-1 text-slate-900 hover:bg-arc-accent disabled:opacity-40"
+          className="rounded bg-arc-accent/70 px-2 py-1 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
         >
           +
         </button>
       </form>
 
-      {error && <p className="text-rose-400">{error}</p>}
+      {error && <p className="text-rose-500 dark:text-rose-400">{error}</p>}
 
-      {/* File list */}
+      {/* ファイル一覧 */}
       {selectedProjectId && (
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              Files
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              ファイル
             </span>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
-              className="rounded bg-slate-700 px-2 py-0.5 text-slate-300 hover:bg-slate-600 disabled:opacity-40"
+              className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 disabled:opacity-40 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
             >
-              Upload
+              アップロード
             </button>
             <input
               ref={fileInputRef}
@@ -131,19 +131,21 @@ export default function ProjectPanel() {
           </div>
 
           {loading && (
-            <p className="text-slate-500">Loading…</p>
+            <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
           )}
 
           {files.length === 0 && !loading ? (
-            <p className="text-slate-500">No files yet — upload a model.</p>
+            <p className="text-slate-400 dark:text-slate-500">
+              ファイルなし — モデルをアップロードしてください。
+            </p>
           ) : (
             <ul className="space-y-1">
               {files.map((f) => (
                 <li
                   key={f.id}
-                  className="flex items-center justify-between rounded bg-slate-800/60 px-2 py-1"
+                  className="flex items-center justify-between rounded bg-slate-100/80 px-2 py-1 dark:bg-slate-800/60"
                 >
-                  <span className="flex-1 truncate text-slate-300">
+                  <span className="flex-1 truncate text-slate-600 dark:text-slate-300">
                     {f.filename}
                   </span>
                   <div className="ml-2 flex shrink-0 gap-1">
@@ -151,15 +153,15 @@ export default function ProjectPanel() {
                       type="button"
                       onClick={() => handleOpen(f.id, f.filename)}
                       className="rounded px-1.5 py-0.5 text-arc-accent hover:bg-arc-accent/20"
-                      title="Open in 3D viewer"
+                      title="3D ビューアで開く"
                     >
                       3D
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(f.id, f.filename)}
-                      className="rounded px-1.5 py-0.5 text-rose-400 hover:bg-rose-400/20"
-                      title="Delete file"
+                      className="rounded px-1.5 py-0.5 text-rose-500 hover:bg-rose-400/20 dark:text-rose-400"
+                      title="ファイルを削除"
                     >
                       ✕
                     </button>
