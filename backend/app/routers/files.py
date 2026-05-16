@@ -17,6 +17,9 @@ from app.schemas import CurrentUser, DownloadUrl, FileMetadata
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
+_401 = {401: {"description": "missing or invalid bearer token"}}
+_404 = {404: {"description": "not found"}}
+
 ALLOWED_EXTS = {".stl", ".obj", ".gltf", ".glb", ".ifc", ".step"}
 MAX_BYTES = 200 * 1024 * 1024  # 200 MB
 
@@ -34,7 +37,19 @@ def _safe_filename(raw: str | None) -> str:
     return name
 
 
-@router.post("/upload", response_model=FileMetadata, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload",
+    response_model=FileMetadata,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        **_401,
+        **_404,
+        200: {"description": "duplicate — existing file returned"},
+        400: {"description": "invalid filename"},
+        413: {"description": "file too large"},
+        415: {"description": "unsupported extension"},
+    },
+)
 async def upload(
     project_id: UUID,
     session: DbDep,
@@ -113,7 +128,7 @@ async def upload(
 # IMPORTANT: /{project_id}/{file_id}/download MUST be registered BEFORE
 # /{project_id} — FastAPI matches routes in declaration order, and the
 # 1-segment pattern would otherwise swallow 2-segment paths.
-@router.get("/{project_id}/{file_id}/download", response_model=DownloadUrl)
+@router.get("/{project_id}/{file_id}/download", response_model=DownloadUrl, responses={**_401, **_404})
 async def download_url(
     project_id: UUID,
     file_id: UUID,
@@ -137,7 +152,7 @@ async def download_url(
     return DownloadUrl(url=url, expires_in=expires)
 
 
-@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**_401, **_404})
 async def delete_file(
     file_id: UUID,
     session: DbDep,
@@ -159,7 +174,7 @@ async def delete_file(
         logger.warning("s3_delete_failed", key=s3_key, error=str(exc))
 
 
-@router.get("/{project_id}", response_model=list[FileMetadata])
+@router.get("/{project_id}", response_model=list[FileMetadata], responses={**_401, **_404})
 async def list_files(
     project_id: UUID,
     session: DbDep,

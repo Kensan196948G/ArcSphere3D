@@ -8,13 +8,16 @@ import {
   GridHelper,
   Mesh,
   MeshStandardMaterial,
+  Object3D,
   PerspectiveCamera,
+  Raycaster,
   Scene,
+  Vector2,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
-import { useSceneStore } from "@/state/sceneStore";
+import { useSceneStore, type SceneObject } from "@/state/sceneStore";
 import { useThemeStore } from "@/state/themeStore";
 import { useViewportStore } from "@/state/viewportStore";
 import { setActiveScene, setTransformControls } from "@/lib/threeContext";
@@ -26,6 +29,28 @@ const GRID_COLORS = {
   dark: [0x4b5563, 0x1f2937] as [number, number],
   light: [0x9ca3af, 0xd1d5db] as [number, number],
 };
+
+function setSelectionHighlight(objects: SceneObject[], selectedId: string | null) {
+  objects.forEach(({ id, object }) => {
+    object.traverse((child) => {
+      const m = child as Mesh;
+      if (!m.isMesh) return;
+      const mat = m.material;
+      const highlight = id === selectedId;
+      const applyHighlight = (x: MeshStandardMaterial) => {
+        x.emissive.setHex(highlight ? 0x2563eb : 0x000000);
+        x.emissiveIntensity = highlight ? 0.3 : 0;
+      };
+      if (Array.isArray(mat)) {
+        mat.forEach((x) => {
+          if (x instanceof MeshStandardMaterial) applyHighlight(x);
+        });
+      } else if (mat instanceof MeshStandardMaterial) {
+        applyHighlight(mat);
+      }
+    });
+  });
+}
 
 export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
   const initRef = useRef(false);
@@ -148,13 +173,14 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       tcontrols.setMode(mode);
       if (!selectedId) {
         tcontrols.detach();
-        return;
+      } else {
+        const target = useSceneStore
+          .getState()
+          .objects.find((o) => o.id === selectedId)?.object;
+        if (target) tcontrols.attach(target);
+        else tcontrols.detach();
       }
-      const target = useSceneStore
-        .getState()
-        .objects.find((o) => o.id === selectedId)?.object;
-      if (target) tcontrols.attach(target);
-      else tcontrols.detach();
+      setSelectionHighlight(useSceneStore.getState().objects, selectedId);
     };
     const initial = useSceneStore.getState();
     applyStoreState(initial.selectedId, initial.transformMode);
@@ -165,6 +191,7 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
         state.objects !== prev.objects
       ) {
         applyStoreState(state.selectedId, state.transformMode);
+        setSelectionHighlight(state.objects, state.selectedId);
       }
     });
 
@@ -228,6 +255,62 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     };
     window.addEventListener("keydown", onKey);
 
+    // --- Raycasting click selection ---
+    const raycaster = new Raycaster();
+    const mouse = new Vector2();
+    let pointerDownX = 0;
+    let pointerDownY = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      pointerDownX = e.clientX;
+      pointerDownY = e.clientY;
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      const dx = e.clientX - pointerDownX;
+      const dy = e.clientY - pointerDownY;
+      // Skip if pointer moved more than 5px — treat as orbit drag, not click.
+      if (Math.sqrt(dx * dx + dy * dy) > 5) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      // Collect all Mesh objects in the scene, excluding TransformControls helper.
+      const meshes: Mesh[] = [];
+      scene.traverse((obj) => {
+        if (obj === gizmoHelper) return;
+        let node: Object3D | null = obj;
+        while (node) {
+          if (node === gizmoHelper) return;
+          node = node.parent;
+        }
+        const m = obj as Mesh;
+        if (m.isMesh) meshes.push(m);
+      });
+
+      const hits = raycaster.intersectObjects(meshes, false);
+      const store = useSceneStore.getState();
+
+      if (hits.length > 0) {
+        const hitObj = hits[0].object;
+        // Walk parent chain to find a matching sceneStore entry.
+        let node: Object3D | null = hitObj;
+        let entry = store.objects.find((o) => o.object === node);
+        while (!entry && node !== null && node.parent !== null) {
+          node = node.parent;
+          entry = store.objects.find((o) => o.object === node);
+        }
+        if (entry) store.select(entry.id);
+      } else {
+        store.select(null);
+      }
+    };
+
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+    renderer.domElement.addEventListener("pointerup", onPointerUp);
+
     // --- Resize ---
     const resize = () => {
       const W = container.clientWidth;
@@ -252,6 +335,8 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", onKey);
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.domElement.removeEventListener("pointerup", onPointerUp);
       unsubScene();
       unsubViewport();
       unsubTheme();

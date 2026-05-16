@@ -7,8 +7,6 @@ from functools import lru_cache
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_JWT_SECRET_DEFAULT = "dev-insecure-secret-change-me-please-32chars"  # noqa: S105 — dev sentinel, rejected at runtime in prod
-MIN_JWT_SECRET_BYTES = 32
 DEV_ENVS = {"development", "dev", "test", "testing"}
 
 
@@ -29,8 +27,9 @@ class Settings(BaseSettings):
         default="postgresql+psycopg://arc:arc@localhost:5432/arcsphere3d",
     )
 
-    jwt_secret: str = Field(default=DEV_JWT_SECRET_DEFAULT)
-    jwt_algorithm: str = Field(default="HS256")
+    jwt_private_key_pem: str = Field(default="")
+    jwt_public_key_pem: str = Field(default="")
+    jwt_algorithm: str = Field(default="RS256")
     jwt_access_token_ttl_minutes: int = Field(default=60)
 
     s3_endpoint_url: str = Field(default="http://localhost:9000")
@@ -56,13 +55,10 @@ class Settings(BaseSettings):
                 "cors_origins cannot contain '*' — the app sends credentials, "
                 "and the Fetch spec forbids the wildcard with credentialed requests"
             )
-        if self.is_production_like and (
-            self.jwt_secret == DEV_JWT_SECRET_DEFAULT
-            or len(self.jwt_secret.encode("utf-8")) < MIN_JWT_SECRET_BYTES
-        ):
+        if self.is_production_like and not self.jwt_private_key_pem:
             raise ValueError(
-                f"jwt_secret must be a non-default value of at least "
-                f"{MIN_JWT_SECRET_BYTES} bytes when app_env={self.app_env!r}"
+                f"jwt_private_key_pem must be set when app_env={self.app_env!r}; "
+                "provide RSA private key PEM via JWT_PRIVATE_KEY_PEM env var"
             )
         return self
 

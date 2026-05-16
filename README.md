@@ -1,248 +1,246 @@
-# 🌐 ArcSphere3D
+# ArcSphere3D
 
-> **AI Native Web 3D CAD Platform** — ブラウザだけで動く、AI が伴走する 3D CAD / BIM / Digital Twin。
-
-| 🟢 Status | 🎯 Goal | 📅 Term | 🏷️ Stage |
-|---|---|---|---|
-| **Improve** (Verify ✅ 3/3) | MVP Release → Production Release | 2026-05-14 → **2026-11-14** (6 ヶ月) | `mvp-release` |
+> **AI Native Web 3D CAD Platform** — Full browser-based 3D CAD / BIM / Digital Twin with JWT authentication and S3-backed file storage.
 
 [![CI](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml/badge.svg)](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Proprietary-blue)]()
-[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20TS%20%2B%20Three.js-61DAFB)]()
+[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20Three.js%20r169-61DAFB)]()
 [![Backend](https://img.shields.io/badge/backend-FastAPI%20%2B%20Python%203.12-009688)]()
-[![Storage](https://img.shields.io/badge/storage-PostgreSQL%20%2B%20MinIO-4169E1)]()
+[![Storage](https://img.shields.io/badge/storage-PostgreSQL%2016%20%2B%20MinIO-4169E1)]()
 
 ---
 
-## 🧭 What is ArcSphere3D?
+## Overview
 
-ArcSphere3D は **AI Native** な Web 3D CAD プラットフォームです。
-建設・製造・設計業務における 3D モデリング、BIM、Digital Twin、コラボレーションを **ブラウザ単体** で実現します。
+ArcSphere3D is an **AI Native** web-based 3D CAD platform designed for architecture, manufacturing, and engineering workflows. It runs entirely in the browser — no plugins, no local installs — backed by a FastAPI REST API, PostgreSQL, and S3-compatible object storage.
 
-| 🚧 課題 | ✅ ArcSphere3D の解 |
-|---|---|
-| 高価な専用 CAD | Web 化による低コスト化 |
-| ローカル PC 依存 | フルブラウザ運用 |
-| BIM 連携不足 | IFC / BIM 統合 |
-| 属人化 | AI 支援 (自然言語 → CAD コマンド) |
-| データ分散 | 統合プロジェクト管理 |
-| コラボ困難 | リアルタイム共有 / コメント |
+Users authenticate via **JWT (RS256)**, manage 3D projects and files through a structured REST API, and visualize models directly in the browser using a Three.js viewport. IFC (Industry Foundation Classes) files are parsed and rendered client-side via **web-ifc**, enabling BIM workflows without any server-side CAD kernel. The platform is built for collaborative, cloud-first teams who need professional 3D tooling without the overhead of traditional desktop CAD.
 
 ---
 
-## 🏗️ Architecture
+## Feature Status
+
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | JWT authentication (RS256) | Done |
+| 2 | Project management CRUD | Done |
+| 3 | File upload — S3 presigned + sha256 deduplication | Done |
+| 4 | IFC 3D viewer (web-ifc) | Done |
+| 5 | Three.js 3D viewport — Grid / Axes / Transform Controls | Done |
+| 6 | Light / Dark theme | Done |
+| 7 | E2E tests — Playwright / Firefox (7/7 pass) | Done |
+| 8 | Click-to-select + emissive highlight | In Progress |
+| 9 | OpenCascade.js CAD kernel integration | Planned |
+| 10 | Real-time collaboration (WebSocket) | Planned |
+| 11 | AI-assisted natural language CAD commands | Planned |
+
+---
+
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Browser["Browser (React + TypeScript)"]
+        UI[UI Panels]
+        VP[Three.js Viewport]
+        IFC[web-ifc IFC Parser]
+        UI --> VP
+        VP --> IFC
+    end
+
+    subgraph API["Backend (FastAPI)"]
+        AUTH[JWT Auth RS256]
+        PROJ[Projects API]
+        FILES[Files API]
+        AUTH --> PROJ
+        AUTH --> FILES
+    end
+
+    subgraph Data["Data Layer"]
+        PG[(PostgreSQL 16)]
+        S3[(MinIO / S3)]
+    end
+
+    Browser <-->|"HTTPS REST"| API
+    PROJ --> PG
+    FILES --> PG
+    FILES <-->|"presigned URL"| S3
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend Framework** | React 18, TypeScript |
+| **3D Rendering** | Three.js r169 (OrbitControls, TransformControls, GridHelper) |
+| **BIM / IFC** | web-ifc (WASM, client-side) |
+| **Bundler** | Vite 6 — esbuild minify, manual chunks (vendor-three / vendor-react) |
+| **Styling** | Tailwind CSS |
+| **State Management** | Zustand |
+| **E2E Testing** | Playwright (Firefox, xvfb-run) |
+| **Backend Framework** | FastAPI 0.115+ |
+| **ORM / Migrations** | SQLAlchemy 2, Alembic |
+| **Database Driver** | psycopg3 (psycopg[binary]) |
+| **Authentication** | python-jose RS256, bcrypt 4.x |
+| **Object Storage** | boto3 + MinIO (S3-compatible) |
+| **Logging** | structlog (structured JSON) |
+| **Linting / Typing** | Ruff, mypy, ESLint 9 flat config |
+| **Database** | PostgreSQL 16 |
+| **Local Infra** | Docker Compose |
+| **CI** | GitHub Actions |
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/auth/register` | Register a new user |
+| `POST` | `/api/auth/login` | Obtain JWT access token |
+| `GET` | `/api/users/me` | Current authenticated user |
+| `GET` | `/api/projects` | List projects (paginated) |
+| `POST` | `/api/projects` | Create a project |
+| `GET` | `/api/projects/{id}` | Get project detail |
+| `PUT` | `/api/projects/{id}` | Update project |
+| `DELETE` | `/api/projects/{id}` | Delete project |
+| `GET` | `/api/projects/{id}/files` | List files in project (paginated) |
+| `POST` | `/api/projects/{id}/files` | Upload file (S3 presigned, sha256 dedup) |
+| `GET` | `/api/projects/{id}/files/{fid}/download` | Get presigned download URL |
+| `DELETE` | `/api/projects/{id}/files/{fid}` | Delete file |
+
+Full interactive docs are available at `http://localhost:8001/docs` when running locally.
+
+---
+
+## CI Pipeline
 
 ```mermaid
 flowchart LR
-    subgraph Browser
-        UI[React + TS UI]
-        R3D[Three.js Viewport]
-        OCJ[OpenCascade.js<br/>CAD Kernel]
-        IFCJ[IFC.js<br/>BIM Reader]
-        UI --> R3D
-        R3D --> OCJ
-        R3D --> IFCJ
+    A([push / PR]) --> F
+
+    subgraph F["frontend job"]
+        F1[npm ci] --> F2[ESLint]
+        F2 --> F3[tsc --noEmit]
+        F3 --> F4[vite build]
+        F4 --> F5[Upload dist artifact]
     end
 
-    subgraph Server
-        API[FastAPI]
-        AUTH[Auth: JWT / Entra ID]
-        AI[AI Services]
-        API --> AUTH
-        API --> AI
+    subgraph E["e2e job"]
+        E1[Download dist] --> E2[Playwright install Firefox]
+        E2 --> E3[playwright test]
+        E3 --> E4[Upload report]
     end
 
-    subgraph Data
-        PG[(PostgreSQL)]
-        MIN[(MinIO Object Storage)]
-        RDS[(Redis Queue)]
+    subgraph B["backend job"]
+        B1[pip install] --> B2[ruff check]
+        B2 --> B3[ruff format --check]
+        B3 --> B4[mypy]
+        B4 --> B5[pytest --cov]
+        B5 --> B6[Upload coverage]
     end
 
-    Browser <-->|HTTPS / WS| API
-    API --> PG
-    API --> MIN
-    API --> RDS
+    F --> E
+    F --> B
 ```
 
 ---
 
-## 🧱 Tech Stack
+## Quick Start
 
-### 🖥️ Frontend
-| 分野 | 技術 |
-|---|---|
-| Framework | ⚛️ React 18 |
-| Language | 🟦 TypeScript |
-| Bundler | ⚡ Vite |
-| UI | 🎨 TailwindCSS |
-| 3D | 🌐 Three.js |
-| State | 🐻 Zustand |
-| Router | 🧭 React Router |
-| CAD Kernel | 🔧 OpenCascade.js (post-MVP) |
-| BIM | 🏗️ IFC.js (post-MVP) |
-
-### ⚙️ Backend
-| 分野 | 技術 |
-|---|---|
-| API | 🚀 FastAPI |
-| ORM | 🗄️ SQLAlchemy |
-| Migration | 🪶 Alembic |
-| Auth | 🔐 JWT / OAuth2 / Microsoft Entra ID |
-| Queue | 📨 Redis |
-
-### 🗃️ Data & Infra
-| 分野 | 技術 |
-|---|---|
-| RDB | 🐘 PostgreSQL |
-| Object Store | 🪣 MinIO |
-| Container | 🐳 Docker Compose (MVP) / ☸️ Kubernetes (future) |
-| CI / CD | 🧪 GitHub Actions + 🤖 CodeRabbit + 🛠️ Codex Review |
-
----
-
-## 📁 Directory Layout
-
-```text
-ArcSphere3D/
-├── frontend/        # ⚛️  React + TS + Three.js (Web 3D Viewport)
-├── backend/         # 🚀  FastAPI (REST API, Auth, Project, File)
-├── cad-engine/      # 🔧  OpenCascade.js wrappers (post-MVP)
-├── bim-engine/      # 🏗️  IFC.js / BIM property tree (post-MVP)
-├── ai-services/     # 🤖  AI assist services (post-MVP)
-├── infra/           # 🌐  IaC (Terraform / k8s manifests, future)
-├── docker/          # 🐳  docker-compose, Dockerfiles
-├── docs/            # 📚  ARCHITECTURE / ROADMAP / ADR / SECURITY
-├── tests/           # 🧪  Cross-cutting integration / e2e tests
-└── .github/         # 🛠️  Workflows, Issue templates
-```
-
----
-
-## 🚦 MVP Scope (本セッション)
-
-| # | 機能 | 状態 |
-|---|---|---|
-| 1 | 3D Viewport (Three.js + OrbitControls + GridHelper + Light) | 🟢 Done |
-| 2 | STL / OBJ / glTF Loader | 🟢 Done |
-| 3 | 基本 Transform (Move / Rotate / Scale) | 🟢 Done |
-| 4 | WebUI Layout (Header / LeftMenu / Viewport / RightPanel / Console) | 🟢 Done |
-| 5 | 認証 (JWT スケルトン; Entra ID は post-MVP) | 🟢 Done |
-
-### 🎛️ Transform Gizmo — キーバインド
-
-| キー / ボタン | 操作 |
-|---|---|
-| 🖱️ RightPanel の Scene Objects をクリック | 対象を選択 (もう一度クリックで解除) |
-| `W` / `Move` ボタン | 移動 (translate) モード |
-| `E` / `Rotate` ボタン | 回転 (rotate) モード |
-| `R` / `Scale` ボタン | スケール (scale) モード |
-| `Esc` | 選択解除 |
-| ドラッグ中 | OrbitControls は自動で無効 (gizmo 操作優先) |
-
-> 💡 内部実装メモ: three r169 から `TransformControls` は `Object3D` を継承しなくなったため、`scene.add(tc.getHelper())` で gizmo 表示用ヘルパーのみシーンに追加する。
-
----
-
-## 📅 6-Month Roadmap
-
-```mermaid
-gantt
-    title ArcSphere3D 6-Month Release Plan
-    dateFormat YYYY-MM-DD
-    axisFormat %b
-    section Foundation
-    Monorepo & CI            :done,    f1, 2026-05-14, 7d
-    Frontend Viewport        :active,  f2, 2026-05-15, 21d
-    Backend Skeleton         :active,  f3, 2026-05-15, 21d
-    section Build
-    glTF/OBJ/STL Loader      :         b1, 2026-06-05, 14d
-    Auth (JWT) + RBAC        :         b2, 2026-06-12, 14d
-    Project / File API       :         b3, 2026-06-19, 21d
-    section Quality
-    E2E (Playwright)         :         q1, 2026-07-15, 21d
-    Security Hardening       :         q2, 2026-08-05, 14d
-    section Integration
-    IFC Importer             :         i1, 2026-08-19, 21d
-    AI Assist (PoC)          :         i2, 2026-09-09, 21d
-    section Release
-    UAT / Bugfix             :         r1, 2026-10-01, 30d
-    Production Release       :crit,    r2, 2026-11-01, 13d
-```
-
-| Month | フェーズ | 主要マイルストーン |
-|---|---|---|
-| **M1** (2026-05) | Foundation | monorepo / CI / Viewport / FastAPI スケルトン |
-| **M2** (2026-06) | Build | Loader / Auth / Project API |
-| **M3** (2026-07) | Build → Quality | TransformControls / RightPanel / E2E 開始 |
-| **M4** (2026-08) | Quality → Integration | Security Audit / IFC PoC |
-| **M5** (2026-09) | Integration | AI Assist PoC / UAT 準備 |
-| **M6** (2026-10–11) | Release | UAT / Bugfix / **🚀 v1.0.0 リリース 2026-11-14** |
-
----
-
-## ⚡ Quick Start
-
-> 前提: Node.js 20+ / Python 3.12+ / Docker 24+ / Git 2.40+
+Prerequisites: **Docker 24+** and **Docker Compose v2** (recommended), or Node.js 20+ / Python 3.12+ for manual setup.
 
 ```bash
-# 1. リポジトリ
-git clone <repo> && cd ArcSphere3D
+# Clone the repository
+git clone https://github.com/Kensan196948G/ArcSphere3D.git
+cd ArcSphere3D
 
-# 2. Frontend
-cd frontend && npm install && npm run dev
-# → http://localhost:5173
-
-# 3. Backend
-cd ../backend && python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-uvicorn app.main:app --reload
-# → http://localhost:8000/docs
-
-# 4. (任意) フルスタック起動
+# Start the full stack (API + DB + MinIO + Frontend dev server)
 docker compose -f docker/docker-compose.yml up --build
 ```
 
----
+| Service | URL |
+|---------|-----|
+| Frontend (Vite dev) | http://localhost:5175 |
+| Backend API | http://localhost:8001 |
+| API Docs (Swagger) | http://localhost:8001/docs |
+| MinIO Console | http://localhost:9001 |
 
-## 🔐 Security Posture
+**Manual setup (without Docker)**
 
-| 項目 | 方針 |
-|---|---|
-| Transport | HTTPS (本番) / HTTP (dev のみ) |
-| Auth | JWT (HS256→RS256 移行予定) / OAuth2 / Entra ID |
-| AuthZ | RBAC (`viewer`, `editor`, `admin`) |
-| Storage | MinIO Server-Side Encryption |
-| Audit | `audit_logs` テーブル + 構造化ログ |
-| SAST | CodeQL (GitHub Actions) |
-| Dep | Dependabot |
+```bash
+# Frontend
+cd frontend
+npm install
+npm run dev          # http://localhost:5175
 
-詳細は [`docs/SECURITY.md`](docs/SECURITY.md)。
+# Backend (separate terminal)
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+uvicorn app.main:app --reload --port 8001
+```
 
----
+**Run E2E tests**
 
-## 🤖 AI-Assisted Development
+```bash
+cd frontend
+npx playwright install --with-deps firefox
+npx playwright test
+```
 
-このプロジェクトは **ClaudeOS** を用いた自律開発で運営されています。
+**Run backend tests**
 
-| 役割 | ツール |
-|---|---|
-| 主実装 | 🟣 Claude Code (Opus 4.7) |
-| Code Review | 🟢 CodeRabbit |
-| Adversarial Review | 🔵 Codex Review |
-| CI/CD | 🛠️ GitHub Actions |
-| Project Mgmt | 📋 GitHub Projects |
-
----
-
-## 📚 Docs
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — システム全体構成と境界
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — 6 ヶ月詳細ロードマップ
-- [`docs/SECURITY.md`](docs/SECURITY.md) — セキュリティ方針
-- [`docs/adr/`](docs/adr/) — 設計判断記録 (ADR)
+```bash
+cd backend
+pytest -q --cov=app
+```
 
 ---
 
-## 📝 License
+## Development Roadmap
 
-Proprietary — All rights reserved (詳細は別途整備)。
+```mermaid
+gantt
+    title ArcSphere3D — 6-Month Release Plan
+    dateFormat YYYY-MM-DD
+    axisFormat %b %Y
+
+    section Foundation
+    Monorepo & CI setup          :done,    f1, 2026-05-14, 7d
+    Three.js Viewport + UI       :done,    f2, 2026-05-15, 21d
+    FastAPI + Auth + File API    :done,    f3, 2026-05-15, 21d
+
+    section Build
+    Click Select + Highlight     :active,  b1, 2026-06-01, 14d
+    glTF / OBJ / STL Loaders    :         b2, 2026-06-15, 14d
+    RBAC + Entra ID (OAuth2)    :         b3, 2026-06-22, 21d
+
+    section Quality
+    Security Hardening           :         q1, 2026-07-15, 21d
+    Integration test coverage    :         q2, 2026-08-01, 21d
+
+    section Integration
+    OpenCascade.js CAD kernel    :         i1, 2026-08-22, 28d
+    AI Assist PoC                :         i2, 2026-09-19, 21d
+
+    section Release
+    UAT / Bugfix                 :         r1, 2026-10-10, 28d
+    Production Release v1.0.0   :crit,    r2, 2026-11-07, 7d
+```
+
+| Month | Phase | Key Milestones |
+|-------|-------|----------------|
+| **M1** May 2026 | Foundation | Monorepo, CI pipeline, Three.js viewport, FastAPI skeleton, JWT auth |
+| **M2** Jun 2026 | Build | Click-select, glTF/OBJ/STL loaders, RBAC, Entra ID OAuth2 |
+| **M3** Jul 2026 | Quality | Security audit, integration test coverage, performance profiling |
+| **M4** Aug 2026 | Integration | OpenCascade.js CAD kernel, IFC advanced features |
+| **M5** Sep 2026 | Integration | AI assist PoC, WebSocket collaboration prototype |
+| **M6** Oct–Nov 2026 | Release | UAT, bugfix, CHANGELOG, **v1.0.0 release 2026-11-14** |
+
+---
+
+## License
+
+Proprietary — All rights reserved. Contact the maintainers for licensing inquiries.

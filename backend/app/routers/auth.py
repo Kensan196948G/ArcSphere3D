@@ -23,7 +23,14 @@ _DEMO_USERS = {
 }
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    responses={
+        400: {"description": "malformed request body"},
+        401: {"description": "invalid credentials"},
+    },
+)
 def login(payload: LoginRequest) -> TokenResponse:
     user = _DEMO_USERS.get(payload.email)
     if not user or not verify_password(payload.password, user["password_hash"]):
@@ -42,7 +49,14 @@ def login(payload: LoginRequest) -> TokenResponse:
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    responses={
+        400: {"description": "malformed request body"},
+        401: {"description": "invalid or missing token"},
+    },
+)
 def refresh(current: CurrentUser) -> TokenResponse:  # pragma: no cover - scaffold
     # TODO(post-MVP): rotate refresh tokens via httpOnly cookie.
     token = create_access_token(

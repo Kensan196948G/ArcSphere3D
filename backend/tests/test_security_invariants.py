@@ -7,53 +7,66 @@ future change that re-opens the hole fails CI loudly.
 from __future__ import annotations
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 from jose import jwt
 from pydantic import ValidationError
 
-from app.config import DEV_JWT_SECRET_DEFAULT, Settings, get_settings
+from app.config import Settings, get_settings
 from app.main import app
 from app.security import decode_access_token, hash_password
 
 client = TestClient(app)
 
 
+def _make_evil_priv_pem() -> str:
+    """Generate a fresh RSA keypair unrelated to the app's keypair."""
+    evil_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    return evil_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode()
+
+
 # ---- C1: jwt.decode enforces issuer + required claims --------------------
 def test_decode_rejects_token_with_wrong_issuer() -> None:
-    s = get_settings()
+    # Token signed with a different private key cannot be verified with the app's public key.
+    evil_priv = _make_evil_priv_pem()
     bad = jwt.encode(
         {"sub": "x", "iss": "evil", "exp": 9999999999},
-        s.jwt_secret,
-        algorithm=s.jwt_algorithm,
+        evil_priv,
+        algorithm="RS256",
     )
     with pytest.raises(ValueError):
         decode_access_token(bad)
 
 
 def test_decode_rejects_token_missing_iss() -> None:
-    s = get_settings()
+    evil_priv = _make_evil_priv_pem()
     bad = jwt.encode(
         {"sub": "x", "exp": 9999999999},
-        s.jwt_secret,
-        algorithm=s.jwt_algorithm,
+        evil_priv,
+        algorithm="RS256",
     )
     with pytest.raises(ValueError):
         decode_access_token(bad)
 
 
-# ---- C2: production guard rejects default JWT secret ---------------------
-def test_settings_rejects_default_secret_in_production() -> None:
+# ---- C2: production guard rejects empty jwt_private_key_pem ---------------------
+def test_settings_rejects_missing_private_key_in_production() -> None:
     with pytest.raises(ValidationError):
-        Settings(app_env="production", jwt_secret=DEV_JWT_SECRET_DEFAULT)
+        Settings(app_env="production", jwt_private_key_pem="", jwt_public_key_pem="")
 
 
-def test_settings_rejects_short_secret_in_production() -> None:
-    with pytest.raises(ValidationError):
-        Settings(app_env="production", jwt_secret="short")
-
-
-def test_settings_accepts_strong_secret_in_production() -> None:
-    Settings(app_env="production", jwt_secret="x" * 48)
+def test_settings_accepts_pem_keys_in_production() -> None:
+    s = get_settings()
+    Settings(
+        app_env="production",
+        jwt_private_key_pem=s.jwt_private_key_pem,
+        jwt_public_key_pem=s.jwt_public_key_pem,
+    )
 
 
 # ---- C3: CORS wildcard never accepted ------------------------------------

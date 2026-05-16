@@ -13,7 +13,11 @@ from app.schemas import CurrentUser, ProjectCreate, ProjectOut
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
-@router.get("", response_model=list[ProjectOut])
+_401 = {401: {"description": "missing or invalid bearer token"}}
+_404 = {404: {"description": "not found"}}
+
+
+@router.get("", response_model=list[ProjectOut], responses=_401)
 async def list_projects(
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
@@ -24,7 +28,7 @@ async def list_projects(
     return await crud.list_projects(session, db_user.id, skip=skip, limit=limit)
 
 
-@router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED, responses=_401)
 async def create_project(
     body: ProjectCreate,
     session: DbDep,
@@ -34,7 +38,7 @@ async def create_project(
     return await crud.create_project(session, db_user.id, body)
 
 
-@router.get("/{project_id}", response_model=ProjectOut)
+@router.get("/{project_id}", response_model=ProjectOut, responses={**_401, **_404})
 async def get_project(
     project_id: UUID,
     session: DbDep,

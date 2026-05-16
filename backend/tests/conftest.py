@@ -3,18 +3,56 @@
 TestClient doesn't trigger FastAPI's lifespan unless used as a context
 manager, so we call init_engine() here at import time so every route
 handler can reach get_session() without raising RuntimeError.
+
+RSA keypair is generated once at module import time and injected into
+environment variables before get_settings() is first called, ensuring
+that all tests within the session share the same keypair for sign/verify
+consistency.
 """
 
 from __future__ import annotations
 
+import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import create_engine, text
 
-from app.config import get_settings
-from app.db.base import Base
-from app.db.session import init_engine
+# Generate and inject RSA keypair BEFORE any app module imports Settings.
+_test_private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+_test_priv_pem = _test_private_key.private_bytes(
+    encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.TraditionalOpenSSL,
+    encryption_algorithm=serialization.NoEncryption(),
+).decode()
+_test_pub_pem = (
+    _test_private_key.public_key()
+    .public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    .decode()
+)
+
+os.environ["JWT_PRIVATE_KEY_PEM"] = _test_priv_pem
+os.environ["JWT_PUBLIC_KEY_PEM"] = _test_pub_pem
+os.environ["JWT_ALGORITHM"] = "RS256"
+
+# Import app modules after env vars are set.
+from app.config import get_settings  # noqa: E402
+from app.db.base import Base  # noqa: E402
+from app.db.session import init_engine  # noqa: E402
+
+# Clear the lru_cache so Settings re-reads the env vars we just injected.
+get_settings.cache_clear()
+
+# Pin the security module's cached keypair to the test keypair so
+# _get_or_generate_keys never generates a different ephemeral pair.
+import app.security as _security_mod  # noqa: E402
+
+_security_mod._cached_keys = (_test_priv_pem, _test_pub_pem)
 
 # Initialise the app's async engine before any test function runs.
 init_engine()

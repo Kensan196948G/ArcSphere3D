@@ -1,7 +1,8 @@
 """Password hashing + JWT signing/verification helpers.
 
-NOTE: MVP uses HS256 JWT with a shared secret. Production should migrate to
-RS256 with a managed KMS-backed private key.
+RS256 asymmetric keypair is used for JWT. In dev/test environments where
+JWT_PRIVATE_KEY_PEM / JWT_PUBLIC_KEY_PEM are not set, an ephemeral RSA keypair
+is generated once per process and cached for the lifetime of that process.
 
 Bcrypt has a 72-byte input cap; we truncate at the byte level before hashing
 so longer passwords are still accepted (and verified consistently).
@@ -13,11 +14,51 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from jose import JWTError, jwt
 
 from app.config import get_settings
 
 _BCRYPT_MAX_BYTES = 72
+
+# Module-level cache so the same process always uses the same ephemeral keypair.
+# conftest.py overwrites this directly to inject the test keypair before imports.
+_cached_keys: tuple[str, str] | None = None
+
+
+def _get_or_generate_keys(settings: Any) -> tuple[str, str]:
+    """Return (private_pem, public_pem).
+
+    If Settings already has PEMs configured, use them directly.
+    Otherwise (dev/test only) generate an ephemeral RSA-2048 keypair once and
+    cache it at module level so every call within the same process returns the
+    same pair — this keeps token sign/verify consistent across tests.
+    """
+    global _cached_keys  # noqa: PLW0603
+
+    if settings.jwt_private_key_pem and settings.jwt_public_key_pem:
+        return settings.jwt_private_key_pem, settings.jwt_public_key_pem
+
+    if _cached_keys is not None:
+        return _cached_keys
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    priv_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode()
+    pub_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode()
+    )
+    _cached_keys = (priv_pem, pub_pem)
+    return _cached_keys
 
 
 def _prep(plain: str) -> bytes:
@@ -46,6 +87,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> str:
     settings = get_settings()
+    priv_pem, _ = _get_or_generate_keys(settings)
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,
@@ -55,16 +97,17 @@ def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> st
     }
     if extra:
         payload.update(extra)
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return jwt.encode(payload, priv_pem, algorithm="RS256")
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
+    _, pub_pem = _get_or_generate_keys(settings)
     try:
         return jwt.decode(
             token,
-            settings.jwt_secret,
-            algorithms=[settings.jwt_algorithm],
+            pub_pem,
+            algorithms=["RS256"],
             issuer=settings.app_name,
             options={"require": ["exp", "sub", "iss"]},
         )
