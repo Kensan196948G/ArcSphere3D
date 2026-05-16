@@ -40,6 +40,11 @@ def _db_truncate(_db_schema: None) -> None:
 
 @pytest.fixture(autouse=True)
 def _mock_s3() -> None:
-    """Patch put_object where files router imported it — tests need no real S3."""
-    with patch("app.routers.files.put_object", new_callable=AsyncMock):
+    """Patch all S3 helpers where files router imported them — tests need no real S3."""
+    presign_mock = AsyncMock(return_value="https://s3.example.com/presigned")
+    with (
+        patch("app.routers.files.put_object", new_callable=AsyncMock),
+        patch("app.routers.files.delete_object", new_callable=AsyncMock),
+        patch("app.routers.files.generate_presigned_url", presign_mock),
+    ):
         yield

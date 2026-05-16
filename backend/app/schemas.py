@@ -48,6 +48,11 @@ class FileMetadata(BaseModel):
     uploaded_at: datetime
 
 
+class DownloadUrl(BaseModel):
+    url: str
+    expires_in: int
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str

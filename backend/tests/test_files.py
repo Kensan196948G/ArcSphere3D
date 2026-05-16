@@ -125,3 +125,91 @@ def test_upload_rejects_disallowed_extension() -> None:
         headers=h,
     )
     assert res.status_code == 415
+
+
+# ---- DELETE /api/files/{file_id} ------------------------------------------
+
+
+def test_delete_file_removes_row() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    pid = _create_project(h)
+
+    upload_res = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("del.stl", b"solid x\nendsolid x\n", "model/stl")},
+        headers=h,
+    )
+    assert upload_res.status_code == 201
+    file_id = upload_res.json()["id"]
+
+    del_res = client.delete(f"/api/files/{file_id}", headers=h)
+    assert del_res.status_code == 204
+
+    listed = client.get(f"/api/files/{pid}", headers=h)
+    ids = [f["id"] for f in listed.json()]
+    assert file_id not in ids
+
+
+def test_delete_file_unknown_returns_404() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    res = client.delete(
+        "/api/files/00000000-0000-0000-0000-000000000000",
+        headers=h,
+    )
+    assert res.status_code == 404
+
+
+# ---- GET /api/files/{project_id}/{file_id}/download -----------------------
+
+
+def test_download_url_returns_url() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    pid = _create_project(h)
+
+    upload_res = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("model.glb", b"glTF\x02\x00", "model/gltf-binary")},
+        headers=h,
+    )
+    assert upload_res.status_code == 201
+    file_id = upload_res.json()["id"]
+
+    dl_res = client.get(f"/api/files/{pid}/{file_id}/download", headers=h)
+    assert dl_res.status_code == 200
+    data = dl_res.json()
+    assert "url" in data
+    assert data["expires_in"] == 3600
+
+
+# ---- SHA-256 content dedup -------------------------------------------------
+
+
+def test_sha256_dedup_returns_existing() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    pid = _create_project(h)
+
+    payload = b"solid dedup\nendsolid dedup\n"
+
+    res1 = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("dedup.stl", payload, "model/stl")},
+        headers=h,
+    )
+    assert res1.status_code == 201
+    first_id = res1.json()["id"]
+
+    res2 = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("dedup.stl", payload, "model/stl")},
+        headers=h,
+    )
+    assert res2.status_code == 200
+    assert res2.json()["id"] == first_id

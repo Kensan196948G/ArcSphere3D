@@ -29,8 +29,12 @@ async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
     return db_user
 
 
-async def list_projects(session: AsyncSession, owner_id: UUID) -> list[ProjectOut]:
-    result = await session.execute(select(Project).where(Project.owner_id == owner_id))
+async def list_projects(
+    session: AsyncSession, owner_id: UUID, skip: int = 0, limit: int = 50
+) -> list[ProjectOut]:
+    result = await session.execute(
+        select(Project).where(Project.owner_id == owner_id).offset(skip).limit(limit)
+    )
     return [
         ProjectOut(id=r.id, name=r.name, owner_id=r.owner_id, created_at=r.created_at)
         for r in result.scalars().all()
@@ -81,8 +85,12 @@ async def create_file(
     return f
 
 
-async def list_files(session: AsyncSession, project_id: UUID) -> list[FileMetadata]:
-    result = await session.execute(select(File).where(File.project_id == project_id))
+async def list_files(
+    session: AsyncSession, project_id: UUID, skip: int = 0, limit: int = 50
+) -> list[FileMetadata]:
+    result = await session.execute(
+        select(File).where(File.project_id == project_id).offset(skip).limit(limit)
+    )
     return [
         FileMetadata(
             id=r.id,
@@ -94,3 +102,36 @@ async def list_files(session: AsyncSession, project_id: UUID) -> list[FileMetada
         )
         for r in result.scalars().all()
     ]
+
+
+async def get_file_by_sha256(session: AsyncSession, project_id: UUID, sha256: bytes) -> File | None:
+    """Return existing file row if the same content was already uploaded to this project."""
+    result = await session.execute(
+        select(File).where(File.project_id == project_id, File.sha256 == sha256)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_file(session: AsyncSession, file_id: UUID, project_id: UUID) -> File | None:
+    result = await session.execute(
+        select(File).where(File.id == file_id, File.project_id == project_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_file_owned_by(session: AsyncSession, file_id: UUID, owner_id: UUID) -> File | None:
+    """Return the file row only if it belongs to a project owned by *owner_id* (IDOR defense)."""
+    result = await session.execute(
+        select(File)
+        .join(Project, File.project_id == Project.id)
+        .where(File.id == file_id, Project.owner_id == owner_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_file(session: AsyncSession, file_id: UUID) -> None:
+    result = await session.execute(select(File).where(File.id == file_id))
+    f = result.scalar_one_or_none()
+    if f:
+        await session.delete(f)
+        await session.commit()
