@@ -9,6 +9,7 @@ import AIPanel from "@/features/ai/AIPanel";
 import SettingsPanel from "@/features/settings/SettingsPanel";
 import IFCPropertyPanel from "@/features/bim/IFCPropertyPanel";
 import GisPanel from "@/features/gis/GisPanel";
+import PointCloudPanel from "@/features/pointcloud/PointCloudPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -62,11 +63,7 @@ export default function RightPanel() {
           </p>
         );
       case "pointcloud":
-        return (
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            点群ビューワー — 近日実装予定
-          </p>
-        );
+        return <PointCloudPanel />;
       case "terrain":
         return (
           <p className="text-[11px] text-slate-400 dark:text-slate-500">

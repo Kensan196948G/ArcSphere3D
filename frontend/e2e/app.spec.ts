@@ -313,3 +313,31 @@ test("ログイン後: ファイルアップロードUIが表示される", asyn
   const fileInput = page.locator('input[type="file"]');
   await expect(fileInput).toBeAttached();
 });
+
+// ---- PointCloud panel -------------------------------------------------------
+
+test("LeftMenu: 点群パネルに切り替わりLAS読み込みボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "点群" }).click();
+  await expect(page.getByRole("heading", { name: "点群", exact: true })).toBeVisible();
+  // LAS/LAZ 読み込みボタンが表示される
+  await expect(page.getByRole("button", { name: "LAS / LAZ を読み込む" })).toBeVisible();
+});
+
+test("PointCloudPanel: カラーモードボタンが4種類表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "点群" }).click();
+  await expect(page.getByRole("button", { name: "高さ" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "強度" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "RGB" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "単色" })).toBeVisible();
+});
+
+test("PointCloudPanel: 点サイズラベルとガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "点群" }).click();
+  // 点サイズラベルが表示される
+  await expect(page.getByText("点サイズ")).toBeVisible();
+  // 初期状態のガイドメッセージが表示される
+  await expect(page.getByText("LAS / LAZ ファイルを読み込むと 3D ビューに点群が表示されます。")).toBeVisible();
+});
