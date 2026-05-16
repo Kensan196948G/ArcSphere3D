@@ -361,3 +361,88 @@ test("PointCloudPanel: 点サイズラベルとガイドメッセージが表示
   // 初期状態のガイドメッセージが表示される
   await expect(page.getByText("LAS / LAZ ファイルを読み込むと 3D ビューに点群が表示されます。")).toBeVisible();
 });
+
+// ---- Terrain TIN panel ------------------------------------------------------
+
+test("LeftMenu: 地形パネルに切り替わりXYZファイル読み込みボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByRole("heading", { name: "地形 / TIN", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "XYZ ファイルを読み込む" })).toBeVisible();
+});
+
+test("TerrainPanel: TINサーフェスと三角形エッジのトグルボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByRole("button", { name: "TIN サーフェス" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "三角形エッジ" })).toBeVisible();
+});
+
+test("TerrainPanel: 等高線間隔スライダーが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByText("等高線間隔")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "等高線間隔" })).toBeVisible();
+});
+
+test("TerrainPanel: 初期状態のガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByText("XYZ 座標ファイルを読み込むと Delaunay 三角形分割 (TIN) で地形モデルが生成されます。")).toBeVisible();
+});
+
+test("LeftMenu: 土量計算パネルに切り替わり基準面標高と計算ボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByRole("heading", { name: "土量計算", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "土量を計算" })).toBeVisible();
+});
+
+test("EarthworkPanel: 基準面標高スライダーと数値入力が表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByText("基準面標高 (m)")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "基準面標高" })).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "基準面標高入力" })).toBeVisible();
+});
+
+test("EarthworkPanel: 地形データなしで計算ボタンが無効化される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByRole("button", { name: "土量を計算" })).toBeDisabled();
+});
+
+test("EarthworkPanel: 初期状態のガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByText("地形パネルで XYZ ファイルを読み込んでから基準面標高を設定し、土量を計算します。")).toBeVisible();
+});
+
+test("LeftMenu: 線形設計パネルに切り替わり作成ボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await expect(page.getByRole("heading", { name: "線形設計", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "線形を作成" })).toBeVisible();
+});
+
+test("AlignmentPanel: 設計速度セレクターと線形名入力が表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await expect(page.getByRole("combobox", { name: "設計速度" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "線形名" })).toBeVisible();
+});
+
+test("AlignmentPanel: 線形を作成してIP点追加フォームが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await page.getByRole("textbox", { name: "線形名" }).fill("テスト路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await expect(page.getByRole("button", { name: "テスト路線", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "IP 点を追加" })).toBeVisible();
+});
+
+test("AlignmentPanel: 初期状態のガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await expect(page.getByText("設計速度を選択して線形を作成し、IP 点を追加することで平面線形を設計します。")).toBeVisible();
+});
