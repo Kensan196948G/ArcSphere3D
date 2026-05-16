@@ -128,7 +128,11 @@ async def upload(
 # IMPORTANT: /{project_id}/{file_id}/download MUST be registered BEFORE
 # /{project_id} — FastAPI matches routes in declaration order, and the
 # 1-segment pattern would otherwise swallow 2-segment paths.
-@router.get("/{project_id}/{file_id}/download", response_model=DownloadUrl, responses={**_401, **_404})
+@router.get(
+    "/{project_id}/{file_id}/download",
+    response_model=DownloadUrl,
+    responses={**_401, **_404},
+)
 async def download_url(
     project_id: UUID,
     file_id: UUID,
