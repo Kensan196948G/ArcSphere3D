@@ -1,11 +1,17 @@
-"""FastAPI dependencies (current user, etc.)."""
+"""FastAPI dependencies (current user, DB session, etc.)."""
 
 from __future__ import annotations
 
-from fastapi import Depends, Header, HTTPException, status
+from typing import Annotated
 
+from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_session
 from app.schemas import CurrentUser
 from app.security import decode_access_token
+
+DbDep = Annotated[AsyncSession, Depends(get_session)]
 
 
 def get_current_user(authorization: str | None = Header(default=None)) -> CurrentUser:
