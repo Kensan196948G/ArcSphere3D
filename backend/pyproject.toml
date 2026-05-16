@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "arcsphere3d-backend"
+version = "0.1.0"
+description = "ArcSphere3D backend — FastAPI + SQLAlchemy"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "ArcSphere3D" }]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.6",
+    "pydantic[email]>=2.9.2",
+    "pydantic-settings>=2.5.2",
+    "sqlalchemy>=2.0.35",
+    "alembic>=1.13.3",
+    "psycopg[binary]>=3.2.3",
+    "python-jose[cryptography]>=3.3.0",
+    "bcrypt>=4.2.0",
+    "python-multipart>=0.0.12",
+    "structlog>=24.4.0",
+    "boto3>=1.35.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.27.2",
+    "ruff>=0.6.9",
+    "mypy>=1.11.2",
+    "types-python-jose>=3.3.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = ["S101"]  # allow asserts in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]
+# FastAPI uses callables in defaults as DI sentinels (B008 false positive).
+"app/routers/*" = ["B008"]
+# "bearer" is the RFC 6750 token_type literal, not a credential.
+"app/schemas.py" = ["S105"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --strict-markers"

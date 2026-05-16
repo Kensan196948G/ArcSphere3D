@@ -1,0 +1,55 @@
+"""Pydantic models shared across routers."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+# ---- Auth ----
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=256)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+class CurrentUser(BaseModel):
+    sub: str
+    email: str | None = None
+    role: str = "viewer"
+
+
+# ---- Projects ----
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+
+
+class ProjectOut(BaseModel):
+    id: UUID
+    name: str
+    owner_id: UUID
+    created_at: datetime
+
+
+# ---- Files ----
+class FileMetadata(BaseModel):
+    id: UUID
+    project_id: UUID
+    filename: str
+    size_bytes: int
+    content_type: str
+    uploaded_at: datetime
+
+
+# ---- Health ----
+class HealthOut(BaseModel):
+    status: str
+    version: str
+    env: str
