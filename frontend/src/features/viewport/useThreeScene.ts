@@ -15,10 +15,17 @@ import {
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { useSceneStore } from "@/state/sceneStore";
+import { useThemeStore } from "@/state/themeStore";
 import { useViewportStore } from "@/state/viewportStore";
 import { setActiveScene, setTransformControls } from "@/lib/threeContext";
 
 const MAX_DPR = 2;
+
+const THEME_BG = { dark: "#0b1020", light: "#e8edf2" } as const;
+const GRID_COLORS = {
+  dark: [0x4b5563, 0x1f2937] as [number, number],
+  light: [0x9ca3af, 0xd1d5db] as [number, number],
+};
 
 export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
   const initRef = useRef(false);
@@ -71,7 +78,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
         grid.dispose();
       }
       if (useViewportStore.getState().showGrid) {
-        grid = new GridHelper(size, size, 0x4b5563, 0x1f2937);
+        const t = useThemeStore.getState().theme;
+        const [c1, c2] = GRID_COLORS[t];
+        grid = new GridHelper(size, size, c1, c2);
         scene.add(grid);
       } else {
         grid = null;
@@ -198,6 +207,15 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       }
     });
 
+    // --- themeStore subscription: sync 3D background + grid with UI theme ---
+    const unsubTheme = useThemeStore.subscribe((state, prev) => {
+      if (state.theme === prev.theme) return;
+      const newBg = THEME_BG[state.theme];
+      scene.background = new Color(newBg);
+      useViewportStore.getState().setBgColor(newBg);
+      rebuildGrid(useViewportStore.getState().gridSize);
+    });
+
     // --- Keyboard shortcuts ---
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -236,6 +254,7 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       window.removeEventListener("keydown", onKey);
       unsubScene();
       unsubViewport();
+      unsubTheme();
       ro.disconnect();
       tcontrols.detach();
       scene.remove(gizmoHelper);
