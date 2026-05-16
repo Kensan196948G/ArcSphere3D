@@ -29,8 +29,10 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 5 | Three.js 3D viewport — Grid / Axes / Transform Controls | Done |
 | 6 | Light / Dark theme | Done |
 | 7 | E2E tests — Playwright / Firefox (7/7 pass) | Done |
-| 8 | Click-to-select + emissive highlight | In Progress |
-| 9 | OpenCascade.js CAD kernel integration | Planned |
+| 8 | Click-to-select + emissive highlight (raycasting) | Done |
+| 9 | OpenAPI contract tests (schemathesis, 12/12 pass) | Done |
+| 10 | Docker Compose integration test stack | Done |
+| 11 | OpenCascade.js CAD kernel integration | Planned |
 | 10 | Real-time collaboration (WebSocket) | Planned |
 | 11 | AI-assisted natural language CAD commands | Planned |
 
@@ -137,12 +139,19 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov]
-        B5 --> B6[Upload coverage]
+        B4 --> B5[pytest --cov 43/43]
+        B5 --> B6[schemathesis 12/12]
+        B6 --> B7[Upload coverage 96%]
+    end
+
+    subgraph I["integration job"]
+        I1[docker compose up] --> I2[wait healthy]
+        I2 --> I3[API smoke tests]
     end
 
     F --> E
     F --> B
+    B --> I
 ```
 
 ---
