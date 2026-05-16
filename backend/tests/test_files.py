@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -213,3 +215,73 @@ def test_sha256_dedup_returns_existing() -> None:
     )
     assert res2.status_code == 200
     assert res2.json()["id"] == first_id
+
+
+# ---- oversized upload returns 413 -----------------------------------------
+
+
+def test_upload_rejects_oversized_file() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    pid = _create_project(h)
+
+    with patch("app.routers.files.MAX_BYTES", 5):
+        res = client.post(
+            "/api/files/upload",
+            params={"project_id": pid},
+            files={"upload_file": ("big.stl", b"solid x\nendsolid x\n", "model/stl")},
+            headers=h,
+        )
+    assert res.status_code == 413
+
+
+# ---- download_url error paths ---------------------------------------------
+
+
+def test_download_url_unknown_project_returns_404() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    res = client.get(
+        "/api/files/00000000-0000-0000-0000-000000000000"
+        "/00000000-0000-0000-0000-000000000001/download",
+        headers=h,
+    )
+    assert res.status_code == 404
+
+
+def test_download_url_unknown_file_returns_404() -> None:
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    pid = _create_project(h)
+    res = client.get(
+        f"/api/files/{pid}/00000000-0000-0000-0000-000000000001/download",
+        headers=h,
+    )
+    assert res.status_code == 404
+
+
+# ---- S3 delete failure is non-fatal ---------------------------------------
+
+
+def test_delete_file_s3_failure_is_non_fatal() -> None:
+    """DB row is removed even when the S3 delete raises — 204 still returned."""
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    pid = _create_project(h)
+
+    upload_res = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("s3fail.stl", b"solid x\nendsolid x\n", "model/stl")},
+        headers=h,
+    )
+    assert upload_res.status_code == 201
+    file_id = upload_res.json()["id"]
+
+    s3_err = AsyncMock(side_effect=RuntimeError("S3 unavailable"))
+    with patch("app.routers.files.delete_object", s3_err):
+        res = client.delete(f"/api/files/{file_id}", headers=h)
+
+    assert res.status_code == 204
+    listed = client.get(f"/api/files/{pid}", headers=h)
+    assert file_id not in [f["id"] for f in listed.json()]

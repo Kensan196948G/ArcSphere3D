@@ -58,3 +58,11 @@ ignore = ["S101"]  # allow asserts in tests
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-q --strict-markers"
+
+[tool.coverage.run]
+source = ["app"]
+concurrency = ["greenlet", "thread"]
+
+[tool.coverage.report]
+skip_covered = false
+show_missing = true
