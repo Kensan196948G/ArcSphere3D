@@ -122,11 +122,24 @@ ArcSphere3D/
 
 | # | 機能 | 状態 |
 |---|---|---|
-| 1 | 3D Viewport (Three.js + OrbitControls + GridHelper + Light) | 🟡 In Progress |
-| 2 | STL / OBJ / glTF Loader | ⚪ Planned |
-| 3 | 基本 Transform (Move / Rotate / Scale) | ⚪ Planned |
-| 4 | WebUI Layout (Header / LeftMenu / Viewport / RightPanel / Console) | 🟡 In Progress |
-| 5 | 認証 (JWT スケルトン; Entra ID は post-MVP) | 🟡 In Progress |
+| 1 | 3D Viewport (Three.js + OrbitControls + GridHelper + Light) | 🟢 Done |
+| 2 | STL / OBJ / glTF Loader | 🟢 Done |
+| 3 | 基本 Transform (Move / Rotate / Scale) | 🟢 Done |
+| 4 | WebUI Layout (Header / LeftMenu / Viewport / RightPanel / Console) | 🟢 Done |
+| 5 | 認証 (JWT スケルトン; Entra ID は post-MVP) | 🟢 Done |
+
+### 🎛️ Transform Gizmo — キーバインド
+
+| キー / ボタン | 操作 |
+|---|---|
+| 🖱️ RightPanel の Scene Objects をクリック | 対象を選択 (もう一度クリックで解除) |
+| `W` / `Move` ボタン | 移動 (translate) モード |
+| `E` / `Rotate` ボタン | 回転 (rotate) モード |
+| `R` / `Scale` ボタン | スケール (scale) モード |
+| `Esc` | 選択解除 |
+| ドラッグ中 | OrbitControls は自動で無効 (gizmo 操作優先) |
+
+> 💡 内部実装メモ: three r169 から `TransformControls` は `Object3D` を継承しなくなったため、`scene.add(tc.getHelper())` で gizmo 表示用ヘルパーのみシーンに追加する。
 
 ---
 

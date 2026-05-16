@@ -21,18 +21,18 @@
       "Authentication scaffolding (JWT; Entra ID は post-MVP)"
     ],
     "target_demo_date": "2026-07-15",
-    "status": "in_progress",
+    "status": "feature_complete",
     "progress": {
       "viewport_scaffold": "done",
       "loaders_glb_obj_stl": "done",
-      "basic_edit_transform": "pending",
+      "basic_edit_transform": "done",
       "webui_5pane_shell": "done",
       "auth_jwt_scaffold": "done"
     }
   },
   "kpi": {
     "success_rate_target": 0.9,
-    "ci_success_rate": 0.0,
+    "ci_success_rate": 1.0,
     "test_pass_rate": 1.0,
     "security_critical": 0,
     "blocker_count": 0
@@ -68,8 +68,11 @@
     "infra/docker-compose",
     "ci/github-actions",
     "ci/pre-commit",
+    "ci/eslint9-flat-config",
     "verify/lint-typecheck-build",
-    "docs/architecture-roadmap-security-adr"
+    "docs/architecture-roadmap-security-adr",
+    "github/remote-create-push",
+    "frontend/transform-gizmo-translate-rotate-scale"
   ],
   "blocked_issues": [],
   "learning": {
@@ -97,6 +100,18 @@
         "where": "backend/app/main.py",
         "fixed_by": "rewrite with @asynccontextmanager lifespan",
         "memory": "feedback-fastapi-lifespan"
+      },
+      {
+        "id": "three-r169-transformcontrols-not-object3d",
+        "where": "frontend/src/features/viewport/useThreeScene.ts",
+        "fixed_by": "scene.add(tc.getHelper()) — r169 で Controls 基底に分離。scene には helper だけ追加",
+        "memory": "feedback-three-r169-controls-split"
+      },
+      {
+        "id": "eslint9-flat-config-missing",
+        "where": "frontend/ (ESLint 9 + .eslintrc 不在)",
+        "fixed_by": "eslint.config.js (flat config) を作成。@ts-eslint + react-hooks + react-refresh を最小構成で",
+        "memory": "feedback-eslint9-flat-config"
       }
     ],
     "success_patterns": [
