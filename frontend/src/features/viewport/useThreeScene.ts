@@ -21,7 +21,13 @@ import { useSceneStore, type SceneObject } from "@/state/sceneStore";
 import { useIfcStore } from "@/state/ifcStore";
 import { useThemeStore } from "@/state/themeStore";
 import { useViewportStore } from "@/state/viewportStore";
-import { setActiveScene, setTransformControls } from "@/lib/threeContext";
+import {
+  setActiveCamera,
+  setActiveScene,
+  setOrbitControls,
+  setRendererDomElement,
+  setTransformControls,
+} from "@/lib/threeContext";
 
 const MAX_DPR = 2;
 
@@ -173,6 +179,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
 
     setActiveScene(scene);
     setTransformControls(tcontrols);
+    setActiveCamera(camera);
+    setOrbitControls(controls);
+    setRendererDomElement(renderer.domElement);
     useSceneStore.getState().log("[viewport] WebGL initialised");
 
     // --- sceneStore subscription ---
@@ -388,6 +397,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       renderer.domElement.remove();
       setActiveScene(null);
       setTransformControls(null);
+      setActiveCamera(null);
+      setOrbitControls(null);
+      setRendererDomElement(null);
       useSceneStore.setState({
         objects: [],
         logs: [],

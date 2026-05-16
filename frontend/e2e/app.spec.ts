@@ -295,6 +295,26 @@ test("ViewportToolbar: カメラリセットボタンが表示される", async 
   await expect(page.getByRole("button", { name: "カメラリセット" })).toBeVisible();
 });
 
+// ---- Measure panel ----------------------------------------------------------
+
+test("LeftMenu: 計測パネルが表示されモードボタンが見える", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "計測" }).click();
+  await expect(page.getByRole("heading", { name: "計測" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "距離" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "面積" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "高さ" })).toBeVisible();
+});
+
+test("MeasurePanel: 距離モードを選択するとインストラクションが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "計測" }).click();
+  await page.getByRole("button", { name: "距離" }).click();
+  await expect(page.getByText("計測中:")).toBeVisible();
+  await expect(page.getByText("3Dビューをクリックして計測点を追加します。")).toBeVisible();
+  await expect(page.getByRole("button", { name: "計測終了" })).toBeVisible();
+});
+
 // ---- Project panel (authenticated) file upload UI --------------------------
 
 test("ログイン後: ファイルアップロードUIが表示される", async ({ page }) => {
