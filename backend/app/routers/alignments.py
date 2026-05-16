@@ -1,0 +1,110 @@
+"""Alignment CRUD — horizontal alignment (IP method) stored per project."""
+
+from __future__ import annotations
+
+from typing import Any
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, Query, status
+
+from app.db import crud
+from app.deps import CurrentUserDep, DbDep
+from app.schemas import AlignmentCreate, AlignmentOut, CurrentUser, IpPointCreate, IpPointOut
+
+router = APIRouter(prefix="/api/projects/{project_id}/alignments", tags=["alignments"])
+
+_Responses = dict[int | str, dict[str, Any]]
+_401: _Responses = {401: {"description": "missing or invalid bearer token"}}
+_404: _Responses = {404: {"description": "not found"}}
+
+
+async def _require_project(project_id: UUID, session: Any, owner_id: UUID) -> None:
+    """Raise 404 if the project does not belong to the authenticated user."""
+    p = await crud.get_project(session, project_id, owner_id)
+    if p is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+
+
+@router.get("", response_model=list[AlignmentOut], responses={**_401, **_404})
+async def list_alignments(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[AlignmentOut]:
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id)
+    return await crud.list_alignments(session, project_id, skip=skip, limit=limit)
+
+
+@router.post(
+    "",
+    response_model=AlignmentOut,
+    status_code=status.HTTP_201_CREATED,
+    responses={**_401, **_404},
+)
+async def create_alignment(
+    project_id: UUID,
+    body: AlignmentCreate,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> AlignmentOut:
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id)
+    return await crud.create_alignment(session, project_id, body)
+
+
+@router.get("/{alignment_id}", response_model=AlignmentOut, responses={**_401, **_404})
+async def get_alignment(
+    project_id: UUID,
+    alignment_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> AlignmentOut:
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id)
+    a = await crud.get_alignment(session, alignment_id, project_id)
+    if a is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
+    return crud.alignment_to_out(a)
+
+
+@router.delete(
+    "/{alignment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**_401, **_404},
+)
+async def delete_alignment(
+    project_id: UUID,
+    alignment_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> None:
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id)
+    a = await crud.get_alignment(session, alignment_id, project_id)
+    if a is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
+    await crud.delete_alignment(session, alignment_id)
+
+
+@router.put(
+    "/{alignment_id}/ip-points",
+    response_model=list[IpPointOut],
+    responses={**_401, **_404},
+)
+async def replace_ip_points(
+    project_id: UUID,
+    alignment_id: UUID,
+    body: list[IpPointCreate],
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> list[IpPointOut]:
+    """Replace all IP points for an alignment (idempotent full sync)."""
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id)
+    a = await crud.get_alignment(session, alignment_id, project_id)
+    if a is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
+    return await crud.upsert_ip_points(session, alignment_id, body)
