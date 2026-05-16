@@ -56,10 +56,9 @@ export async function listProjects(
   skip = 0,
   limit = 50,
 ): Promise<ProjectOut[]> {
-  const res = await fetch(
-    `${BASE}/projects?skip=${skip}&limit=${limit}`,
-    { headers: authHeaders(token) },
-  );
+  const res = await fetch(`${BASE}/projects?skip=${skip}&limit=${limit}`, {
+    headers: authHeaders(token),
+  });
   return handleResponse<ProjectOut[]>(res);
 }
 
@@ -125,4 +124,80 @@ export async function getDownloadUrl(
     headers: authHeaders(token),
   });
   return handleResponse<DownloadUrl>(res);
+}
+
+// ---- Alignments -----------------------------------------------------------
+
+export interface IpPointApiOut {
+  id: string;
+  alignment_id: string;
+  seq: number;
+  x: number;
+  z: number;
+  radius: number;
+}
+
+export interface AlignmentApiOut {
+  id: string;
+  project_id: string;
+  name: string;
+  design_speed: number;
+  created_at: string;
+  ip_points: IpPointApiOut[];
+}
+
+export async function listAlignments(
+  token: string,
+  projectId: string,
+): Promise<AlignmentApiOut[]> {
+  const res = await fetch(`${BASE}/projects/${projectId}/alignments`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<AlignmentApiOut[]>(res);
+}
+
+export async function createAlignment(
+  token: string,
+  projectId: string,
+  name: string,
+  designSpeed: number,
+): Promise<AlignmentApiOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}/alignments`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name, design_speed: designSpeed }),
+  });
+  return handleResponse<AlignmentApiOut>(res);
+}
+
+export async function deleteAlignment(
+  token: string,
+  projectId: string,
+  alignmentId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${BASE}/projects/${projectId}/alignments/${alignmentId}`,
+    { method: "DELETE", headers: authHeaders(token) },
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
+export async function replaceIpPoints(
+  token: string,
+  projectId: string,
+  alignmentId: string,
+  points: Array<{ seq: number; x: number; z: number; radius: number }>,
+): Promise<IpPointApiOut[]> {
+  const res = await fetch(
+    `${BASE}/projects/${projectId}/alignments/${alignmentId}/ip-points`,
+    {
+      method: "PUT",
+      headers: { ...authHeaders(token), "Content-Type": "application/json" },
+      body: JSON.stringify(points),
+    },
+  );
+  return handleResponse<IpPointApiOut[]>(res);
 }
