@@ -1,13 +1,13 @@
 import { useViewportStore } from "@/state/viewportStore";
 
-interface ToolBtn {
+interface ToolBtnProps {
   label: string;
   title: string;
   active?: boolean;
   onClick: () => void;
 }
 
-function ToolBtn({ label, title, active, onClick }: ToolBtn) {
+function ToolBtn({ label, title, active, onClick }: ToolBtnProps) {
   return (
     <button
       type="button"

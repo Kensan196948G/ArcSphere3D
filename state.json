@@ -44,11 +44,11 @@
     "same_error_limit": 2,
     "phase": "Verify",
     "last_session_summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytest all green (6/6), frontend tsc 0 errors, vite build clean. Bugs caught & fixed: passlib<>bcrypt4 ABI break, EmailStr rejects .local TLD, Three.js bundle OOM in single chunk, FastAPI on_event deprecation. Docs: ARCHITECTURE/ROADMAP/SECURITY/ADR-0001 with Mermaid diagrams written. No GitHub remote yet — local commits only, push deferred.",
-    "current_session_start_at": "2026-05-16T09:32:45+09:00",
+    "current_session_start_at": "2026-05-16T14:33:48+09:00",
     "session_soft_deadline": "2026-05-16T14:02:00+09:00",
     "session_hard_deadline": "2026-05-16T14:32:00+09:00",
     "last_trigger": "cron",
-    "last_cron_session_id": "20260516-093245-ArcSphere3D"
+    "last_cron_session_id": "20260516-143348-ArcSphere3D"
   },
   "automation": {
     "auto_issue_generation": true,
@@ -121,16 +121,53 @@
     ]
   },
   "quality_gates": {
-    "lint": { "warning_threshold": 10, "error_threshold": 0 },
-    "coverage": { "line_min": 70, "changed_files_min": 80 }
+    "lint": {
+      "warning_threshold": 10,
+      "error_threshold": 0
+    },
+    "coverage": {
+      "line_min": 70,
+      "changed_files_min": 80
+    }
   },
   "stack": {
-    "frontend": ["React 18", "TypeScript 5", "Vite 5", "TailwindCSS", "Zustand", "Three.js 0.169"],
-    "backend": ["FastAPI 0.115", "Pydantic v2", "SQLAlchemy 2 (post-MVP)", "Alembic (post-MVP)", "Uvicorn", "bcrypt 4.x direct"],
-    "storage": ["PostgreSQL 16", "MinIO", "Redis 7"],
-    "auth": ["JWT HS256 (MVP)", "OAuth2 / Microsoft Entra ID + RS256 (post-MVP)"],
-    "infra": ["Docker Compose (MVP)", "Kubernetes (future ADR-0003)"],
-    "ci": ["GitHub Actions", "CodeQL", "Dependabot", "pre-commit (ruff/prettier/gitleaks)", "CodeRabbit", "Codex Review"]
+    "frontend": [
+      "React 18",
+      "TypeScript 5",
+      "Vite 5",
+      "TailwindCSS",
+      "Zustand",
+      "Three.js 0.169"
+    ],
+    "backend": [
+      "FastAPI 0.115",
+      "Pydantic v2",
+      "SQLAlchemy 2 (post-MVP)",
+      "Alembic (post-MVP)",
+      "Uvicorn",
+      "bcrypt 4.x direct"
+    ],
+    "storage": [
+      "PostgreSQL 16",
+      "MinIO",
+      "Redis 7"
+    ],
+    "auth": [
+      "JWT HS256 (MVP)",
+      "OAuth2 / Microsoft Entra ID + RS256 (post-MVP)"
+    ],
+    "infra": [
+      "Docker Compose (MVP)",
+      "Kubernetes (future ADR-0003)"
+    ],
+    "ci": [
+      "GitHub Actions",
+      "CodeQL",
+      "Dependabot",
+      "pre-commit (ruff/prettier/gitleaks)",
+      "CodeRabbit",
+      "Codex Review"
+    ]
   },
   "github": {
     "repo": null,
