@@ -7,6 +7,7 @@ import LayerPanel from "@/features/layer/LayerPanel";
 import MaterialPanel from "@/features/material/MaterialPanel";
 import AIPanel from "@/features/ai/AIPanel";
 import SettingsPanel from "@/features/settings/SettingsPanel";
+import IFCPropertyPanel from "@/features/bim/IFCPropertyPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -37,11 +38,7 @@ export default function RightPanel() {
       case "layer":
         return <LayerPanel />;
       case "bim":
-        return (
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            BIM 機能は準備中です。IFC ファイルはモデルパネルで読み込めます。
-          </p>
-        );
+        return <IFCPropertyPanel />;
       case "material":
         return <MaterialPanel />;
       case "ai":

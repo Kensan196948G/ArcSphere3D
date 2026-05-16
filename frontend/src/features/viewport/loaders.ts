@@ -20,7 +20,13 @@ export function extOf(filename: string): SupportedExt | null {
   const m = filename.toLowerCase().match(/\.([a-z0-9]+)$/);
   if (!m) return null;
   const ext = m[1];
-  if (ext === "stl" || ext === "obj" || ext === "gltf" || ext === "glb" || ext === "ifc") {
+  if (
+    ext === "stl" ||
+    ext === "obj" ||
+    ext === "gltf" ||
+    ext === "glb" ||
+    ext === "ifc"
+  ) {
     return ext as SupportedExt;
   }
   return null;
@@ -35,7 +41,10 @@ async function readText(file: File): Promise<string> {
 }
 
 /** Load a 3D model from a remote URL (e.g. S3 pre-signed URL). */
-export async function loadFromUrl(url: string, filename: string): Promise<Object3D> {
+export async function loadFromUrl(
+  url: string,
+  filename: string,
+): Promise<Object3D> {
   const ext = extOf(filename);
   if (!ext) throw new Error(`Unsupported file extension: ${filename}`);
 
@@ -81,7 +90,8 @@ export async function loadFromUrl(url: string, filename: string): Promise<Object
     case "ifc": {
       const buf = await res.arrayBuffer();
       const { loadIfc } = await import("./ifcLoader");
-      return await loadIfc(buf, filename);
+      const result = await loadIfc(buf, filename);
+      return result.group;
     }
   }
 }
@@ -131,7 +141,8 @@ export async function loadFile(file: File): Promise<Object3D> {
     case "ifc": {
       const buf = await readArrayBuffer(file);
       const { loadIfc } = await import("./ifcLoader");
-      return await loadIfc(buf, file.name);
+      const result = await loadIfc(buf, file.name);
+      return result.group;
     }
   }
 }

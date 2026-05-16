@@ -2,6 +2,10 @@
  * IFC loader using web-ifc's IfcAPI (loaded as IIFE from /web-ifc/web-ifc-api.js).
  * web-ifc is NOT bundled by rollup — it is served from public/web-ifc/ to avoid
  * a 5.7 MB minified-JS OOM during rollup transform (ADR: web-ifc public IIFE).
+ *
+ * NOTE: CloseModel is intentionally NOT called after loading so that property
+ * queries (getSpatialStructure, getPropertySets, etc.) remain available at runtime.
+ * Call closeIfcModel() explicitly when the model is removed from the scene.
  */
 import {
   BufferAttribute,
@@ -22,7 +26,9 @@ let _api: unknown | null = null;
 async function getApi(): Promise<unknown> {
   if (_api) return _api;
   if (typeof WebIFC === "undefined") {
-    throw new Error("web-ifc IIFE not loaded — ensure /web-ifc/web-ifc-api.js is present in public/");
+    throw new Error(
+      "web-ifc IIFE not loaded — ensure /web-ifc/web-ifc-api.js is present in public/",
+    );
   }
   const api = new WebIFC.IfcAPI();
   api.SetWasmPath("/web-ifc/");
@@ -31,8 +37,16 @@ async function getApi(): Promise<unknown> {
   return api;
 }
 
-/** Load an IFC file from an ArrayBuffer and return a Three.js Group. */
-export async function loadIfc(buffer: ArrayBuffer, filename: string): Promise<Group> {
+export interface IFCLoadResult {
+  group: Group;
+  modelId: number;
+}
+
+/** Load an IFC file from an ArrayBuffer and return a Three.js Group + the open modelId. */
+export async function loadIfc(
+  buffer: ArrayBuffer,
+  filename: string,
+): Promise<IFCLoadResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const api = (await getApi()) as any;
   const data = new Uint8Array(buffer);
@@ -45,6 +59,9 @@ export async function loadIfc(buffer: ArrayBuffer, filename: string): Promise<Gr
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fm = flatMesh as any;
     const meshGroup = new Group();
+    // Store IFC express ID so raycasting can identify which element was clicked.
+    meshGroup.userData.ifcExpressId = fm.expressID;
+    meshGroup.userData.ifcModelId = modelId;
 
     for (let g = 0; g < fm.geometries.size(); g++) {
       const placedGeom = fm.geometries.get(g);
@@ -98,6 +115,44 @@ export async function loadIfc(buffer: ArrayBuffer, filename: string): Promise<Gr
     group.add(meshGroup);
   });
 
+  // NOTE: CloseModel NOT called here — kept open for property queries.
+  return { group, modelId };
+}
+
+/** Close an IFC model and release WASM memory. Call when removing model from scene. */
+export async function closeIfcModel(modelId: number): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const api = (await getApi()) as any;
   api.CloseModel(modelId);
-  return group;
+}
+
+/** Return the spatial structure tree (IfcProject → IfcSite → … → elements). */
+export async function getIfcSpatialStructure(
+  modelId: number,
+): Promise<unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const api = (await getApi()) as any;
+  return api.getSpatialStructure(modelId, false);
+}
+
+/** Return raw item properties for a given expressID. */
+export async function getIfcItemProperties(
+  modelId: number,
+  expressId: number,
+): Promise<unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const api = (await getApi()) as any;
+  return api.getItemProperties(modelId, expressId, false, false);
+}
+
+/** Return all property sets attached to a given expressID. */
+export async function getIfcPropertySets(
+  modelId: number,
+  expressId: number,
+): Promise<unknown[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const api = (await getApi()) as any;
+  const sets = api.getPropertySets(modelId, expressId, false, true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return Array.isArray(sets) ? sets : (sets as any[]);
 }
