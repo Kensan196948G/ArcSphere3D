@@ -55,10 +55,10 @@
     "self_evolution": true
   },
   "stable": {
-    "consecutive_success": 3,
+    "consecutive_success": 5,
     "target_n": 3,
     "stable_achieved": true,
-    "last_green_run_id": "25954325284"
+    "last_green_run_id": "25956964881"
   },
   "completed_issues": [
     "scaffold/monorepo",
@@ -169,8 +169,8 @@
       "Redis 7"
     ],
     "auth": [
-      "JWT HS256 (MVP)",
-      "OAuth2 / Microsoft Entra ID + RS256 (post-MVP)"
+      "JWT RS256 (asymmetric keypair, ADR-0003)",
+      "OAuth2 / Microsoft Entra ID SSO (post-MVP)"
     ],
     "infra": [
       "Docker Compose (MVP)",
@@ -196,15 +196,16 @@
   "next_session_hints": {
     "priority_order": [
       "Improve: E2E テストカバレッジ拡充 (Playwright — ファイルアップロード / 3D ビューア / プロジェクト CRUD)",
-      "Improve: バックエンド pytest カバレッジ 70%+ 達成 (ファイル API / presigned / 認証エンドポイント)",
+      "Improve: バックエンド pytest カバレッジ 96% 維持 + 新機能テスト追加",
+      "Improve: OpenCascade.js CAD kernel 統合 — 基本形状プリミティブ生成 API",
       "Improve: TypeScript v6 移行準備 (tsconfig.json baseUrl 削除 + paths 相対パス化)",
-      "Improve: ADR-0002 (PostgreSQL 移行) 実装 — in-memory store を SQLAlchemy 2 + Alembic に置換",
-      "Improve: 残 Dependabot PRs 再評価 — Node 26 LTS / Python 3.13-slim"
+      "Improve: Dependabot PRs 再評価 — actions/download-artifact v4 → v5 (Node.js 24 対応)"
     ],
     "warnings": [
-      "stable_achieved=true — Improve フェーズへ移行。Month 1-2 配分: 基盤整備・品質向上",
-      "TypeScript v6 は tsconfig.json の baseUrl 廃止 (TS5101 error) が障害。ignoreDeprecations: '6.0' か paths 移行で対応可能",
-      "残 182 日 — Month 1 末 (2026-06-14) に Postgres 移行前に projects/files の API contract を凍結すること"
+      "Phase 4 完了: JWT RS256 + OrbitControls raycasting + Docker Compose integration CI + schemathesis OpenAPI contract tests — CI all green (43/43 pytest, 19/19 E2E, 12/12 schemathesis)",
+      "coverage 96% — line_min=70 を大幅超過。品質ゲートは安定",
+      "actions/download-artifact@v4 は 2026-06-02 から Node.js 24 強制になるため早期に v5 へ更新推奨",
+      "残 182 日 — Month 1 末 (2026-06-14) に OpenCascade.js 統合を開始できれば Month 3-4 の品質向上に余裕が生まれる"
     ]
   }
 }
