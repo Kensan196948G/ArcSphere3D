@@ -52,6 +52,20 @@ jobs:
   backend:
     name: backend (ruff + mypy + pytest)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: arcsphere
+          POSTGRES_PASSWORD: arcsphere
+          POSTGRES_DB: arcsphere_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -80,3 +94,5 @@ jobs:
 
       - name: Pytest
         run: pytest -q
+        env:
+          DATABASE_URL: postgresql+psycopg://arcsphere:arcsphere@localhost:5432/arcsphere_test
