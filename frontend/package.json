@@ -19,7 +19,7 @@
     "react-router-dom": "^6.26.2",
     "three": "^0.184.0",
     "web-ifc": "^0.0.77",
-    "zustand": "^4.5.5"
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",

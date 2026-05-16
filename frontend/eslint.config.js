@@ -40,6 +40,11 @@ export default [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // React Compiler rules — we do not use React Compiler, so imperative
+      // Three.js mutations and useEffect→setState bridges are legitimate patterns.
+      "react-hooks/react-compiler": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/immutability": "off",
     },
   },
 ];
