@@ -7,6 +7,8 @@ handler can reach get_session() without raising RuntimeError.
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from sqlalchemy import create_engine, text
 
@@ -34,3 +36,10 @@ def _db_truncate(_db_schema: None) -> None:
     with engine.begin() as conn:
         conn.execute(text("TRUNCATE users, projects, files CASCADE"))
     engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _mock_s3() -> None:
+    """Patch put_object where files router imported it — tests need no real S3."""
+    with patch("app.routers.files.put_object", new_callable=AsyncMock):
+        yield

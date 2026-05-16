@@ -7,9 +7,10 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.file import File
 from app.models.project import Project
 from app.models.user import User
-from app.schemas import CurrentUser, ProjectCreate, ProjectOut
+from app.schemas import CurrentUser, FileMetadata, ProjectCreate, ProjectOut
 
 
 async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
@@ -55,3 +56,41 @@ async def get_project(session: AsyncSession, project_id: UUID, owner_id: UUID) -
         select(Project).where(Project.id == project_id, Project.owner_id == owner_id)
     )
     return result.scalar_one_or_none()
+
+
+async def create_file(
+    session: AsyncSession,
+    project_id: UUID,
+    filename: str,
+    size_bytes: int,
+    content_type: str,
+    s3_key: str,
+    sha256: bytes,
+) -> File:
+    f = File(
+        project_id=project_id,
+        filename=filename,
+        size_bytes=size_bytes,
+        content_type=content_type,
+        s3_key=s3_key,
+        sha256=sha256,
+    )
+    session.add(f)
+    await session.commit()
+    await session.refresh(f)
+    return f
+
+
+async def list_files(session: AsyncSession, project_id: UUID) -> list[FileMetadata]:
+    result = await session.execute(select(File).where(File.project_id == project_id))
+    return [
+        FileMetadata(
+            id=r.id,
+            project_id=r.project_id,
+            filename=r.filename,
+            size_bytes=r.size_bytes,
+            content_type=r.content_type,
+            uploaded_at=r.uploaded_at,
+        )
+        for r in result.scalars().all()
+    ]
