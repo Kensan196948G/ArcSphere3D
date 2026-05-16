@@ -35,6 +35,53 @@ async function readText(file: File): Promise<string> {
   return await file.text();
 }
 
+/** Load a 3D model from a remote URL (e.g. S3 pre-signed URL). */
+export async function loadFromUrl(url: string, filename: string): Promise<Object3D> {
+  const ext = extOf(filename);
+  if (!ext) throw new Error(`Unsupported file extension: ${filename}`);
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+
+  switch (ext) {
+    case "stl": {
+      const buf = await res.arrayBuffer();
+      const geom: BufferGeometry = new STLLoader().parse(buf);
+      geom.computeVertexNormals();
+      const mesh = new Mesh(geom, DEFAULT_MATERIAL.clone());
+      mesh.name = filename;
+      return mesh;
+    }
+    case "obj": {
+      const txt = await res.text();
+      const group: Group = new OBJLoader().parse(txt);
+      group.traverse((o) => {
+        const m = o as Mesh;
+        if (m.isMesh && !m.material) m.material = DEFAULT_MATERIAL.clone();
+      });
+      group.name = filename;
+      return group;
+    }
+    case "gltf":
+    case "glb": {
+      const buf = await res.arrayBuffer();
+      const loader = new GLTFLoader();
+      return await new Promise<Object3D>((resolve, reject) => {
+        loader.parse(
+          buf,
+          "",
+          (gltf) => {
+            const scene = gltf.scene;
+            scene.name = filename;
+            resolve(scene);
+          },
+          (err) => reject(err),
+        );
+      });
+    }
+  }
+}
+
 export async function loadFile(file: File): Promise<Object3D> {
   const ext = extOf(file.name);
   if (!ext) {
