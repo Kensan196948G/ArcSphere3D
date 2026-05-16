@@ -1,0 +1,63 @@
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Secrets / Env ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Node / Frontend ---
+node_modules/
+dist/
+build/
+.cache/
+.eslintcache
+.vite/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# --- Python / Backend ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.env.local
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# --- Docker / Infra ---
+docker/data/
+docker/volumes/
+*.tar
+*.tar.gz
+
+# --- ClaudeOS local state (keep claude config, ignore runtime data) ---
+.claude/local/
+.claude/cache/
+.claude/logs/
+
+# --- Build artefacts ---
+*.wasm.map
+*.bundle.js.map
+
+# --- macOS / Windows ---
+.AppleDouble
+.LSOverride
+ehthumbs.db
+Desktop.ini
