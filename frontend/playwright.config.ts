@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://localhost:5174",
+    baseURL: "http://localhost:5173",
     trace: "on-first-retry",
   },
   projects: [
@@ -18,8 +18,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:5174",
+    command: "npm run preview",
+    url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },

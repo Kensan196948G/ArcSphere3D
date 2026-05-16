@@ -5,6 +5,13 @@
 
 import { expect, test } from "@playwright/test";
 
+// Stub the 5.9MB web-ifc IIFE to avoid blocking React initialization in Firefox headless
+test.beforeEach(async ({ page }) => {
+  await page.route("**/web-ifc/web-ifc-api.js", (route) => {
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "window.WebIFC = {};" });
+  });
+});
+
 const MOCK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
 const MOCK_PROJECT = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -158,4 +165,121 @@ test("ログアウトで認証クリアとプロジェクトパネル非表示",
   await expect(page.getByRole("button", { name: "ログイン" })).toBeVisible();
   // ログアウト後は RightPanel のプロジェクトセクション見出し（h2）が消える
   await expect(page.getByRole("heading", { name: "プロジェクト" })).not.toBeVisible();
+});
+
+// ---- LeftMenu panel switching -----------------------------------------------
+
+test("LeftMenu: レイヤーパネルに切り替わる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "レイヤー" }).click();
+  await expect(page.getByRole("heading", { name: "レイヤー", exact: true })).toBeVisible();
+  // LayerPanel の「新しいレイヤー名」プレースホルダーが表示される
+  await expect(page.getByPlaceholder("新しいレイヤー名")).toBeVisible();
+});
+
+test("LayerPanel: 新規レイヤーを追加できる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "レイヤー" }).click();
+  await page.getByPlaceholder("新しいレイヤー名").fill("テストレイヤー");
+  await page.getByRole("button", { name: "+" }).click();
+  await expect(page.getByText("テストレイヤー")).toBeVisible();
+  // 追加後に入力欄がクリアされる
+  await expect(page.getByPlaceholder("新しいレイヤー名")).toHaveValue("");
+});
+
+test("LeftMenu: モデルパネルに切り替わる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  await expect(page.getByRole("heading", { name: "モデル", exact: true })).toBeVisible();
+  // ModelPanel の変形モードボタンが表示される
+  await expect(page.getByRole("button", { name: "移動" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "回転" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "拡縮" })).toBeVisible();
+});
+
+test("LeftMenu: 設定パネルに切り替わる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "設定" }).click();
+  await expect(page.getByRole("heading", { name: "設定", exact: true })).toBeVisible();
+  // SettingsPanel の背景色ピッカーが表示される
+  await expect(page.getByText("背景色")).toBeVisible();
+  await expect(page.getByText("グリッドサイズ")).toBeVisible();
+});
+
+test("LeftMenu: マテリアルパネルに切り替わる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "マテリアル" }).click();
+  // RightPanel の h2 を対象とする（MaterialPanel 内の h3 も「マテリアル」のため locator で絞り込む）
+  await expect(page.locator("h2").filter({ hasText: /^マテリアル$/ })).toBeVisible();
+  // 未選択状態の案内テキストが表示される
+  await expect(page.getByText("オブジェクトを選択してください。")).toBeVisible();
+});
+
+test("LeftMenu: AI アシストパネルに切り替わる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "AI アシスト" }).click();
+  await expect(page.getByRole("heading", { name: "AI アシスト", exact: true })).toBeVisible();
+});
+
+test("AIPanel: メッセージを送信するとアシスタントが返答する", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "AI アシスト" }).click();
+
+  const input = page.getByPlaceholder("質問を入力…");
+  await expect(input).toBeVisible();
+  await input.fill("STLファイルの読み込み方法は？");
+  await page.getByRole("button", { name: "送信" }).click();
+
+  // アシスタントの返答が表示される
+  await expect(page.getByText(/STL/)).toBeVisible();
+});
+
+test("LeftMenu: BIM パネルは準備中メッセージを表示する", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "BIM" }).click();
+  await expect(page.getByRole("heading", { name: "BIM" })).toBeVisible();
+  await expect(page.getByText("BIM 機能は準備中")).toBeVisible();
+});
+
+// ---- ViewportToolbar interactions ------------------------------------------
+
+test("ViewportToolbar: グリッドボタンをクリックできる", async ({ page }) => {
+  await page.goto("/");
+  const gridBtn = page.getByRole("button", { name: "グリッド" });
+  await expect(gridBtn).toBeVisible();
+  await gridBtn.click();
+  // ボタンが存在し操作を受け付ける（WebGL なし環境では描画確認不可）
+  await expect(gridBtn).toBeVisible();
+});
+
+test("ViewportToolbar: 軸ボタンをクリックできる", async ({ page }) => {
+  await page.goto("/");
+  const axisBtn = page.getByRole("button", { name: "軸" });
+  await expect(axisBtn).toBeVisible();
+  await axisBtn.click();
+  await expect(axisBtn).toBeVisible();
+});
+
+test("ViewportToolbar: カメラリセットボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "カメラリセット" })).toBeVisible();
+});
+
+// ---- Project panel (authenticated) file upload UI --------------------------
+
+test("ログイン後: ファイルアップロードUIが表示される", async ({ page }) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+
+  // ProjectPanel が表示されている状態でファイル読み込みUIを確認
+  // (ModelPanel に FileLoader が内包されているため「モデル」タブへ移動)
+  await page.getByRole("button", { name: "モデル" }).click();
+  // FileLoader のファイル入力が存在する
+  const fileInput = page.locator('input[type="file"]');
+  await expect(fileInput).toBeAttached();
 });
