@@ -1,8 +1,8 @@
-"""File upload / download (scaffold — does not yet persist to S3)."""
+"""File upload / list — persists to S3 + PostgreSQL."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import hashlib
 from pathlib import PurePosixPath
 from uuid import UUID, uuid4
 
@@ -10,6 +10,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
+from app.s3 import put_object
 from app.schemas import CurrentUser, FileMetadata
 
 router = APIRouter(prefix="/api/files", tags=["files"])
@@ -55,6 +56,8 @@ async def upload(
             detail=f"extension not allowed; expected one of {sorted(ALLOWED_EXTS)}",
         )
 
+    digest = hashlib.sha256()
+    chunks: list[bytes] = []
     total = 0
     while chunk := await upload_file.read(1024 * 1024):
         total += len(chunk)
@@ -63,12 +66,46 @@ async def upload(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"file exceeds {MAX_BYTES} bytes",
             )
+        digest.update(chunk)
+        chunks.append(chunk)
 
-    return FileMetadata(
-        id=uuid4(),
+    body = b"".join(chunks)
+    sha256_bytes = digest.digest()
+    file_id = uuid4()
+    s3_key = f"{project_id}/{file_id}/{safe_name}"
+    content_type = upload_file.content_type or "application/octet-stream"
+
+    await put_object(s3_key, body, content_type)
+
+    db_file = await crud.create_file(
+        session,
         project_id=project_id,
         filename=safe_name,
         size_bytes=total,
-        content_type=upload_file.content_type or "application/octet-stream",
-        uploaded_at=datetime.now(UTC),
+        content_type=content_type,
+        s3_key=s3_key,
+        sha256=sha256_bytes,
     )
+    return FileMetadata(
+        id=db_file.id,
+        project_id=db_file.project_id,
+        filename=db_file.filename,
+        size_bytes=db_file.size_bytes,
+        content_type=db_file.content_type,
+        uploaded_at=db_file.uploaded_at,
+    )
+
+
+@router.get("/{project_id}", response_model=list[FileMetadata])
+async def list_files(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> list[FileMetadata]:
+    db_user = await crud.upsert_user(session, user)
+    if await crud.get_project(session, project_id, db_user.id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="project not found",
+        )
+    return await crud.list_files(session, project_id)
