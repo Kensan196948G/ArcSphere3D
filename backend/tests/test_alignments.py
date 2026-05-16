@@ -29,14 +29,17 @@ def _create_project(token: str, name: str = "Test Project") -> str:
 
 # ---- Auth guard ----
 
+
 def test_alignments_requires_auth() -> None:
     import uuid
+
     pid = str(uuid.uuid4())
     res = client.get(f"/api/projects/{pid}/alignments")
     assert res.status_code == 401
 
 
 # ---- CRUD happy path ----
+
 
 def test_create_alignment_returns_201() -> None:
     token = _get_token()
@@ -101,6 +104,7 @@ def test_delete_alignment() -> None:
 
 # ---- IP point sync ----
 
+
 def test_replace_ip_points() -> None:
     token = _get_token()
     pid = _create_project(token)
@@ -146,8 +150,10 @@ def test_replace_ip_points_clears_previous() -> None:
 
 # ---- Error cases ----
 
+
 def test_get_alignment_not_found() -> None:
     import uuid
+
     token = _get_token()
     pid = _create_project(token)
     res = client.get(
