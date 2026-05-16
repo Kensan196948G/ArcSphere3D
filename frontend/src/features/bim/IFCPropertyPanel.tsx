@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useIfcStore, type IFCPropertySet } from "@/state/ifcStore";
-import { fetchPropertiesForElement } from "@/features/viewport/FileLoader";
+import { fetchPropertiesForElement } from "@/features/viewport/ifcProperties";
 import IFCSpatialTree from "./IFCSpatialTree";
 
 function PropertySetBlock({ pset }: { pset: IFCPropertySet }) {

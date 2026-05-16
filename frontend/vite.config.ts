@@ -28,12 +28,23 @@ export default defineConfig({
     minify: "esbuild",
     // Avoid rollup OOM on Three.js by splitting into stable vendor chunks.
     rollupOptions: {
-      // web-ifc (5.7 MB IIFE) is served from public/ — exclude from rollup to prevent OOM.
-      external: (id) => id === "web-ifc" || id.startsWith("web-ifc/"),
+      // web-ifc (5.7 MB IIFE) and maplibre-gl (~1 MB) are served from public/ to prevent OOM.
+      external: (id) =>
+        id === "web-ifc" ||
+        id.startsWith("web-ifc/") ||
+        id === "maplibre-gl" ||
+        id.startsWith("maplibre-gl/"),
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
           if (id.includes("/three/") || id.includes("/three\\")) return "vendor-three";
+          if (
+            id.includes("/@loaders.gl/") ||
+            id.includes("\\@loaders.gl\\")
+          )
+            return "vendor-loaders";
+          if (id.includes("/d3-contour/") || id.includes("/d3-array/"))
+            return "vendor-d3";
           // Bundle react + react-dom + scheduler together to avoid circular chunks.
           if (
             id.includes("/react/") ||

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useIfcStore, type IFCSpatialNode } from "@/state/ifcStore";
-import { fetchPropertiesForElement } from "@/features/viewport/FileLoader";
+import { fetchPropertiesForElement } from "@/features/viewport/ifcProperties";
 
 const IFC_TYPE_LABEL: Record<string, string> = {
   IFCPROJECT: "🏗️ プロジェクト",

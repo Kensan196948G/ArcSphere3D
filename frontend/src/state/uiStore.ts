@@ -7,7 +7,14 @@ export type PanelId =
   | "bim"
   | "material"
   | "ai"
-  | "settings";
+  | "settings"
+  | "gis"
+  | "measure"
+  | "pointcloud"
+  | "terrain"
+  | "earthwork"
+  | "alignment"
+  | "cad";
 
 interface UiState {
   activePanel: PanelId;
