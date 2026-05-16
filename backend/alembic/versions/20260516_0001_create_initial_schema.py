@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-05-16
 
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -38,9 +39,7 @@ def upgrade() -> None:
         ),
         sa.UniqueConstraint("sub", name="users_sub_key"),
         sa.UniqueConstraint("email", name="users_email_key"),
-        sa.CheckConstraint(
-            "role IN ('admin','editor','viewer')", name="users_role_check"
-        ),
+        sa.CheckConstraint("role IN ('admin','editor','viewer')", name="users_role_check"),
     )
     op.create_index("users_sub_idx", "users", ["sub"])
 

@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 
 class File(Base):
     __tablename__ = "files"
-    __table_args__ = (
-        CheckConstraint("size_bytes >= 0", name="files_size_bytes_check"),
-    )
+    __table_args__ = (CheckConstraint("size_bytes >= 0", name="files_size_bytes_check"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
     project_id: Mapped[UUID] = mapped_column(
