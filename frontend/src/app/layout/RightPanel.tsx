@@ -10,6 +10,7 @@ import SettingsPanel from "@/features/settings/SettingsPanel";
 import IFCPropertyPanel from "@/features/bim/IFCPropertyPanel";
 import GisPanel from "@/features/gis/GisPanel";
 import PointCloudPanel from "@/features/pointcloud/PointCloudPanel";
+import TerrainPanel from "@/features/terrain/TerrainPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -65,11 +66,7 @@ export default function RightPanel() {
       case "pointcloud":
         return <PointCloudPanel />;
       case "terrain":
-        return (
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            TIN 地形モデル — 近日実装予定
-          </p>
-        );
+        return <TerrainPanel />;
       case "earthwork":
         return (
           <p className="text-[11px] text-slate-400 dark:text-slate-500">

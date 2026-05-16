@@ -341,3 +341,32 @@ test("PointCloudPanel: 点サイズラベルとガイドメッセージが表示
   // 初期状態のガイドメッセージが表示される
   await expect(page.getByText("LAS / LAZ ファイルを読み込むと 3D ビューに点群が表示されます。")).toBeVisible();
 });
+
+// ---- Terrain TIN panel ------------------------------------------------------
+
+test("LeftMenu: 地形パネルに切り替わりXYZファイル読み込みボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByRole("heading", { name: "地形 / TIN", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "XYZ ファイルを読み込む" })).toBeVisible();
+});
+
+test("TerrainPanel: TINサーフェスと三角形エッジのトグルボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByRole("button", { name: "TIN サーフェス" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "三角形エッジ" })).toBeVisible();
+});
+
+test("TerrainPanel: 等高線間隔スライダーが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByText("等高線間隔")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "等高線間隔" })).toBeVisible();
+});
+
+test("TerrainPanel: 初期状態のガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "地形" }).click();
+  await expect(page.getByText("XYZ 座標ファイルを読み込むと Delaunay 三角形分割 (TIN) で地形モデルが生成されます。")).toBeVisible();
+});
