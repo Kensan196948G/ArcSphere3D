@@ -1,8 +1,7 @@
 /**
- * IFC loader using web-ifc's IfcAPI.
- * Loads geometry from an IFC file and returns a Three.js Group.
- *
- * web-ifc needs its WASM binary. We ship it from the public folder.
+ * IFC loader using web-ifc's IfcAPI (loaded as IIFE from /web-ifc/web-ifc-api.js).
+ * web-ifc is NOT bundled by rollup — it is served from public/web-ifc/ to avoid
+ * a 5.7 MB minified-JS OOM during rollup transform (ADR: web-ifc public IIFE).
  */
 import {
   BufferAttribute,
@@ -13,35 +12,42 @@ import {
   Mesh,
   MeshStandardMaterial,
 } from "three";
-import { IfcAPI } from "web-ifc";
 
-let _api: IfcAPI | null = null;
+// web-ifc is loaded as a global IIFE before the module bundle.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const WebIFC: any;
 
-async function getApi(): Promise<IfcAPI> {
+let _api: unknown | null = null;
+
+async function getApi(): Promise<unknown> {
   if (_api) return _api;
-  _api = new IfcAPI();
-  // Tell web-ifc where to find the wasm binary.
-  // Vite copies files in public/ to dist/ as-is, so we place it there via vite.config.
-  _api.SetWasmPath("/web-ifc/");
-  await _api.Init();
-  return _api;
+  if (typeof WebIFC === "undefined") {
+    throw new Error("web-ifc IIFE not loaded — ensure /web-ifc/web-ifc-api.js is present in public/");
+  }
+  const api = new WebIFC.IfcAPI();
+  api.SetWasmPath("/web-ifc/");
+  await api.Init();
+  _api = api;
+  return api;
 }
 
 /** Load an IFC file from an ArrayBuffer and return a Three.js Group. */
 export async function loadIfc(buffer: ArrayBuffer, filename: string): Promise<Group> {
-  const api = await getApi();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const api = (await getApi()) as any;
   const data = new Uint8Array(buffer);
   const modelId = api.OpenModel(data);
 
   const group = new Group();
   group.name = filename;
 
-  // Iterate over all mesh data provided by web-ifc
-  api.StreamAllMeshes(modelId, (flatMesh) => {
+  api.StreamAllMeshes(modelId, (flatMesh: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fm = flatMesh as any;
     const meshGroup = new Group();
 
-    for (let g = 0; g < flatMesh.geometries.size(); g++) {
-      const placedGeom = flatMesh.geometries.get(g);
+    for (let g = 0; g < fm.geometries.size(); g++) {
+      const placedGeom = fm.geometries.get(g);
       const geomData = api.GetGeometry(modelId, placedGeom.geometryExpressID);
 
       const vertices = api.GetVertexArray(
@@ -81,8 +87,6 @@ export async function loadIfc(buffer: ArrayBuffer, filename: string): Promise<Gr
       });
 
       const mesh = new Mesh(geometry, material);
-
-      // Apply the transform matrix from web-ifc
       const matrix = placedGeom.flatTransformation;
       mesh.matrix.fromArray(matrix);
       mesh.matrixAutoUpdate = false;

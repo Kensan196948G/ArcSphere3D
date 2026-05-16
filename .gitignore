@@ -56,6 +56,9 @@ docker/volumes/
 *.wasm.map
 *.bundle.js.map
 
+# --- Generated: web-ifc IIFE copied to public by build script ---
+frontend/public/web-ifc/
+
 # --- macOS / Windows ---
 .AppleDouble
 .LSOverride

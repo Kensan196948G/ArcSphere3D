@@ -22,9 +22,14 @@ export default defineConfig({
   },
   build: {
     target: "es2022",
-    sourcemap: true,
-    // Avoid esbuild OOM on Three.js by splitting into stable vendor chunks.
+    // sourcemap disabled: rollup native generates maps in-memory and hits std::bad_alloc
+    // on large chunks (vendor-three 661 kB). Re-enable per-environment if needed.
+    sourcemap: false,
+    minify: "esbuild",
+    // Avoid rollup OOM on Three.js by splitting into stable vendor chunks.
     rollupOptions: {
+      // web-ifc (5.7 MB IIFE) is served from public/ — exclude from rollup to prevent OOM.
+      external: (id) => id === "web-ifc" || id.startsWith("web-ifc/"),
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
