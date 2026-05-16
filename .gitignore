@@ -40,6 +40,9 @@ venv/
 htmlcov/
 .coverage
 .coverage.*
+coverage.xml
+coverage-badge.svg
+ruff-report.json
 
 # --- Docker / Infra ---
 docker/data/
