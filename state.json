@@ -55,9 +55,10 @@
     "self_evolution": true
   },
   "stable": {
-    "consecutive_success": 1,
+    "consecutive_success": 2,
     "target_n": 3,
-    "stable_achieved": false
+    "stable_achieved": false,
+    "last_green_run_id": "25949045765"
   },
   "completed_issues": [
     "scaffold/monorepo",
