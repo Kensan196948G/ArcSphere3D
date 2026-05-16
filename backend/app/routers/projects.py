@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
@@ -14,9 +14,14 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
 @router.get("", response_model=list[ProjectOut])
-async def list_projects(session: DbDep, user: CurrentUser = CurrentUserDep) -> list[ProjectOut]:
+async def list_projects(
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> list[ProjectOut]:
     db_user = await crud.upsert_user(session, user)
-    return await crud.list_projects(session, db_user.id)
+    return await crud.list_projects(session, db_user.id, skip=skip, limit=limit)
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)

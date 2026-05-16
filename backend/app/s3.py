@@ -32,3 +32,25 @@ def _put_sync(key: str, body: bytes, content_type: str) -> None:
 async def put_object(key: str, body: bytes, content_type: str) -> None:
     """Upload *body* to the configured S3 bucket at *key*."""
     await asyncio.to_thread(_put_sync, key, body, content_type)
+
+
+def _delete_sync(key: str) -> None:
+    _client.delete_object(Bucket=_bucket, Key=key)
+
+
+async def delete_object(key: str) -> None:
+    """Delete the object at *key* from the configured S3 bucket."""
+    await asyncio.to_thread(_delete_sync, key)
+
+
+def _presign_sync(key: str, expires: int) -> str:
+    return _client.generate_presigned_url(  # type: ignore[no-any-return]
+        "get_object",
+        Params={"Bucket": _bucket, "Key": key},
+        ExpiresIn=expires,
+    )
+
+
+async def generate_presigned_url(key: str, expires: int = 3600) -> str:
+    """Return a pre-signed GET URL for *key* valid for *expires* seconds."""
+    return await asyncio.to_thread(_presign_sync, key, expires)

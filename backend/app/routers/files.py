@@ -1,4 +1,4 @@
-"""File upload / list — persists to S3 + PostgreSQL."""
+"""File upload / list / delete / download — persists to S3 + PostgreSQL."""
 
 from __future__ import annotations
 
@@ -6,12 +6,14 @@ import hashlib
 from pathlib import PurePosixPath
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import JSONResponse
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.s3 import put_object
-from app.schemas import CurrentUser, FileMetadata
+from app.logging import logger
+from app.s3 import delete_object, generate_presigned_url, put_object
+from app.schemas import CurrentUser, DownloadUrl, FileMetadata
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -20,10 +22,8 @@ MAX_BYTES = 200 * 1024 * 1024  # 200 MB
 
 
 def _safe_filename(raw: str | None) -> str:
-    # Strip any directory prefix (path-traversal defence) and reject control
-    # bytes — `.gltf\x00.bin` style tricks otherwise survive the extension
-    # check but get reinterpreted by downstream object-store SDKs. Whitespace-
-    # only names are also rejected: S3 accepts them as keys but they are
+    # Strip directory prefix (path-traversal defence) and reject control bytes.
+    # Whitespace-only names are rejected: S3 accepts them but they are
     # indistinguishable in any UI listing.
     name = PurePosixPath(raw or "").name
     if not name or not name.strip() or "\x00" in name or any(ord(c) < 0x20 for c in name):
@@ -40,10 +40,9 @@ async def upload(
     session: DbDep,
     upload_file: UploadFile = File(...),
     user: CurrentUser = CurrentUserDep,
-) -> FileMetadata:
+) -> FileMetadata | JSONResponse:
     db_user = await crud.upsert_user(session, user)
     if await crud.get_project(session, project_id, db_user.id) is None:
-        # 404 not 403 — same information-leak rationale as projects.get_project.
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="project not found",
@@ -69,8 +68,23 @@ async def upload(
         digest.update(chunk)
         chunks.append(chunk)
 
-    body = b"".join(chunks)
     sha256_bytes = digest.digest()
+
+    # Content-based dedup: if the same bytes already exist in this project,
+    # return the existing row without re-uploading to S3.
+    existing = await crud.get_file_by_sha256(session, project_id, sha256_bytes)
+    if existing is not None:
+        payload = FileMetadata(
+            id=existing.id,
+            project_id=existing.project_id,
+            filename=existing.filename,
+            size_bytes=existing.size_bytes,
+            content_type=existing.content_type,
+            uploaded_at=existing.uploaded_at,
+        )
+        return JSONResponse(status_code=status.HTTP_200_OK, content=payload.model_dump(mode="json"))
+
+    body = b"".join(chunks)
     file_id = uuid4()
     s3_key = f"{project_id}/{file_id}/{safe_name}"
     content_type = upload_file.content_type or "application/octet-stream"
@@ -96,11 +110,62 @@ async def upload(
     )
 
 
+# IMPORTANT: /{project_id}/{file_id}/download MUST be registered BEFORE
+# /{project_id} — FastAPI matches routes in declaration order, and the
+# 1-segment pattern would otherwise swallow 2-segment paths.
+@router.get("/{project_id}/{file_id}/download", response_model=DownloadUrl)
+async def download_url(
+    project_id: UUID,
+    file_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> DownloadUrl:
+    db_user = await crud.upsert_user(session, user)
+    if await crud.get_project(session, project_id, db_user.id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="project not found",
+        )
+    db_file = await crud.get_file(session, file_id, project_id)
+    if db_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="file not found",
+        )
+    expires = 3600
+    url = await generate_presigned_url(db_file.s3_key, expires)
+    return DownloadUrl(url=url, expires_in=expires)
+
+
+@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_file(
+    file_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> None:
+    db_user = await crud.upsert_user(session, user)
+    db_file = await crud.get_file_owned_by(session, file_id, db_user.id)
+    if db_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="file not found",
+        )
+    s3_key = db_file.s3_key
+    # DB deletion is transactional; S3 deletion is best-effort.
+    await crud.delete_file(session, file_id)
+    try:
+        await delete_object(s3_key)
+    except Exception as exc:
+        logger.warning("s3_delete_failed", key=s3_key, error=str(exc))
+
+
 @router.get("/{project_id}", response_model=list[FileMetadata])
 async def list_files(
     project_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
 ) -> list[FileMetadata]:
     db_user = await crud.upsert_user(session, user)
     if await crud.get_project(session, project_id, db_user.id) is None:
@@ -108,4 +173,4 @@ async def list_files(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="project not found",
         )
-    return await crud.list_files(session, project_id)
+    return await crud.list_files(session, project_id, skip=skip, limit=limit)
