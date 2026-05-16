@@ -136,7 +136,9 @@ def test_replace_ip_points_clears_previous() -> None:
     ).json()["id"]
 
     base_url = f"/api/projects/{pid}/alignments/{aid}/ip-points"
-    client.put(base_url, json=[{"seq": 0, "x": 1.0, "z": 2.0, "radius": 10.0}], headers=_auth(token))
+    client.put(
+        base_url, json=[{"seq": 0, "x": 1.0, "z": 2.0, "radius": 10.0}], headers=_auth(token)
+    )
     res = client.put(base_url, json=[], headers=_auth(token))
     assert res.status_code == 200
     assert res.json() == []
