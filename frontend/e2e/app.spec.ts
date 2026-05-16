@@ -370,3 +370,30 @@ test("TerrainPanel: 初期状態のガイドメッセージが表示される", 
   await page.getByRole("button", { name: "地形" }).click();
   await expect(page.getByText("XYZ 座標ファイルを読み込むと Delaunay 三角形分割 (TIN) で地形モデルが生成されます。")).toBeVisible();
 });
+
+test("LeftMenu: 土量計算パネルに切り替わり基準面標高と計算ボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByRole("heading", { name: "土量計算", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "土量を計算" })).toBeVisible();
+});
+
+test("EarthworkPanel: 基準面標高スライダーと数値入力が表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByText("基準面標高 (m)")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "基準面標高" })).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "基準面標高入力" })).toBeVisible();
+});
+
+test("EarthworkPanel: 地形データなしで計算ボタンが無効化される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByRole("button", { name: "土量を計算" })).toBeDisabled();
+});
+
+test("EarthworkPanel: 初期状態のガイドメッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "土量" }).click();
+  await expect(page.getByText("地形パネルで XYZ ファイルを読み込んでから基準面標高を設定し、土量を計算します。")).toBeVisible();
+});
