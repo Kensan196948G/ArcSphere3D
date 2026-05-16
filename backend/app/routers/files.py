@@ -1,4 +1,4 @@
-"""File upload / download (scaffold — does not yet persist)."""
+"""File upload / download (scaffold — does not yet persist to S3)."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
-from app.deps import CurrentUserDep
-from app.routers.projects import project_exists_for_owner
+from app.db import crud
+from app.deps import CurrentUserDep, DbDep
 from app.schemas import CurrentUser, FileMetadata
 
 router = APIRouter(prefix="/api/files", tags=["files"])
@@ -36,10 +36,12 @@ def _safe_filename(raw: str | None) -> str:
 @router.post("/upload", response_model=FileMetadata, status_code=status.HTTP_201_CREATED)
 async def upload(
     project_id: UUID,
+    session: DbDep,
     upload_file: UploadFile = File(...),
     user: CurrentUser = CurrentUserDep,
 ) -> FileMetadata:
-    if not project_exists_for_owner(project_id, user):
+    db_user = await crud.upsert_user(session, user)
+    if await crud.get_project(session, project_id, db_user.id) is None:
         # 404 not 403 — same information-leak rationale as projects.get_project.
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

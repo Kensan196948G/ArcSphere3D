@@ -62,13 +62,15 @@ def test_settings_rejects_cors_wildcard_even_in_dev() -> None:
         Settings(app_env="development", cors_origins="*")
 
 
-# ---- H1: owner_id is deterministic (uuid5) -------------------------------
+# ---- H1: owner_id is stable across requests (same sub → same owner_id) ---
 def test_owner_id_is_deterministic_across_calls() -> None:
-    from app.routers.projects import _owner_id_for
-    from app.schemas import CurrentUser
-
-    u = CurrentUser(sub="demo@arcsphere3d.dev", role="admin")
-    assert _owner_id_for(u) == _owner_id_for(u)
+    token = _login_token()
+    h = {"Authorization": f"Bearer {token}"}
+    p1 = client.post("/api/projects", json={"name": "Det1"}, headers=h)
+    p2 = client.post("/api/projects", json={"name": "Det2"}, headers=h)
+    assert p1.status_code == 201
+    assert p2.status_code == 201
+    assert p1.json()["owner_id"] == p2.json()["owner_id"]
 
 
 # ---- H1+H3 end-to-end: ownership filtering + IDOR defence ---------------
