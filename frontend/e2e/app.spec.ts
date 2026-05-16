@@ -446,3 +446,31 @@ test("AlignmentPanel: 初期状態のガイドメッセージが表示される"
   await page.getByRole("button", { name: "線形" }).click();
   await expect(page.getByText("設計速度を選択して線形を作成し、IP 点を追加することで平面線形を設計します。")).toBeVisible();
 });
+
+test("AlignmentPanel: 縦断タブに切り替えると案内メッセージが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await page.getByRole("button", { name: "縦断線形タブ" }).click();
+  await expect(page.getByText("平面線形を選択してから縦断線形を作成します。")).toBeVisible();
+});
+
+test("AlignmentPanel: 平面線形作成後に縦断タブで縦断線形を追加できる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await page.getByRole("textbox", { name: "線形名" }).fill("テスト路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await page.getByRole("button", { name: "縦断線形タブ" }).click();
+  await expect(page.getByText("対象路線:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "作成" })).toBeVisible();
+});
+
+test("AlignmentPanel: 縦断線形作成後にVIP追加フォームが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "線形" }).click();
+  await page.getByRole("textbox", { name: "線形名" }).fill("テスト路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await page.getByRole("button", { name: "縦断線形タブ" }).click();
+  await page.getByRole("textbox", { name: "縦断線形名" }).fill("縦断1");
+  await page.getByRole("button", { name: "作成" }).click();
+  await expect(page.getByRole("button", { name: "VIP を追加" })).toBeVisible();
+});
