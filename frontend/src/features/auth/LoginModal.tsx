@@ -40,8 +40,9 @@ export default function LoginModal({ onClose }: Props) {
         </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Email</label>
+            <label htmlFor="login-email" className="mb-1 block text-xs text-slate-400">Email</label>
             <input
+              id="login-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -50,10 +51,11 @@ export default function LoginModal({ onClose }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-400">
+            <label htmlFor="login-password" className="mb-1 block text-xs text-slate-400">
               Password
             </label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
