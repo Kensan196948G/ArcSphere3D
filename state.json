@@ -11,7 +11,7 @@
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
   "goal": "ArcSphere3D MVP: Web 3D Viewer + STL/OBJ/glTF Loader + 基本操作 + WebUI 管理画面 + 認証",
-  "phase": "Verify",
+  "phase": "Improve",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -55,10 +55,10 @@
     "self_evolution": true
   },
   "stable": {
-    "consecutive_success": 2,
+    "consecutive_success": 3,
     "target_n": 3,
-    "stable_achieved": false,
-    "last_green_run_id": "25949045765"
+    "stable_achieved": true,
+    "last_green_run_id": "25954325284"
   },
   "completed_issues": [
     "scaffold/monorepo",
@@ -73,7 +73,11 @@
     "verify/lint-typecheck-build",
     "docs/architecture-roadmap-security-adr",
     "github/remote-create-push",
-    "frontend/transform-gizmo-translate-rotate-scale"
+    "frontend/transform-gizmo-translate-rotate-scale",
+    "fix/eslint-no-redeclare-viewporttoolbar",
+    "fix/vite-build-webifc-iife-sourcemap",
+    "deps/zustand-v5-react-hooks-plugin-v7",
+    "deps/typescript-v6-deferred"
   ],
   "blocked_issues": [],
   "learning": {
@@ -113,6 +117,18 @@
         "where": "frontend/ (ESLint 9 + .eslintrc 不在)",
         "fixed_by": "eslint.config.js (flat config) を作成。@ts-eslint + react-hooks + react-refresh を最小構成で",
         "memory": "feedback-eslint9-flat-config"
+      },
+      {
+        "id": "rollup-native-bad-alloc",
+        "where": "frontend/vite.config.ts",
+        "fixed_by": "sourcemap: false — rollup Rust バイナリが vendor-three (661kB) の sourcemap を in-memory 生成する際に std::bad_alloc でクラッシュ。esbuild minify に切り替え、web-ifc を IIFE として public/ から配信",
+        "memory": "feedback-three-bundle-split"
+      },
+      {
+        "id": "react-hooks-v7-compiler-rules",
+        "where": "frontend/eslint.config.js",
+        "fixed_by": "eslint-plugin-react-hooks v7 は React Compiler ルール (immutability / set-state-in-effect) をデフォルト有効化。Three.js の命令的ミューテーションと useEffect→setState ブリッジパターンが誤検出されるため off に設定",
+        "memory": ""
       }
     ],
     "success_patterns": [
@@ -179,13 +195,16 @@
   },
   "next_session_hints": {
     "priority_order": [
-      "Add GitHub remote (`gh repo create`) and push initial commits",
-      "Open initial PR through CI to confirm workflows actually run green",
-      "Begin MVP item: Basic Edit (Transform Move/Rotate/Scale gizmo) — only remaining MVP scope item",
-      "Wire up Codex review + CodeRabbit on the first real PR per CLAUDE.md mandate"
+      "Improve: E2E テストカバレッジ拡充 (Playwright — ファイルアップロード / 3D ビューア / プロジェクト CRUD)",
+      "Improve: バックエンド pytest カバレッジ 70%+ 達成 (ファイル API / presigned / 認証エンドポイント)",
+      "Improve: TypeScript v6 移行準備 (tsconfig.json baseUrl 削除 + paths 相対パス化)",
+      "Improve: ADR-0002 (PostgreSQL 移行) 実装 — in-memory store を SQLAlchemy 2 + Alembic に置換",
+      "Improve: 残 Dependabot PRs 再評価 — Node 26 LTS / Python 3.13-slim"
     ],
     "warnings": [
-      "残 182 日 — 縮退ポリシー (30/14/7 日) はまだ遠いが、Month 1 末の Postgres 移行で in-memory store を捨てる前に projects/files の API contract を凍結すること"
+      "stable_achieved=true — Improve フェーズへ移行。Month 1-2 配分: 基盤整備・品質向上",
+      "TypeScript v6 は tsconfig.json の baseUrl 廃止 (TS5101 error) が障害。ignoreDeprecations: '6.0' か paths 移行で対応可能",
+      "残 182 日 — Month 1 末 (2026-06-14) に Postgres 移行前に projects/files の API contract を凍結すること"
     ]
   }
 }

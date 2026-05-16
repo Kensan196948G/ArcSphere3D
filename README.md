@@ -4,9 +4,9 @@
 
 | 🟢 Status | 🎯 Goal | 📅 Term | 🏷️ Stage |
 |---|---|---|---|
-| **Build (MVP)** | MVP Release → Production Release | 2026-05-14 → **2026-11-14** (6 ヶ月) | `mvp-release` |
+| **Improve** (Verify ✅ 3/3) | MVP Release → Production Release | 2026-05-14 → **2026-11-14** (6 ヶ月) | `mvp-release` |
 
-[![CI](https://img.shields.io/badge/CI-pending-lightgrey)]()
+[![CI](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml/badge.svg)](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Proprietary-blue)]()
 [![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20TS%20%2B%20Three.js-61DAFB)]()
 [![Backend](https://img.shields.io/badge/backend-FastAPI%20%2B%20Python%203.12-009688)]()
