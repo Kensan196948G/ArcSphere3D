@@ -6,11 +6,22 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.models.alignment import Alignment, AlignmentIpPoint
 from app.models.file import File
 from app.models.project import Project
 from app.models.user import User
-from app.schemas import CurrentUser, FileMetadata, ProjectCreate, ProjectOut
+from app.schemas import (
+    AlignmentCreate,
+    AlignmentOut,
+    CurrentUser,
+    FileMetadata,
+    IpPointCreate,
+    IpPointOut,
+    ProjectCreate,
+    ProjectOut,
+)
 
 
 async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
@@ -135,3 +146,108 @@ async def delete_file(session: AsyncSession, file_id: UUID) -> None:
     if f:
         await session.delete(f)
         await session.commit()
+
+
+# ---- Alignment CRUD ----
+
+
+def alignment_to_out(a: Alignment) -> AlignmentOut:
+    return AlignmentOut(
+        id=a.id,
+        project_id=a.project_id,
+        name=a.name,
+        design_speed=a.design_speed,
+        created_at=a.created_at,
+        ip_points=[
+            IpPointOut(
+                id=p.id,
+                alignment_id=p.alignment_id,
+                seq=p.seq,
+                x=float(p.x),
+                z=float(p.z),
+                radius=float(p.radius),
+            )
+            for p in sorted(a.ip_points, key=lambda ip: ip.seq)
+        ],
+    )
+
+
+async def list_alignments(
+    session: AsyncSession, project_id: UUID, skip: int = 0, limit: int = 100
+) -> list[AlignmentOut]:
+    result = await session.execute(
+        select(Alignment)
+        .where(Alignment.project_id == project_id)
+        .options(selectinload(Alignment.ip_points))
+        .offset(skip)
+        .limit(limit)
+    )
+    return [alignment_to_out(a) for a in result.scalars().all()]
+
+
+async def create_alignment(
+    session: AsyncSession, project_id: UUID, body: AlignmentCreate
+) -> AlignmentOut:
+    a = Alignment(project_id=project_id, name=body.name, design_speed=body.design_speed)
+    session.add(a)
+    await session.commit()
+    await session.refresh(a, ["ip_points"])
+    return alignment_to_out(a)
+
+
+async def get_alignment(
+    session: AsyncSession, alignment_id: UUID, project_id: UUID
+) -> Alignment | None:
+    result = await session.execute(
+        select(Alignment)
+        .where(Alignment.id == alignment_id, Alignment.project_id == project_id)
+        .options(selectinload(Alignment.ip_points))
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_alignment(session: AsyncSession, alignment_id: UUID) -> None:
+    result = await session.execute(select(Alignment).where(Alignment.id == alignment_id))
+    a = result.scalar_one_or_none()
+    if a:
+        await session.delete(a)
+        await session.commit()
+
+
+async def upsert_ip_points(
+    session: AsyncSession, alignment_id: UUID, points: list[IpPointCreate]
+) -> list[IpPointOut]:
+    """Replace all IP points for the alignment with the supplied list."""
+    existing = await session.execute(
+        select(AlignmentIpPoint).where(AlignmentIpPoint.alignment_id == alignment_id)
+    )
+    for old in existing.scalars().all():
+        await session.delete(old)
+
+    new_points: list[AlignmentIpPoint] = []
+    for p in points:
+        ip = AlignmentIpPoint(
+            alignment_id=alignment_id,
+            seq=p.seq,
+            x=p.x,
+            z=p.z,
+            radius=p.radius,
+        )
+        session.add(ip)
+        new_points.append(ip)
+
+    await session.commit()
+    for ip in new_points:
+        await session.refresh(ip)
+
+    return [
+        IpPointOut(
+            id=ip.id,
+            alignment_id=ip.alignment_id,
+            seq=ip.seq,
+            x=float(ip.x),
+            z=float(ip.z),
+            radius=float(ip.radius),
+        )
+        for ip in sorted(new_points, key=lambda x: x.seq)
+    ]

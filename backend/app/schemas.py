@@ -53,6 +53,37 @@ class DownloadUrl(BaseModel):
     expires_in: int
 
 
+# ---- Alignments ----
+class IpPointCreate(BaseModel):
+    seq: int = Field(ge=0)
+    x: float
+    z: float
+    radius: float = Field(ge=0)
+
+
+class IpPointOut(BaseModel):
+    id: UUID
+    alignment_id: UUID
+    seq: int
+    x: float
+    z: float
+    radius: float
+
+
+class AlignmentCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    design_speed: int = Field(default=60, ge=20, le=120)
+
+
+class AlignmentOut(BaseModel):
+    id: UUID
+    project_id: UUID
+    name: str
+    design_speed: int
+    created_at: datetime
+    ip_points: list[IpPointOut] = []
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str
