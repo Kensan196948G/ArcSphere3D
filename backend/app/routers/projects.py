@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 _Responses = dict[int | str, dict[str, Any]]
 
+_400: _Responses = {400: {"description": "malformed request body"}}
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
 _404: _Responses = {404: {"description": "not found"}}
 
@@ -30,7 +31,9 @@ async def list_projects(
     return await crud.list_projects(session, db_user.id, skip=skip, limit=limit)
 
 
-@router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED, responses=_401)
+@router.post(
+    "", response_model=ProjectOut, status_code=status.HTTP_201_CREATED, responses={**_400, **_401}
+)
 async def create_project(
     body: ProjectCreate,
     session: DbDep,
