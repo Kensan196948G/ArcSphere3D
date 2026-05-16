@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import PurePosixPath
+from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
@@ -17,8 +18,10 @@ from app.schemas import CurrentUser, DownloadUrl, FileMetadata
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
-_401 = {401: {"description": "missing or invalid bearer token"}}
-_404 = {404: {"description": "not found"}}
+_Responses = dict[int | str, dict[str, Any]]
+
+_401: _Responses = {401: {"description": "missing or invalid bearer token"}}
+_404: _Responses = {404: {"description": "not found"}}
 
 ALLOWED_EXTS = {".stl", ".obj", ".gltf", ".glb", ".ifc", ".step"}
 MAX_BYTES = 200 * 1024 * 1024  # 200 MB

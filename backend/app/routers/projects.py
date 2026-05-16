@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -12,9 +13,10 @@ from app.schemas import CurrentUser, ProjectCreate, ProjectOut
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
+_Responses = dict[int | str, dict[str, Any]]
 
-_401 = {401: {"description": "missing or invalid bearer token"}}
-_404 = {404: {"description": "not found"}}
+_401: _Responses = {401: {"description": "missing or invalid bearer token"}}
+_404: _Responses = {404: {"description": "not found"}}
 
 
 @router.get("", response_model=list[ProjectOut], responses=_401)
