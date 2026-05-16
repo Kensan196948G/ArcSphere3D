@@ -1,5 +1,7 @@
 import { useSceneStore, type TransformMode } from "@/state/sceneStore";
+import { useAuthStore } from "@/state/authStore";
 import FileLoader from "@/features/viewport/FileLoader";
+import ProjectPanel from "@/features/project/ProjectPanel";
 
 const MODES: { id: TransformMode; label: string; hint: string }[] = [
   { id: "translate", label: "Move", hint: "W" },
@@ -8,6 +10,7 @@ const MODES: { id: TransformMode; label: string; hint: string }[] = [
 ];
 
 export default function RightPanel() {
+  const token = useAuthStore((s) => s.token);
   const objects = useSceneStore((s) => s.objects);
   const removeObject = useSceneStore((s) => s.removeObject);
   const selectedId = useSceneStore((s) => s.selectedId);
@@ -16,7 +19,16 @@ export default function RightPanel() {
   const setTransformMode = useSceneStore((s) => s.setTransformMode);
 
   return (
-    <div className="flex h-full flex-col gap-4 p-3 text-sm">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto p-3 text-sm">
+      {token && (
+        <section>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Projects
+          </h2>
+          <ProjectPanel />
+        </section>
+      )}
+
       <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Load Model
