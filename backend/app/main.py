@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.db.session import close_engine, init_engine
 from app.logging import configure_logging, logger
 from app.routers import auth, files, health, projects
 
@@ -16,8 +17,10 @@ from app.routers import auth, files, health, projects
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
+    init_engine()
     logger.info("startup", app=settings.app_name, version=settings.app_version)
     yield
+    await close_engine()
     logger.info("shutdown", app=settings.app_name)
 
 
