@@ -171,10 +171,17 @@ jobs:
         run: docker compose -f docker/docker-compose.test.yml up -d --build --wait
         timeout-minutes: 10
 
-      - name: Smoke test — health
+      - name: Smoke test — healthz (liveness)
         run: |
           curl -f http://localhost:8001/healthz
-          echo "Health OK"
+          echo "healthz OK"
+
+      - name: Smoke test — readyz (DB connectivity)
+        run: |
+          BODY=$(curl -sf http://localhost:8001/readyz)
+          echo "$BODY"
+          echo "$BODY" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['status']=='ready' and d['db']=='ok', f'unexpected: {d}'"
+          echo "readyz OK"
 
       - name: Smoke test — auth login (wrong credentials → 401 expected)
         run: |
@@ -187,6 +194,36 @@ jobs:
             exit 1
           fi
           echo "Auth endpoint OK (got $STATUS)"
+
+      - name: Smoke test — full auth flow + project creation
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:8001/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"demo@arcsphere3d.dev","password":"arcsphere-demo"}' \
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+          echo "Login OK, token acquired"
+
+          # Create a project
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST http://localhost:8001/api/projects \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d '{"name":"CI Integration Test"}')
+          if [ "$STATUS" != "201" ]; then
+            echo "Expected 201, got $STATUS"
+            exit 1
+          fi
+          echo "Project creation OK"
+
+          # List projects
+          COUNT=$(curl -sf http://localhost:8001/api/projects \
+            -H "Authorization: Bearer $TOKEN" \
+            | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          if [ "$COUNT" -lt "1" ]; then
+            echo "Expected at least 1 project, got $COUNT"
+            exit 1
+          fi
+          echo "Project list OK ($COUNT projects)"
 
       - name: Tear down
         if: always()
