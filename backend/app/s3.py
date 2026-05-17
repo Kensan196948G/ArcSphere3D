@@ -6,6 +6,7 @@ import asyncio
 from typing import Any
 
 import boto3  # type: ignore[import-untyped]
+from botocore.config import Config  # type: ignore[import-untyped]
 from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
 from app.config import Settings
@@ -13,6 +14,10 @@ from app.logging import logger
 
 _client: Any = None
 _bucket: str = ""
+
+# Short timeout so _ensure_bucket() fails fast in environments without S3
+# (CI, tests).  Without this, boto3 waits up to ~60 s for TCP timeout.
+_PROBE_CONFIG = Config(connect_timeout=3, retries={"max_attempts": 0})
 
 
 def init_s3(settings: Settings) -> None:
@@ -23,6 +28,7 @@ def init_s3(settings: Settings) -> None:
         aws_access_key_id=settings.s3_access_key,
         aws_secret_access_key=settings.s3_secret_key,
         region_name=settings.s3_region,
+        config=_PROBE_CONFIG,
     )
     _bucket = settings.s3_bucket
     _ensure_bucket()
