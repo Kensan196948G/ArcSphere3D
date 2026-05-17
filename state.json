@@ -10,8 +10,8 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Q3: フロントエンド AlignmentPanel 実装 — IP法線形UI + バックエンドAPI連携 + 3D描画 → CI通過・マージ",
-  "phase": "Build",
+  "goal": "Improve: PR #40 (MinIO) マージ → Issue #43 RBAC 設計開始",
+  "phase": "Improve",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -37,19 +37,26 @@
     "security_critical": 0,
     "blocker_count": 0
   },
+  "schedule": {
+    "days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    "start_time": "02:00",
+    "duration_minutes": 240,
+    "timezone": "Asia/Tokyo",
+    "note": "月〜金 02:00 JST 起動、240分（4時間）セッション"
+  },
   "execution": {
-    "max_duration_minutes": 300,
+    "max_duration_minutes": 240,
     "repair_count": 0,
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Verify",
     "last_session_summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytest all green (6/6), frontend tsc 0 errors, vite build clean. Bugs caught & fixed: passlib<>bcrypt4 ABI break, EmailStr rejects .local TLD, Three.js bundle OOM in single chunk, FastAPI on_event deprecation. Docs: ARCHITECTURE/ROADMAP/SECURITY/ADR-0001 with Mermaid diagrams written. No GitHub remote yet — local commits only, push deferred.",
-    "current_session_start_at": "2026-05-16T11:47:53.834Z",
+    "current_session_start_at": "2026-05-17T17:00:02.571Z",
     "session_soft_deadline": "2026-05-16T14:02:00+09:00",
     "session_hard_deadline": "2026-05-16T14:32:00+09:00",
-    "last_trigger": "manual",
-    "last_cron_session_id": "20260516-143348-ArcSphere3D",
-    "last_stop_at": "2026-05-16T10:04:29.674Z"
+    "last_trigger": "cron",
+    "last_cron_session_id": "20260518-020001-ArcSphere3D",
+    "last_stop_at": "2026-05-16T12:27:00.676Z"
   },
   "automation": {
     "auto_issue_generation": true,
@@ -62,6 +69,19 @@
     "last_green_run_id": "25956964881"
   },
   "completed_issues": [
+    "fix/schemathesis-422-alignment-openapi",
+    "chore/download-artifact-v4-to-v5",
+    "test/e2e-coverage-40-to-49",
+    "db/alembic-migration-0003-alignments",
+    "fix/schemathesis-422-alignment-openapi",
+    "chore/download-artifact-v4-to-v5",
+    "test/e2e-coverage-40-to-49",
+    "db/alembic-migration-0003-alignments",
+    "feat/s3-minio-bucket-init",
+    "chore/integration-test-expand",
+    "docs/readme-feature-table-update",
+    "deps/types-proj4-patch",
+    "deps/types-node-22-to-25",
     "q3/backend-alignment-crud-api",
     "q3/vertical-alignment-vip-panel",
     "q2/alignment-panel-ip-method",
@@ -138,9 +158,33 @@
         "where": "frontend/eslint.config.js",
         "fixed_by": "eslint-plugin-react-hooks v7 は React Compiler ルール (immutability / set-state-in-effect) をデフォルト有効化。Three.js の命令的ミューテーションと useEffect→setState ブリッジパターンが誤検出されるため off に設定",
         "memory": ""
+      },
+      {
+        "id": "schemathesis-fastapi-400-vs-422",
+        "where": "backend/app/routers/alignments.py + tests/test_openapi.py",
+        "fixed_by": "FastAPI 0.136+ は JSON body parse error を 400 で返す (以前は 422)。OpenAPI spec に 400 と 422 の両レスポンスを宣言する必要あり。また schemathesis 4.x の hypothesis filter_too_much は suppress_health_check でサプレス",
+        "memory": ""
+      },
+      {
+        "id": "boto3-connect-timeout-ci-hang",
+        "where": "backend/app/s3.py",
+        "fixed_by": "Config(connect_timeout=3, retries={'max_attempts': 0}) を boto3 client に設定。未設定だと S3 unreachable 時に TCP timeout (60s) まで blocking し、schemathesis ASGI lifespan でテストが 10+ 分ハングする",
+        "memory": ""
       }
     ],
     "success_patterns": [
+      {
+        "at": "2026-05-16T12:27:00.686Z",
+        "summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytes"
+      },
+      {
+        "at": "2026-05-16T12:24:24.686Z",
+        "summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytes"
+      },
+      {
+        "at": "2026-05-16T12:22:15.390Z",
+        "summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytes"
+      },
       {
         "at": "2026-05-16T10:04:29.686Z",
         "summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytes"
@@ -204,19 +248,12 @@
       "Uvicorn",
       "bcrypt 4.x direct"
     ],
-    "storage": [
-      "PostgreSQL 16",
-      "MinIO",
-      "Redis 7"
-    ],
+    "storage": ["PostgreSQL 16", "MinIO", "Redis 7"],
     "auth": [
       "JWT RS256 (asymmetric keypair, ADR-0003)",
       "OAuth2 / Microsoft Entra ID SSO (post-MVP)"
     ],
-    "infra": [
-      "Docker Compose (MVP)",
-      "Kubernetes (future ADR-0003)"
-    ],
+    "infra": ["Docker Compose (MVP)", "Kubernetes (future ADR-0003)"],
     "ci": [
       "GitHub Actions",
       "CodeQL",
@@ -265,11 +302,7 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": [
-        "qa",
-        "security-reviewer",
-        "e2e-runner"
-      ]
+      "required": ["qa", "security-reviewer", "e2e-runner"]
     },
     {
       "at": "2026-05-16T09:16:43.784Z",
@@ -293,11 +326,7 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": [
-        "qa",
-        "security-reviewer",
-        "e2e-runner"
-      ]
+      "required": ["qa", "security-reviewer", "e2e-runner"]
     },
     {
       "at": "2026-05-16T09:19:11.108Z",
@@ -321,11 +350,7 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": [
-        "qa",
-        "security-reviewer",
-        "e2e-runner"
-      ]
+      "required": ["qa", "security-reviewer", "e2e-runner"]
     },
     {
       "at": "2026-05-16T09:28:56.693Z",
@@ -350,11 +375,7 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": [
-        "qa",
-        "security-reviewer",
-        "e2e-runner"
-      ]
+      "required": ["qa", "security-reviewer", "e2e-runner"]
     },
     {
       "at": "2026-05-16T10:04:29.686Z",
@@ -380,6 +401,108 @@
         "frontend/src/state/ifcStore.ts",
         "frontend/src/state/uiStore.ts",
         "frontend/vite.config.ts"
+      ],
+      "truncated": false
+    },
+    {
+      "at": "2026-05-16T12:22:15.379Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": ["qa", "security-reviewer", "e2e-runner"]
+    },
+    {
+      "at": "2026-05-16T12:22:15.390Z",
+      "kind": "tdd_required",
+      "message": "テスト未整備の変更が 19 件あります。/tdd または tdd-guide agent で対応してください。",
+      "files": [
+        "backend/app/db/crud.py",
+        "backend/app/models/alignment.py",
+        "backend/app/routers/alignments.py",
+        "backend/app/schemas.py",
+        "backend/tests/conftest.py",
+        "backend/tests/test_alignments.py",
+        "frontend/src/app/layout/RightPanel.tsx",
+        "frontend/src/features/alignment/AlignmentPanel.tsx",
+        "frontend/src/features/alignment/VerticalAlignmentPanel.tsx",
+        "frontend/src/features/alignment/useAlignment.ts",
+        "frontend/src/features/alignment/useVertical.ts",
+        "frontend/src/features/earthwork/EarthworkPanel.tsx",
+        "frontend/src/features/terrain/TerrainPanel.tsx",
+        "frontend/src/features/terrain/useTinSurface.ts",
+        "frontend/src/lib/api.ts",
+        "frontend/src/state/alignmentStore.ts",
+        "frontend/src/state/earthworkStore.ts",
+        "frontend/src/state/terrainStore.ts",
+        "frontend/src/state/verticalStore.ts"
+      ],
+      "truncated": false
+    },
+    {
+      "at": "2026-05-16T12:24:24.676Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": ["qa", "security-reviewer", "e2e-runner"]
+    },
+    {
+      "at": "2026-05-16T12:24:24.686Z",
+      "kind": "tdd_required",
+      "message": "テスト未整備の変更が 19 件あります。/tdd または tdd-guide agent で対応してください。",
+      "files": [
+        "backend/app/db/crud.py",
+        "backend/app/models/alignment.py",
+        "backend/app/routers/alignments.py",
+        "backend/app/schemas.py",
+        "backend/tests/conftest.py",
+        "backend/tests/test_alignments.py",
+        "frontend/src/app/layout/RightPanel.tsx",
+        "frontend/src/features/alignment/AlignmentPanel.tsx",
+        "frontend/src/features/alignment/VerticalAlignmentPanel.tsx",
+        "frontend/src/features/alignment/useAlignment.ts",
+        "frontend/src/features/alignment/useVertical.ts",
+        "frontend/src/features/earthwork/EarthworkPanel.tsx",
+        "frontend/src/features/terrain/TerrainPanel.tsx",
+        "frontend/src/features/terrain/useTinSurface.ts",
+        "frontend/src/lib/api.ts",
+        "frontend/src/state/alignmentStore.ts",
+        "frontend/src/state/earthworkStore.ts",
+        "frontend/src/state/terrainStore.ts",
+        "frontend/src/state/verticalStore.ts"
+      ],
+      "truncated": false
+    },
+    {
+      "at": "2026-05-16T12:27:00.676Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": ["qa", "security-reviewer", "e2e-runner"]
+    },
+    {
+      "at": "2026-05-16T12:27:00.686Z",
+      "kind": "tdd_required",
+      "message": "テスト未整備の変更が 19 件あります。/tdd または tdd-guide agent で対応してください。",
+      "files": [
+        "backend/app/db/crud.py",
+        "backend/app/models/alignment.py",
+        "backend/app/routers/alignments.py",
+        "backend/app/schemas.py",
+        "backend/tests/conftest.py",
+        "backend/tests/test_alignments.py",
+        "frontend/src/app/layout/RightPanel.tsx",
+        "frontend/src/features/alignment/AlignmentPanel.tsx",
+        "frontend/src/features/alignment/VerticalAlignmentPanel.tsx",
+        "frontend/src/features/alignment/useAlignment.ts",
+        "frontend/src/features/alignment/useVertical.ts",
+        "frontend/src/features/earthwork/EarthworkPanel.tsx",
+        "frontend/src/features/terrain/TerrainPanel.tsx",
+        "frontend/src/features/terrain/useTinSurface.ts",
+        "frontend/src/lib/api.ts",
+        "frontend/src/state/alignmentStore.ts",
+        "frontend/src/state/earthworkStore.ts",
+        "frontend/src/state/terrainStore.ts",
+        "frontend/src/state/verticalStore.ts"
       ],
       "truncated": false
     }
