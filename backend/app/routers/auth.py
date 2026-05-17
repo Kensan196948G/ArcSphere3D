@@ -15,10 +15,14 @@ from app.security import create_access_token, hash_password, verify_password
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # Demo users (MVP only). Replace with DB-backed store.
-_DEMO_USERS = {
+_DEMO_USERS: dict[str, dict[str, str]] = {
     "demo@arcsphere3d.dev": {
         "password_hash": hash_password("arcsphere-demo"),
         "role": "admin",
+    },
+    "other@arcsphere3d.dev": {
+        "password_hash": hash_password("arcsphere-demo"),
+        "role": "viewer",
     },
 }
 

@@ -72,7 +72,7 @@ def _db_truncate(_db_schema: None) -> None:
     """Truncate all tables before each test so state does not bleed between tests."""
     engine = create_engine(get_settings().database_url)
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE users, projects, files, alignments CASCADE"))
+        conn.execute(text("TRUNCATE users, projects, files, alignments, project_members CASCADE"))
     engine.dispose()
 
 
