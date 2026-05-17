@@ -52,14 +52,20 @@ def test_member_project_appears_in_list() -> None:
     ).json()["access_token"]
 
     pid = client.post(
-        "/api/projects", json={"name": "Shared Project"}, headers={"Authorization": f"Bearer {owner_token}"}
+        "/api/projects",
+        json={"name": "Shared Project"},
+        headers={"Authorization": f"Bearer {owner_token}"},
     ).json()["id"]
-    other_id = client.get("/api/users/me", headers={"Authorization": f"Bearer {other_token}"}).json()["id"]
+    other_id = client.get(
+        "/api/users/me", headers={"Authorization": f"Bearer {other_token}"}
+    ).json()["id"]
     client.post(
         f"/api/projects/{pid}/members",
         json={"user_id": other_id, "role": "viewer"},
         headers={"Authorization": f"Bearer {owner_token}"},
     )
 
-    projects = client.get("/api/projects", headers={"Authorization": f"Bearer {other_token}"}).json()
+    projects = client.get(
+        "/api/projects", headers={"Authorization": f"Bearer {other_token}"}
+    ).json()
     assert any(p["id"] == pid for p in projects)
