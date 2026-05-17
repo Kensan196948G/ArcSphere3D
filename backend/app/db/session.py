@@ -42,3 +42,10 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         raise RuntimeError("Database engine not initialised — call init_engine() first")
     async with _session_factory() as session:
         yield session
+
+
+def new_session() -> AsyncSession:
+    """Return a new AsyncSession for use outside of dependency injection (e.g. health checks)."""
+    if _session_factory is None:
+        raise RuntimeError("Database engine not initialised — call init_engine() first")
+    return _session_factory()

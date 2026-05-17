@@ -89,3 +89,4 @@ class HealthOut(BaseModel):
     status: str
     version: str
     env: str
+    db: str | None = None
