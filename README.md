@@ -157,7 +157,7 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 74/74]
+        B4 --> B5[pytest --cov 75/75]
         B5 --> B6[schemathesis 21/21]
         B6 --> B7[Upload coverage 96%]
     end
