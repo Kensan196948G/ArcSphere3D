@@ -35,14 +35,15 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)     | ✅ Done    |
 | 12  | 📏 Vertical alignment (VIP method, profile view)        | ✅ Done    |
 | 13  | 🔭 Click-to-select + emissive highlight (raycasting)    | ✅ Done    |
-| 14  | 📊 OpenAPI contract tests (schemathesis, 17/17 pass)    | ✅ Done    |
+| 14  | 📊 OpenAPI contract tests (schemathesis, 21/21 pass)    | ✅ Done    |
 | 15  | 🐳 Docker Compose integration test stack                | ✅ Done    |
-| 16  | 📋 Alembic DB migrations (0001→0003)                    | ✅ Done    |
+| 16  | 📋 Alembic DB migrations (0001→0004)                    | ✅ Done    |
 | 17  | 🏥 /readyz DB connectivity probe                        | ✅ Done    |
 | 18  | 🧪 E2E tests — Playwright / Firefox (48 pass)           | ✅ Done    |
-| 19  | 📐 OpenCascade.js STEP/IGES CAD loader                  | 🔮 Planned |
-| 20  | 👥 Real-time collaboration (WebSocket)                  | 🔮 Planned |
-| 21  | 🤖 AI-assisted CAD commands                             | 🔮 Planned |
+| 19  | 👥 RBAC — project sharing (owner/editor/viewer roles)   | ✅ Done    |
+| 20  | 📐 OpenCascade.js STEP/IGES CAD loader                  | 🔮 Planned |
+| 21  | 🌐 Real-time collaboration (WebSocket)                  | 🔮 Planned |
+| 22  | 🤖 AI-assisted CAD commands                             | 🔮 Planned |
 
 ---
 
@@ -107,9 +108,8 @@ graph LR
 
 | Method   | Path                                            | Description                              |
 | -------- | ----------------------------------------------- | ---------------------------------------- |
-| `POST`   | `/api/auth/register`                            | Register a new user                      |
 | `POST`   | `/api/auth/login`                               | Obtain JWT access token                  |
-| `GET`    | `/api/users/me`                                 | Current authenticated user               |
+| `GET`    | `/api/users/me`                                 | Current authenticated user (DB UUID)     |
 | `GET`    | `/api/projects`                                 | List projects (paginated)                |
 | `POST`   | `/api/projects`                                 | Create a project                         |
 | `GET`    | `/api/projects/{id}`                            | Get project detail                       |
@@ -124,6 +124,9 @@ graph LR
 | `GET`    | `/api/projects/{id}/alignments/{aid}`           | Get alignment detail                     |
 | `DELETE` | `/api/projects/{id}/alignments/{aid}`           | Delete alignment                         |
 | `PUT`    | `/api/projects/{id}/alignments/{aid}/ip-points` | Replace all IP points (idempotent sync)  |
+| `GET`    | `/api/projects/{id}/members`                    | List project members (owner only)        |
+| `POST`   | `/api/projects/{id}/members`                    | Add / update member role (owner only)    |
+| `DELETE` | `/api/projects/{id}/members/{uid}`              | Remove member (owner only)               |
 | `GET`    | `/healthz`                                      | Liveness probe (always 200)              |
 | `GET`    | `/readyz`                                       | Readiness probe (checks DB connectivity) |
 
@@ -154,8 +157,8 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 58/58]
-        B5 --> B6[schemathesis 17/17]
+        B4 --> B5[pytest --cov 70/70]
+        B5 --> B6[schemathesis 21/21]
         B6 --> B7[Upload coverage 96%]
     end
 
