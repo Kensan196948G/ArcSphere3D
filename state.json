@@ -10,8 +10,8 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Improve: PR #40 (MinIO) マージ → Issue #43 RBAC 設計開始",
-  "phase": "Improve",
+  "goal": "feat/rbac-project-members: RBAC 実装完了 → CI通過・PR #45 マージ",
+  "phase": "Verify",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
