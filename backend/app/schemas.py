@@ -84,6 +84,35 @@ class AlignmentOut(BaseModel):
     ip_points: list[IpPointOut] = []
 
 
+# ---- Vertical Alignments ----
+class VipCreate(BaseModel):
+    seq: int = Field(ge=0)
+    station: float = Field(ge=0)
+    elevation: float
+    vc_length: float = Field(default=0, ge=0)
+
+
+class VipOut(BaseModel):
+    id: UUID
+    vertical_alignment_id: UUID
+    seq: int
+    station: float
+    elevation: float
+    vc_length: float
+
+
+class VerticalAlignmentCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+
+
+class VerticalAlignmentOut(BaseModel):
+    id: UUID
+    alignment_id: UUID
+    name: str
+    created_at: datetime
+    vips: list[VipOut] = []
+
+
 # ---- Project Members (RBAC) ----
 class MemberAdd(BaseModel):
     user_id: UUID

@@ -8,7 +8,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.alignment import Alignment, AlignmentIpPoint
+from app.models.alignment import (
+    Alignment,
+    AlignmentIpPoint,
+    VerticalAlignment,
+    VerticalAlignmentVip,
+)
 from app.models.file import File
 from app.models.project import Project
 from app.models.project_member import ProjectMember
@@ -23,6 +28,10 @@ from app.schemas import (
     MemberOut,
     ProjectCreate,
     ProjectOut,
+    VerticalAlignmentCreate,
+    VerticalAlignmentOut,
+    VipCreate,
+    VipOut,
 )
 
 
@@ -342,3 +351,105 @@ async def remove_member(session: AsyncSession, project_id: UUID, user_id: UUID) 
     await session.delete(member)
     await session.commit()
     return True
+
+
+# ---- Vertical Alignment CRUD ----
+
+
+def _vip_to_out(v: VerticalAlignmentVip) -> VipOut:
+    return VipOut(
+        id=v.id,
+        vertical_alignment_id=v.vertical_alignment_id,
+        seq=v.seq,
+        station=float(v.station),
+        elevation=float(v.elevation),
+        vc_length=float(v.vc_length),
+    )
+
+
+def vertical_to_out(va: VerticalAlignment) -> VerticalAlignmentOut:
+    return VerticalAlignmentOut(
+        id=va.id,
+        alignment_id=va.alignment_id,
+        name=va.name,
+        created_at=va.created_at,
+        vips=[_vip_to_out(v) for v in sorted(va.vips, key=lambda v: v.seq)],
+    )
+
+
+async def list_verticals(
+    session: AsyncSession, alignment_id: UUID, skip: int = 0, limit: int = 100
+) -> list[VerticalAlignmentOut]:
+    result = await session.execute(
+        select(VerticalAlignment)
+        .where(VerticalAlignment.alignment_id == alignment_id)
+        .options(selectinload(VerticalAlignment.vips))
+        .offset(skip)
+        .limit(limit)
+    )
+    return [vertical_to_out(va) for va in result.scalars().all()]
+
+
+async def create_vertical(
+    session: AsyncSession, alignment_id: UUID, body: VerticalAlignmentCreate
+) -> VerticalAlignmentOut:
+    va = VerticalAlignment(alignment_id=alignment_id, name=body.name)
+    session.add(va)
+    await session.commit()
+    await session.refresh(va, ["vips"])
+    return vertical_to_out(va)
+
+
+async def get_vertical(
+    session: AsyncSession, vertical_id: UUID, alignment_id: UUID
+) -> VerticalAlignment | None:
+    result = await session.execute(
+        select(VerticalAlignment)
+        .where(
+            VerticalAlignment.id == vertical_id,
+            VerticalAlignment.alignment_id == alignment_id,
+        )
+        .options(selectinload(VerticalAlignment.vips))
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_vertical(session: AsyncSession, vertical_id: UUID) -> None:
+    result = await session.execute(
+        select(VerticalAlignment).where(VerticalAlignment.id == vertical_id)
+    )
+    va = result.scalar_one_or_none()
+    if va:
+        await session.delete(va)
+        await session.commit()
+
+
+async def upsert_vips(
+    session: AsyncSession, vertical_id: UUID, points: list[VipCreate]
+) -> list[VipOut]:
+    """Replace all VIPs for the vertical alignment with the supplied list."""
+    existing = await session.execute(
+        select(VerticalAlignmentVip).where(
+            VerticalAlignmentVip.vertical_alignment_id == vertical_id
+        )
+    )
+    for old in existing.scalars().all():
+        await session.delete(old)
+
+    new_vips: list[VerticalAlignmentVip] = []
+    for p in points:
+        vip = VerticalAlignmentVip(
+            vertical_alignment_id=vertical_id,
+            seq=p.seq,
+            station=p.station,
+            elevation=p.elevation,
+            vc_length=p.vc_length,
+        )
+        session.add(vip)
+        new_vips.append(vip)
+
+    await session.commit()
+    for vip in new_vips:
+        await session.refresh(vip)
+
+    return [_vip_to_out(v) for v in sorted(new_vips, key=lambda v: v.seq)]

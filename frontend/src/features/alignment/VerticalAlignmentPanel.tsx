@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/state/authStore";
+import { useProjectStore } from "@/state/projectStore";
 import { useVerticalStore } from "@/state/verticalStore";
 import { useVertical } from "./useVertical";
 
-function VerticalDetail({ verticalId }: { verticalId: string }) {
+interface DetailProps {
+  verticalId: string;
+  token: string;
+  projectId: string;
+  alignmentId: string;
+}
+
+function VerticalDetail({
+  verticalId,
+  token,
+  projectId,
+  alignmentId,
+}: DetailProps) {
   const store = useVerticalStore();
   const vertical = useVertical(verticalId);
   const [sta, setSta] = useState("0");
@@ -11,7 +25,7 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
 
   if (!vertical) return null;
 
-  function handleAddVip() {
+  async function handleAddVip() {
     const s = Number(sta);
     const e = Number(elev);
     const l = Number(vcLen);
@@ -20,6 +34,12 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
     setSta("0");
     setElev("0");
     setVcLen("0");
+    await store.syncVips(token, projectId, alignmentId, verticalId);
+  }
+
+  async function handleRemoveVip(vipId: string) {
+    store.removeVip(verticalId, vipId);
+    await store.syncVips(token, projectId, alignmentId, verticalId);
   }
 
   const gradeElements = vertical.elements.filter((el) => el.type === "grade");
@@ -39,18 +59,24 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
       {/* VIP list */}
       {vertical.vips.length > 0 && (
         <div className="rounded bg-slate-100 px-2 py-1.5 text-[10px] dark:bg-slate-800">
-          <p className="mb-1 font-semibold text-slate-600 dark:text-slate-300">VIP 一覧</p>
+          <p className="mb-1 font-semibold text-slate-600 dark:text-slate-300">
+            VIP 一覧
+          </p>
           {[...vertical.vips]
             .sort((a, b) => a.station - b.station)
             .map((p, i) => (
-              <div key={p.id} className="flex items-center justify-between py-0.5">
+              <div
+                key={p.id}
+                className="flex items-center justify-between py-0.5"
+              >
                 <span className="font-mono text-slate-500 dark:text-slate-400">
-                  VIP{i + 1} STA={p.station.toFixed(1)} EL={p.elevation.toFixed(2)} L=
+                  VIP{i + 1} STA={p.station.toFixed(1)} EL=
+                  {p.elevation.toFixed(2)} L=
                   {p.vcLength.toFixed(0)}m
                 </span>
                 <button
                   type="button"
-                  onClick={() => store.removeVip(verticalId, p.id)}
+                  onClick={() => handleRemoveVip(p.id)}
                   className="ml-2 text-rose-400 hover:text-rose-600"
                   aria-label={`VIP${i + 1}を削除`}
                 >
@@ -63,7 +89,9 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
 
       {/* Add VIP form */}
       <div className="rounded bg-slate-50 px-2 py-2 text-[10px] dark:bg-slate-900">
-        <p className="mb-1 font-semibold text-slate-600 dark:text-slate-300">VIP を追加</p>
+        <p className="mb-1 font-semibold text-slate-600 dark:text-slate-300">
+          VIP を追加
+        </p>
         <div className="grid grid-cols-3 gap-1">
           <label className="flex flex-col gap-0.5">
             <span className="text-slate-500">測点 (m)</span>
@@ -109,7 +137,9 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
       {/* Computed elements */}
       {vertical.elements.length > 0 && (
         <div className="rounded bg-slate-100 px-2 py-2 text-[10px] dark:bg-slate-800">
-          <p className="mb-1 font-semibold text-slate-700 dark:text-slate-200">縦断計算結果</p>
+          <p className="mb-1 font-semibold text-slate-700 dark:text-slate-200">
+            縦断計算結果
+          </p>
           <div className="mb-1.5 flex gap-4 text-slate-500 dark:text-slate-400">
             <span>勾配区間: {gradeElements.length}</span>
             <span>縦曲線: {curveElements.length}</span>
@@ -125,8 +155,8 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
                 }`}
               >
                 <span className="font-mono text-slate-600 dark:text-slate-300">
-                  {el.type === "grade" ? "勾配" : "縦曲線"}{" "}
-                  STA={el.startStation.toFixed(0)}〜{el.endStation.toFixed(0)}
+                  {el.type === "grade" ? "勾配" : "縦曲線"} STA=
+                  {el.startStation.toFixed(0)}〜{el.endStation.toFixed(0)}
                 </span>
                 <span className="ml-2 font-mono text-slate-500 dark:text-slate-400">
                   {el.type === "grade" && el.grade !== undefined
@@ -151,26 +181,42 @@ function VerticalDetail({ verticalId }: { verticalId: string }) {
 }
 
 interface Props {
-  /** id of the parent horizontal alignment */
   alignmentId: string | null;
   alignmentName: string;
 }
 
-export default function VerticalAlignmentPanel({ alignmentId, alignmentName }: Props) {
+export default function VerticalAlignmentPanel({
+  alignmentId,
+  alignmentName,
+}: Props) {
   const store = useVerticalStore();
+  const { token } = useAuthStore();
+  const { selectedProjectId } = useProjectStore();
   const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    if (!token || !selectedProjectId || !alignmentId) return;
+    store.fetchVerticals(token, selectedProjectId, alignmentId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, selectedProjectId, alignmentId]);
 
   const linked = alignmentId
     ? store.verticals.filter((v) => v.alignmentId === alignmentId)
     : [];
 
-  const activeVertical = linked.find((v) => v.id === store.activeId) ?? linked[0] ?? null;
+  const activeVertical =
+    linked.find((v) => v.id === store.activeId) ?? linked[0] ?? null;
 
-  function handleCreate() {
-    if (!alignmentId) return;
+  async function handleCreate() {
+    if (!alignmentId || !token || !selectedProjectId) return;
     const name = newName.trim() || `縦断 ${linked.length + 1}`;
-    store.addVertical(alignmentId, name);
+    await store.createVertical(token, selectedProjectId, alignmentId, name);
     setNewName("");
+  }
+
+  async function handleRemove(id: string) {
+    if (!token || !selectedProjectId || !alignmentId) return;
+    await store.removeVertical(token, selectedProjectId, alignmentId, id);
   }
 
   if (!alignmentId) {
@@ -184,12 +230,17 @@ export default function VerticalAlignmentPanel({ alignmentId, alignmentName }: P
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[10px] text-slate-500 dark:text-slate-400">
-        対象路線: <span className="font-semibold text-slate-700 dark:text-slate-300">{alignmentName}</span>
+        対象路線:{" "}
+        <span className="font-semibold text-slate-700 dark:text-slate-300">
+          {alignmentName}
+        </span>
       </p>
 
       {/* Create vertical alignment */}
       <div className="flex flex-col gap-1.5">
-        <p className="text-[10px] text-slate-500 dark:text-slate-400">縦断線形を追加</p>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+          縦断線形を追加
+        </p>
         <div className="flex gap-1">
           <input
             type="text"
@@ -212,7 +263,9 @@ export default function VerticalAlignmentPanel({ alignmentId, alignmentName }: P
       {/* Vertical list */}
       {linked.length > 0 && (
         <div className="flex flex-col gap-1">
-          <p className="text-[10px] text-slate-500 dark:text-slate-400">縦断線形一覧</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+            縦断線形一覧
+          </p>
           {linked.map((v) => (
             <div key={v.id} className="flex items-center gap-1">
               <button
@@ -228,7 +281,7 @@ export default function VerticalAlignmentPanel({ alignmentId, alignmentName }: P
               </button>
               <button
                 type="button"
-                onClick={() => store.removeVertical(v.id)}
+                onClick={() => handleRemove(v.id)}
                 className="shrink-0 rounded px-1.5 py-1 text-[10px] text-rose-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20"
                 aria-label={`${v.name}を削除`}
               >
@@ -240,7 +293,14 @@ export default function VerticalAlignmentPanel({ alignmentId, alignmentName }: P
       )}
 
       {/* Active vertical detail */}
-      {activeVertical && <VerticalDetail verticalId={activeVertical.id} />}
+      {activeVertical && token && selectedProjectId && alignmentId && (
+        <VerticalDetail
+          verticalId={activeVertical.id}
+          token={token}
+          projectId={selectedProjectId}
+          alignmentId={alignmentId}
+        />
+      )}
 
       {linked.length === 0 && (
         <p className="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">

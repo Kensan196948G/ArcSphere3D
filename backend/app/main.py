@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.db.session import close_engine, init_engine
 from app.logging import configure_logging, logger
-from app.routers import alignments, auth, files, health, project_members, projects, users
+from app.routers import alignments, auth, files, health, project_members, projects, users, verticals
 from app.s3 import init_s3
 
 
@@ -51,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(files.router)
     app.include_router(alignments.router)
+    app.include_router(verticals.router)
     app.include_router(project_members.router)
 
     return app
