@@ -10,8 +10,8 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "feat/rbac-project-members: RBAC 実装完了 → CI通過・PR #45 マージ",
-  "phase": "Verify",
+  "goal": "feat/vertical-alignment-api: 縦断線形 API 実装完了 → CI通過・PR #49 マージ",
+  "phase": "Build",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -66,7 +66,7 @@
     "consecutive_success": 5,
     "target_n": 3,
     "stable_achieved": true,
-    "last_green_run_id": "25956964881"
+    "last_green_run_id": "25999937879"
   },
   "completed_issues": [
     "fix/schemathesis-422-alignment-openapi",
@@ -83,6 +83,8 @@
     "deps/types-proj4-patch",
     "deps/types-node-22-to-25",
     "q3/backend-alignment-crud-api",
+    "feat/rbac-member-access",
+    "feat/vertical-alignment-api",
     "q3/vertical-alignment-vip-panel",
     "q2/alignment-panel-ip-method",
     "q2/earthwork-panel-cut-fill",
