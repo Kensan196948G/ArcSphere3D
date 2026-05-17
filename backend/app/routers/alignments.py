@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/projects/{project_id}/alignments", tags=["alignm
 _Responses = dict[int | str, dict[str, Any]]
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
 _404: _Responses = {404: {"description": "not found"}}
+_422: _Responses = {422: {"description": "validation error"}}
 
 
 async def _require_project(project_id: UUID, session: Any, owner_id: UUID) -> None:
@@ -42,7 +43,7 @@ async def list_alignments(
     "",
     response_model=AlignmentOut,
     status_code=status.HTTP_201_CREATED,
-    responses={**_401, **_404},
+    responses={**_401, **_404, **_422},
 )
 async def create_alignment(
     project_id: UUID,
@@ -92,7 +93,7 @@ async def delete_alignment(
 @router.put(
     "/{alignment_id}/ip-points",
     response_model=list[IpPointOut],
-    responses={**_401, **_404},
+    responses={**_401, **_404, **_422},
 )
 async def replace_ip_points(
     project_id: UUID,
