@@ -84,6 +84,19 @@ class AlignmentOut(BaseModel):
     ip_points: list[IpPointOut] = []
 
 
+# ---- Project Members (RBAC) ----
+class MemberAdd(BaseModel):
+    user_id: UUID
+    role: str = Field(pattern="^(owner|editor|viewer)$")
+
+
+class MemberOut(BaseModel):
+    project_id: UUID
+    user_id: UUID
+    role: str
+    created_at: datetime
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str

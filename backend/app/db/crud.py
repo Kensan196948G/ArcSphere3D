@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from app.models.alignment import Alignment, AlignmentIpPoint
 from app.models.file import File
 from app.models.project import Project
+from app.models.project_member import ProjectMember
 from app.models.user import User
 from app.schemas import (
     AlignmentCreate,
@@ -19,6 +20,7 @@ from app.schemas import (
     FileMetadata,
     IpPointCreate,
     IpPointOut,
+    MemberOut,
     ProjectCreate,
     ProjectOut,
 )
@@ -251,3 +253,74 @@ async def upsert_ip_points(
         )
         for ip in sorted(new_points, key=lambda x: x.seq)
     ]
+
+
+# ---- Project Members (RBAC) ----
+
+
+async def get_member_role(session: AsyncSession, project_id: UUID, user_id: UUID) -> str | None:
+    """Return the role of *user_id* in *project_id*, or None if not a member."""
+    result = await session.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+    )
+    row = result.scalar_one_or_none()
+    return row.role if row else None
+
+
+async def list_members(session: AsyncSession, project_id: UUID) -> list[MemberOut]:
+    result = await session.execute(
+        select(ProjectMember).where(ProjectMember.project_id == project_id)
+    )
+    return [
+        MemberOut(
+            project_id=m.project_id,
+            user_id=m.user_id,
+            role=m.role,
+            created_at=m.created_at,
+        )
+        for m in result.scalars().all()
+    ]
+
+
+async def add_member(
+    session: AsyncSession, project_id: UUID, user_id: UUID, role: str
+) -> MemberOut:
+    existing = await session.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+    )
+    member = existing.scalar_one_or_none()
+    if member is None:
+        member = ProjectMember(project_id=project_id, user_id=user_id, role=role)
+        session.add(member)
+    else:
+        member.role = role
+    await session.commit()
+    await session.refresh(member)
+    return MemberOut(
+        project_id=member.project_id,
+        user_id=member.user_id,
+        role=member.role,
+        created_at=member.created_at,
+    )
+
+
+async def remove_member(session: AsyncSession, project_id: UUID, user_id: UUID) -> bool:
+    """Delete the membership. Returns True if it existed, False otherwise."""
+    result = await session.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if member is None:
+        return False
+    await session.delete(member)
+    await session.commit()
+    return True
