@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -43,10 +43,16 @@ async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
 
 
 async def list_projects(
-    session: AsyncSession, owner_id: UUID, skip: int = 0, limit: int = 50
+    session: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 50
 ) -> list[ProjectOut]:
+    """Return projects owned by *user_id* OR where *user_id* is a member."""
     result = await session.execute(
-        select(Project).where(Project.owner_id == owner_id).offset(skip).limit(limit)
+        select(Project)
+        .outerjoin(ProjectMember, ProjectMember.project_id == Project.id)
+        .where(or_(Project.owner_id == user_id, ProjectMember.user_id == user_id))
+        .distinct()
+        .offset(skip)
+        .limit(limit)
     )
     return [
         ProjectOut(id=r.id, name=r.name, owner_id=r.owner_id, created_at=r.created_at)
