@@ -20,30 +20,30 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 
 ## Feature Status
 
-| #   | Feature                                                 | Status     |
-| --- | ------------------------------------------------------- | ---------- |
-| 1   | 🔐 JWT authentication (RS256 asymmetric keypair)        | ✅ Done    |
-| 2   | 📁 Project management CRUD                              | ✅ Done    |
-| 3   | 📤 File upload — S3 presigned + sha256 deduplication    | ✅ Done    |
-| 4   | 🏗️ IFC 3D viewer (web-ifc, client-side WASM)            | ✅ Done    |
-| 5   | 🎮 Three.js viewport — Grid / Axes / Transform Controls | ✅ Done    |
-| 6   | 🌙 Light / Dark theme                                   | ✅ Done    |
-| 7   | 🗺️ GIS background map (MapLibre GL JS)                  | ✅ Done    |
-| 8   | ☁️ Point cloud viewer (LAS/LAZ, color modes)            | ✅ Done    |
-| 9   | 🏔️ Terrain TIN surface (Delaunay triangulation)         | ✅ Done    |
-| 10  | 🏗️ Earthwork calculation (cut/fill volumes)             | ✅ Done    |
-| 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)     | ✅ Done    |
-| 12  | 📏 Vertical alignment (VIP method, profile view)        | ✅ Done    |
-| 13  | 🔭 Click-to-select + emissive highlight (raycasting)    | ✅ Done    |
-| 14  | 📊 OpenAPI contract tests (schemathesis, 21/21 pass)    | ✅ Done    |
-| 15  | 🐳 Docker Compose integration test stack                | ✅ Done    |
-| 16  | 📋 Alembic DB migrations (0001→0004)                    | ✅ Done    |
-| 17  | 🏥 /readyz DB connectivity probe                        | ✅ Done    |
-| 18  | 🧪 E2E tests — Playwright / Firefox (48 pass)           | ✅ Done    |
-| 19  | 👥 RBAC — member access (owner/editor/viewer per project) | ✅ Done    |
-| 20  | 📐 OpenCascade.js STEP/IGES CAD loader                  | 🔮 Planned |
-| 21  | 🌐 Real-time collaboration (WebSocket)                  | 🔮 Planned |
-| 22  | 🤖 AI-assisted CAD commands                             | 🔮 Planned |
+| #   | Feature                                                        | Status     |
+| --- | -------------------------------------------------------------- | ---------- |
+| 1   | 🔐 JWT authentication (RS256 asymmetric keypair)               | ✅ Done    |
+| 2   | 📁 Project management CRUD                                     | ✅ Done    |
+| 3   | 📤 File upload — S3 presigned + sha256 deduplication           | ✅ Done    |
+| 4   | 🏗️ IFC 3D viewer (web-ifc, client-side WASM)                   | ✅ Done    |
+| 5   | 🎮 Three.js viewport — Grid / Axes / Transform Controls        | ✅ Done    |
+| 6   | 🌙 Light / Dark theme                                          | ✅ Done    |
+| 7   | 🗺️ GIS background map (MapLibre GL JS)                         | ✅ Done    |
+| 8   | ☁️ Point cloud viewer (LAS/LAZ, color modes)                   | ✅ Done    |
+| 9   | 🏔️ Terrain TIN surface (Delaunay triangulation)                | ✅ Done    |
+| 10  | 🏗️ Earthwork calculation (cut/fill volumes)                    | ✅ Done    |
+| 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)            | ✅ Done    |
+| 12  | 📏 Vertical alignment (VIP method, profile view + backend API) | ✅ Done    |
+| 13  | 🔭 Click-to-select + emissive highlight (raycasting)           | ✅ Done    |
+| 14  | 📊 OpenAPI contract tests (schemathesis, 26/26 pass)           | ✅ Done    |
+| 15  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
+| 16  | 📋 Alembic DB migrations (0001→0005)                           | ✅ Done    |
+| 17  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
+| 18  | 🧪 E2E tests — Playwright / Firefox (48 pass)                  | ✅ Done    |
+| 19  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
+| 20  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
+| 21  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
+| 22  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 
 ---
 
@@ -106,29 +106,34 @@ graph LR
 
 ## API Endpoints
 
-| Method   | Path                                            | Description                              |
-| -------- | ----------------------------------------------- | ---------------------------------------- |
-| `POST`   | `/api/auth/login`                               | Obtain JWT access token                  |
-| `GET`    | `/api/users/me`                                 | Current authenticated user (DB UUID)     |
-| `GET`    | `/api/projects`                                 | List projects (paginated)                |
-| `POST`   | `/api/projects`                                 | Create a project                         |
-| `GET`    | `/api/projects/{id}`                            | Get project detail                       |
-| `PUT`    | `/api/projects/{id}`                            | Update project                           |
-| `DELETE` | `/api/projects/{id}`                            | Delete project                           |
-| `GET`    | `/api/projects/{id}/files`                      | List files in project (paginated)        |
-| `POST`   | `/api/projects/{id}/files`                      | Upload file (S3 presigned, sha256 dedup) |
-| `GET`    | `/api/projects/{id}/files/{fid}/download`       | Get presigned download URL               |
-| `DELETE` | `/api/projects/{id}/files/{fid}`                | Delete file                              |
-| `GET`    | `/api/projects/{id}/alignments`                 | List horizontal alignments               |
-| `POST`   | `/api/projects/{id}/alignments`                 | Create alignment                         |
-| `GET`    | `/api/projects/{id}/alignments/{aid}`           | Get alignment detail                     |
-| `DELETE` | `/api/projects/{id}/alignments/{aid}`           | Delete alignment                         |
-| `PUT`    | `/api/projects/{id}/alignments/{aid}/ip-points` | Replace all IP points (idempotent sync)  |
-| `GET`    | `/api/projects/{id}/members`                    | List project members (owner only)        |
-| `POST`   | `/api/projects/{id}/members`                    | Add / update member role (owner only)    |
-| `DELETE` | `/api/projects/{id}/members/{uid}`              | Remove member (owner only)               |
-| `GET`    | `/healthz`                                      | Liveness probe (always 200)              |
-| `GET`    | `/readyz`                                       | Readiness probe (checks DB connectivity) |
+| Method   | Path                                                       | Description                              |
+| -------- | ---------------------------------------------------------- | ---------------------------------------- |
+| `POST`   | `/api/auth/login`                                          | Obtain JWT access token                  |
+| `GET`    | `/api/users/me`                                            | Current authenticated user (DB UUID)     |
+| `GET`    | `/api/projects`                                            | List projects (paginated)                |
+| `POST`   | `/api/projects`                                            | Create a project                         |
+| `GET`    | `/api/projects/{id}`                                       | Get project detail                       |
+| `PUT`    | `/api/projects/{id}`                                       | Update project                           |
+| `DELETE` | `/api/projects/{id}`                                       | Delete project                           |
+| `GET`    | `/api/projects/{id}/files`                                 | List files in project (paginated)        |
+| `POST`   | `/api/projects/{id}/files`                                 | Upload file (S3 presigned, sha256 dedup) |
+| `GET`    | `/api/projects/{id}/files/{fid}/download`                  | Get presigned download URL               |
+| `DELETE` | `/api/projects/{id}/files/{fid}`                           | Delete file                              |
+| `GET`    | `/api/projects/{id}/alignments`                            | List horizontal alignments               |
+| `POST`   | `/api/projects/{id}/alignments`                            | Create alignment                         |
+| `GET`    | `/api/projects/{id}/alignments/{aid}`                      | Get alignment detail                     |
+| `DELETE` | `/api/projects/{id}/alignments/{aid}`                      | Delete alignment                         |
+| `PUT`    | `/api/projects/{id}/alignments/{aid}/ip-points`            | Replace all IP points (idempotent sync)  |
+| `GET`    | `/api/projects/{id}/alignments/{aid}/verticals`            | List vertical alignments                 |
+| `POST`   | `/api/projects/{id}/alignments/{aid}/verticals`            | Create vertical alignment                |
+| `GET`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`      | Get vertical alignment detail            |
+| `DELETE` | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`      | Delete vertical alignment                |
+| `PUT`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}/vips` | Replace all VIPs (idempotent sync)       |
+| `GET`    | `/api/projects/{id}/members`                               | List project members (owner only)        |
+| `POST`   | `/api/projects/{id}/members`                               | Add / update member role (owner only)    |
+| `DELETE` | `/api/projects/{id}/members/{uid}`                         | Remove member (owner only)               |
+| `GET`    | `/healthz`                                                 | Liveness probe (always 200)              |
+| `GET`    | `/readyz`                                                  | Readiness probe (checks DB connectivity) |
 
 Full interactive docs are available at `http://localhost:8001/docs` when running locally.
 
@@ -157,8 +162,8 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 75/75]
-        B5 --> B6[schemathesis 21/21]
+        B4 --> B5[pytest --cov 90/90]
+        B5 --> B6[schemathesis 26/26]
         B6 --> B7[Upload coverage 96%]
     end
 
