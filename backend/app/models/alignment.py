@@ -31,6 +31,12 @@ class Alignment(Base):
         lazy="select",
         order_by="AlignmentIpPoint.seq",
     )
+    verticals: Mapped[list[VerticalAlignment]] = relationship(
+        "VerticalAlignment",
+        back_populates="alignment",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
 
 
 class AlignmentIpPoint(Base):
@@ -48,3 +54,46 @@ class AlignmentIpPoint(Base):
     radius: Mapped[float] = mapped_column(Numeric(precision=10, scale=2), nullable=False)
 
     alignment: Mapped[Alignment] = relationship("Alignment", back_populates="ip_points")
+
+
+class VerticalAlignment(Base):
+    """Vertical alignment tied to a horizontal alignment."""
+
+    __tablename__ = "vertical_alignments"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
+    alignment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("alignments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+    alignment: Mapped[Alignment] = relationship("Alignment", back_populates="verticals")
+    vips: Mapped[list[VerticalAlignmentVip]] = relationship(
+        "VerticalAlignmentVip",
+        back_populates="vertical",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="VerticalAlignmentVip.seq",
+    )
+
+
+class VerticalAlignmentVip(Base):
+    """Vertical Intersection Point (VIP / PVI) within a vertical alignment."""
+
+    __tablename__ = "vertical_alignment_vips"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
+    vertical_alignment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("vertical_alignments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    station: Mapped[float] = mapped_column(Numeric(precision=12, scale=3), nullable=False)
+    elevation: Mapped[float] = mapped_column(Numeric(precision=12, scale=3), nullable=False)
+    vc_length: Mapped[float] = mapped_column(
+        Numeric(precision=12, scale=3), nullable=False, default=0
+    )
+
+    vertical: Mapped[VerticalAlignment] = relationship("VerticalAlignment", back_populates="vips")
