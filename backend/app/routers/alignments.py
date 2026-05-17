@@ -20,11 +20,23 @@ _404: _Responses = {404: {"description": "not found"}}
 _422: _Responses = {422: {"description": "validation error"}}
 
 
-async def _require_project(project_id: UUID, session: Any, owner_id: UUID) -> None:
-    """Raise 404 if the project does not belong to the authenticated user."""
-    p = await crud.get_project(session, project_id, owner_id)
-    if p is None:
+_ROLE_RANK = {"owner": 3, "editor": 2, "viewer": 1}
+
+
+async def _require_project(
+    project_id: UUID, session: Any, user_id: UUID, min_role: str = "viewer"
+) -> None:
+    """Raise 404/403 if the user lacks the required role on this project."""
+    if await crud.get_project(session, project_id, user_id) is not None:
+        return  # owner always has full access
+    role = await crud.get_member_role(session, project_id, user_id)
+    if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if _ROLE_RANK.get(role, 0) < _ROLE_RANK.get(min_role, 0):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="insufficient role")
+
+
+_403: _Responses = {403: {"description": "insufficient role"}}
 
 
 @router.get("", response_model=list[AlignmentOut], responses={**_401, **_404})
@@ -36,7 +48,7 @@ async def list_alignments(
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[AlignmentOut]:
     db_user = await crud.upsert_user(session, user)
-    await _require_project(project_id, session, db_user.id)
+    await _require_project(project_id, session, db_user.id, min_role="viewer")
     return await crud.list_alignments(session, project_id, skip=skip, limit=limit)
 
 
@@ -44,7 +56,7 @@ async def list_alignments(
     "",
     response_model=AlignmentOut,
     status_code=status.HTTP_201_CREATED,
-    responses={**_400, **_401, **_404, **_422},
+    responses={**_400, **_401, **_403, **_404, **_422},
 )
 async def create_alignment(
     project_id: UUID,
@@ -53,7 +65,7 @@ async def create_alignment(
     user: CurrentUser = CurrentUserDep,
 ) -> AlignmentOut:
     db_user = await crud.upsert_user(session, user)
-    await _require_project(project_id, session, db_user.id)
+    await _require_project(project_id, session, db_user.id, min_role="editor")
     return await crud.create_alignment(session, project_id, body)
 
 
@@ -65,7 +77,7 @@ async def get_alignment(
     user: CurrentUser = CurrentUserDep,
 ) -> AlignmentOut:
     db_user = await crud.upsert_user(session, user)
-    await _require_project(project_id, session, db_user.id)
+    await _require_project(project_id, session, db_user.id, min_role="viewer")
     a = await crud.get_alignment(session, alignment_id, project_id)
     if a is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
@@ -75,7 +87,7 @@ async def get_alignment(
 @router.delete(
     "/{alignment_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={**_401, **_404},
+    responses={**_401, **_403, **_404},
 )
 async def delete_alignment(
     project_id: UUID,
@@ -84,7 +96,7 @@ async def delete_alignment(
     user: CurrentUser = CurrentUserDep,
 ) -> None:
     db_user = await crud.upsert_user(session, user)
-    await _require_project(project_id, session, db_user.id)
+    await _require_project(project_id, session, db_user.id, min_role="editor")
     a = await crud.get_alignment(session, alignment_id, project_id)
     if a is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
@@ -94,7 +106,7 @@ async def delete_alignment(
 @router.put(
     "/{alignment_id}/ip-points",
     response_model=list[IpPointOut],
-    responses={**_400, **_401, **_404, **_422},
+    responses={**_400, **_401, **_403, **_404, **_422},
 )
 async def replace_ip_points(
     project_id: UUID,
@@ -105,7 +117,7 @@ async def replace_ip_points(
 ) -> list[IpPointOut]:
     """Replace all IP points for an alignment (idempotent full sync)."""
     db_user = await crud.upsert_user(session, user)
-    await _require_project(project_id, session, db_user.id)
+    await _require_project(project_id, session, db_user.id, min_role="editor")
     a = await crud.get_alignment(session, alignment_id, project_id)
     if a is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")

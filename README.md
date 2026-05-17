@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 📋 Alembic DB migrations (0001→0004)                    | ✅ Done    |
 | 17  | 🏥 /readyz DB connectivity probe                        | ✅ Done    |
 | 18  | 🧪 E2E tests — Playwright / Firefox (48 pass)           | ✅ Done    |
-| 19  | 👥 RBAC — project sharing (owner/editor/viewer roles)   | ✅ Done    |
+| 19  | 👥 RBAC — member access (owner/editor/viewer per project) | ✅ Done    |
 | 20  | 📐 OpenCascade.js STEP/IGES CAD loader                  | 🔮 Planned |
 | 21  | 🌐 Real-time collaboration (WebSocket)                  | 🔮 Planned |
 | 22  | 🤖 AI-assisted CAD commands                             | 🔮 Planned |
@@ -157,7 +157,7 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 70/70]
+        B4 --> B5[pytest --cov 75/75]
         B5 --> B6[schemathesis 21/21]
         B6 --> B7[Upload coverage 96%]
     end

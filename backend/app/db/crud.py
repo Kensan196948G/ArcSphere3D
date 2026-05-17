@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -43,10 +43,16 @@ async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
 
 
 async def list_projects(
-    session: AsyncSession, owner_id: UUID, skip: int = 0, limit: int = 50
+    session: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 50
 ) -> list[ProjectOut]:
+    """Return projects owned by *user_id* OR where *user_id* is a member."""
     result = await session.execute(
-        select(Project).where(Project.owner_id == owner_id).offset(skip).limit(limit)
+        select(Project)
+        .outerjoin(ProjectMember, ProjectMember.project_id == Project.id)
+        .where(or_(Project.owner_id == user_id, ProjectMember.user_id == user_id))
+        .distinct()
+        .offset(skip)
+        .limit(limit)
     )
     return [
         ProjectOut(id=r.id, name=r.name, owner_id=r.owner_id, created_at=r.created_at)
@@ -72,6 +78,12 @@ async def get_project(session: AsyncSession, project_id: UUID, owner_id: UUID) -
     result = await session.execute(
         select(Project).where(Project.id == project_id, Project.owner_id == owner_id)
     )
+    return result.scalar_one_or_none()
+
+
+async def get_project_by_id(session: AsyncSession, project_id: UUID) -> Project | None:
+    """Return the project regardless of ownership (used for member-based access)."""
+    result = await session.execute(select(Project).where(Project.id == project_id))
     return result.scalar_one_or_none()
 
 
@@ -129,6 +141,12 @@ async def get_file(session: AsyncSession, file_id: UUID, project_id: UUID) -> Fi
     result = await session.execute(
         select(File).where(File.id == file_id, File.project_id == project_id)
     )
+    return result.scalar_one_or_none()
+
+
+async def get_file_by_id(session: AsyncSession, file_id: UUID) -> File | None:
+    """Return the file regardless of project ownership (used with RBAC member access)."""
+    result = await session.execute(select(File).where(File.id == file_id))
     return result.scalar_one_or_none()
 
 

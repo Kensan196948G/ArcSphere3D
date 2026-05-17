@@ -17,7 +17,10 @@ _Responses = dict[int | str, dict[str, Any]]
 
 _400: _Responses = {400: {"description": "malformed request body"}}
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
+_403: _Responses = {403: {"description": "insufficient role"}}
 _404: _Responses = {404: {"description": "not found"}}
+
+_ROLE_RANK = {"owner": 3, "editor": 2, "viewer": 1}
 
 
 @router.get("", response_model=list[ProjectOut], responses=_401)
@@ -43,7 +46,7 @@ async def create_project(
     return await crud.create_project(session, db_user.id, body)
 
 
-@router.get("/{project_id}", response_model=ProjectOut, responses={**_401, **_404})
+@router.get("/{project_id}", response_model=ProjectOut, responses={**_401, **_403, **_404})
 async def get_project(
     project_id: UUID,
     session: DbDep,
@@ -51,6 +54,12 @@ async def get_project(
 ) -> ProjectOut:
     db_user = await crud.upsert_user(session, user)
     p = await crud.get_project(session, project_id, db_user.id)
+    if p is not None:
+        return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
+    role = await crud.get_member_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    p = await crud.get_project_by_id(session, project_id)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
