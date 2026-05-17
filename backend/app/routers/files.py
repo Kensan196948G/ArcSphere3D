@@ -21,7 +21,21 @@ router = APIRouter(prefix="/api/files", tags=["files"])
 _Responses = dict[int | str, dict[str, Any]]
 
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
+_403: _Responses = {403: {"description": "insufficient role"}}
 _404: _Responses = {404: {"description": "not found"}}
+
+_ROLE_RANK = {"owner": 3, "editor": 2, "viewer": 1}
+
+
+async def _require_project(project_id: UUID, session: Any, user_id: UUID, min_role: str) -> None:
+    if await crud.get_project(session, project_id, user_id) is not None:
+        return
+    role = await crud.get_member_role(session, project_id, user_id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if _ROLE_RANK.get(role, 0) < _ROLE_RANK.get(min_role, 0):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="insufficient role")
+
 
 ALLOWED_EXTS = {".stl", ".obj", ".gltf", ".glb", ".ifc", ".step"}
 MAX_BYTES = 200 * 1024 * 1024  # 200 MB
@@ -46,6 +60,7 @@ def _safe_filename(raw: str | None) -> str:
     status_code=status.HTTP_201_CREATED,
     responses={
         **_401,
+        **_403,
         **_404,
         200: {"description": "duplicate — existing file returned"},
         400: {"description": "invalid filename"},
@@ -60,12 +75,7 @@ async def upload(
     user: CurrentUser = CurrentUserDep,
 ) -> FileMetadata | JSONResponse:
     db_user = await crud.upsert_user(session, user)
-    if await crud.get_project(session, project_id, db_user.id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="project not found",
-        )
-
+    await _require_project(project_id, session, db_user.id, min_role="editor")
     safe_name = _safe_filename(upload_file.filename)
     if PurePosixPath(safe_name).suffix.lower() not in ALLOWED_EXTS:
         raise HTTPException(
@@ -134,7 +144,7 @@ async def upload(
 @router.get(
     "/{project_id}/{file_id}/download",
     response_model=DownloadUrl,
-    responses={**_401, **_404},
+    responses={**_401, **_403, **_404},
 )
 async def download_url(
     project_id: UUID,
@@ -143,11 +153,7 @@ async def download_url(
     user: CurrentUser = CurrentUserDep,
 ) -> DownloadUrl:
     db_user = await crud.upsert_user(session, user)
-    if await crud.get_project(session, project_id, db_user.id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="project not found",
-        )
+    await _require_project(project_id, session, db_user.id, min_role="viewer")
     db_file = await crud.get_file(session, file_id, project_id)
     if db_file is None:
         raise HTTPException(
@@ -159,19 +165,19 @@ async def download_url(
     return DownloadUrl(url=url, expires_in=expires)
 
 
-@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**_401, **_404})
+@router.delete(
+    "/{file_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**_401, **_403, **_404}
+)
 async def delete_file(
     file_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
 ) -> None:
     db_user = await crud.upsert_user(session, user)
-    db_file = await crud.get_file_owned_by(session, file_id, db_user.id)
+    db_file = await crud.get_file_by_id(session, file_id)
     if db_file is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="file not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
+    await _require_project(db_file.project_id, session, db_user.id, min_role="editor")
     s3_key = db_file.s3_key
     # DB deletion is transactional; S3 deletion is best-effort.
     await crud.delete_file(session, file_id)
@@ -181,7 +187,7 @@ async def delete_file(
         logger.warning("s3_delete_failed", key=s3_key, error=str(exc))
 
 
-@router.get("/{project_id}", response_model=list[FileMetadata], responses={**_401, **_404})
+@router.get("/{project_id}", response_model=list[FileMetadata], responses={**_401, **_403, **_404})
 async def list_files(
     project_id: UUID,
     session: DbDep,
@@ -190,9 +196,5 @@ async def list_files(
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[FileMetadata]:
     db_user = await crud.upsert_user(session, user)
-    if await crud.get_project(session, project_id, db_user.id) is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="project not found",
-        )
+    await _require_project(project_id, session, db_user.id, min_role="viewer")
     return await crud.list_files(session, project_id, skip=skip, limit=limit)

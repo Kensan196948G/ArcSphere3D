@@ -176,3 +176,74 @@ def test_alignment_wrong_project_returns_404() -> None:
 
     res = client.get(f"/api/projects/{pid_b}/alignments/{aid}", headers=_auth(token))
     assert res.status_code == 404
+
+
+# ---- RBAC member access ----
+
+OTHER_CREDS = {"email": "other@arcsphere3d.dev", "password": "arcsphere-demo"}
+
+
+def _get_other_token() -> str:
+    res = client.post("/api/auth/login", json=OTHER_CREDS)
+    assert res.status_code == 200
+    return res.json()["access_token"]
+
+
+def _get_user_id(token: str) -> str:
+    res = client.get("/api/users/me", headers=_auth(token))
+    assert res.status_code == 200
+    return res.json()["id"]
+
+
+def _add_member(owner_token: str, project_id: str, user_id: str, role: str) -> None:
+    res = client.post(
+        f"/api/projects/{project_id}/members",
+        json={"user_id": user_id, "role": role},
+        headers=_auth(owner_token),
+    )
+    assert res.status_code == 201
+
+
+def test_viewer_can_list_alignments() -> None:
+    owner = _get_token()
+    viewer = _get_other_token()
+    pid = _create_project(owner)
+    client.post(f"/api/projects/{pid}/alignments", json={"name": "R1"}, headers=_auth(owner))
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+    res = client.get(f"/api/projects/{pid}/alignments", headers=_auth(viewer))
+    assert res.status_code == 200
+    assert len(res.json()) == 1
+
+
+def test_viewer_cannot_create_alignment() -> None:
+    owner = _get_token()
+    viewer = _get_other_token()
+    pid = _create_project(owner)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+    res = client.post(
+        f"/api/projects/{pid}/alignments",
+        json={"name": "R1"},
+        headers=_auth(viewer),
+    )
+    assert res.status_code == 403
+
+
+def test_editor_can_create_alignment() -> None:
+    owner = _get_token()
+    editor = _get_other_token()
+    pid = _create_project(owner)
+    _add_member(owner, pid, _get_user_id(editor), "editor")
+    res = client.post(
+        f"/api/projects/{pid}/alignments",
+        json={"name": "R1"},
+        headers=_auth(editor),
+    )
+    assert res.status_code == 201
+
+
+def test_non_member_gets_404_not_403() -> None:
+    owner = _get_token()
+    other = _get_other_token()
+    pid = _create_project(owner)
+    res = client.get(f"/api/projects/{pid}/alignments", headers=_auth(other))
+    assert res.status_code == 404

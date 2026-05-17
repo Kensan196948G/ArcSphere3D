@@ -75,6 +75,12 @@ async def get_project(session: AsyncSession, project_id: UUID, owner_id: UUID) -
     return result.scalar_one_or_none()
 
 
+async def get_project_by_id(session: AsyncSession, project_id: UUID) -> Project | None:
+    """Return the project regardless of ownership (used for member-based access)."""
+    result = await session.execute(select(Project).where(Project.id == project_id))
+    return result.scalar_one_or_none()
+
+
 async def create_file(
     session: AsyncSession,
     project_id: UUID,
@@ -129,6 +135,12 @@ async def get_file(session: AsyncSession, file_id: UUID, project_id: UUID) -> Fi
     result = await session.execute(
         select(File).where(File.id == file_id, File.project_id == project_id)
     )
+    return result.scalar_one_or_none()
+
+
+async def get_file_by_id(session: AsyncSession, file_id: UUID) -> File | None:
+    """Return the file regardless of project ownership (used with RBAC member access)."""
+    result = await session.execute(select(File).where(File.id == file_id))
     return result.scalar_one_or_none()
 
 
