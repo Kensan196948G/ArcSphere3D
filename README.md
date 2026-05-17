@@ -20,21 +20,29 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 
 ## Feature Status
 
-| # | Feature | Status |
-|---|---------|--------|
-| 1 | JWT authentication (RS256) | Done |
-| 2 | Project management CRUD | Done |
-| 3 | File upload — S3 presigned + sha256 deduplication | Done |
-| 4 | IFC 3D viewer (web-ifc) | Done |
-| 5 | Three.js 3D viewport — Grid / Axes / Transform Controls | Done |
-| 6 | Light / Dark theme | Done |
-| 7 | E2E tests — Playwright / Firefox (7/7 pass) | Done |
-| 8 | Click-to-select + emissive highlight (raycasting) | Done |
-| 9 | OpenAPI contract tests (schemathesis, 12/12 pass) | Done |
-| 10 | Docker Compose integration test stack | Done |
-| 11 | OpenCascade.js CAD kernel integration | Planned |
-| 10 | Real-time collaboration (WebSocket) | Planned |
-| 11 | AI-assisted natural language CAD commands | Planned |
+| #   | Feature                                                 | Status     |
+| --- | ------------------------------------------------------- | ---------- |
+| 1   | 🔐 JWT authentication (RS256 asymmetric keypair)        | ✅ Done    |
+| 2   | 📁 Project management CRUD                              | ✅ Done    |
+| 3   | 📤 File upload — S3 presigned + sha256 deduplication    | ✅ Done    |
+| 4   | 🏗️ IFC 3D viewer (web-ifc, client-side WASM)            | ✅ Done    |
+| 5   | 🎮 Three.js viewport — Grid / Axes / Transform Controls | ✅ Done    |
+| 6   | 🌙 Light / Dark theme                                   | ✅ Done    |
+| 7   | 🗺️ GIS background map (MapLibre GL JS)                  | ✅ Done    |
+| 8   | ☁️ Point cloud viewer (LAS/LAZ, color modes)            | ✅ Done    |
+| 9   | 🏔️ Terrain TIN surface (Delaunay triangulation)         | ✅ Done    |
+| 10  | 🏗️ Earthwork calculation (cut/fill volumes)             | ✅ Done    |
+| 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)     | ✅ Done    |
+| 12  | 📏 Vertical alignment (VIP method, profile view)        | ✅ Done    |
+| 13  | 🔭 Click-to-select + emissive highlight (raycasting)    | ✅ Done    |
+| 14  | 📊 OpenAPI contract tests (schemathesis, 17/17 pass)    | ✅ Done    |
+| 15  | 🐳 Docker Compose integration test stack                | ✅ Done    |
+| 16  | 📋 Alembic DB migrations (0001→0003)                    | ✅ Done    |
+| 17  | 🏥 /readyz DB connectivity probe                        | ✅ Done    |
+| 18  | 🧪 E2E tests — Playwright / Firefox (48 pass)           | ✅ Done    |
+| 19  | 📐 OpenCascade.js STEP/IGES CAD loader                  | 🔮 Planned |
+| 20  | 👥 Real-time collaboration (WebSocket)                  | 🔮 Planned |
+| 21  | 🤖 AI-assisted CAD commands                             | 🔮 Planned |
 
 ---
 
@@ -73,44 +81,51 @@ graph LR
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend Framework** | React 18, TypeScript |
-| **3D Rendering** | Three.js r169 (OrbitControls, TransformControls, GridHelper) |
-| **BIM / IFC** | web-ifc (WASM, client-side) |
-| **Bundler** | Vite 6 — esbuild minify, manual chunks (vendor-three / vendor-react) |
-| **Styling** | Tailwind CSS |
-| **State Management** | Zustand |
-| **E2E Testing** | Playwright (Firefox, xvfb-run) |
-| **Backend Framework** | FastAPI 0.115+ |
-| **ORM / Migrations** | SQLAlchemy 2, Alembic |
-| **Database Driver** | psycopg3 (psycopg[binary]) |
-| **Authentication** | python-jose RS256, bcrypt 4.x |
-| **Object Storage** | boto3 + MinIO (S3-compatible) |
-| **Logging** | structlog (structured JSON) |
-| **Linting / Typing** | Ruff, mypy, ESLint 9 flat config |
-| **Database** | PostgreSQL 16 |
-| **Local Infra** | Docker Compose |
-| **CI** | GitHub Actions |
+| Layer                  | Technology                                                           |
+| ---------------------- | -------------------------------------------------------------------- |
+| **Frontend Framework** | React 18, TypeScript                                                 |
+| **3D Rendering**       | Three.js r169 (OrbitControls, TransformControls, GridHelper)         |
+| **BIM / IFC**          | web-ifc (WASM, client-side)                                          |
+| **Bundler**            | Vite 6 — esbuild minify, manual chunks (vendor-three / vendor-react) |
+| **Styling**            | Tailwind CSS                                                         |
+| **State Management**   | Zustand                                                              |
+| **E2E Testing**        | Playwright (Firefox, xvfb-run)                                       |
+| **Backend Framework**  | FastAPI 0.115+                                                       |
+| **ORM / Migrations**   | SQLAlchemy 2, Alembic                                                |
+| **Database Driver**    | psycopg3 (psycopg[binary])                                           |
+| **Authentication**     | python-jose RS256, bcrypt 4.x                                        |
+| **Object Storage**     | boto3 + MinIO (S3-compatible)                                        |
+| **Logging**            | structlog (structured JSON)                                          |
+| **Linting / Typing**   | Ruff, mypy, ESLint 9 flat config                                     |
+| **Database**           | PostgreSQL 16                                                        |
+| **Local Infra**        | Docker Compose                                                       |
+| **CI**                 | GitHub Actions                                                       |
 
 ---
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/auth/register` | Register a new user |
-| `POST` | `/api/auth/login` | Obtain JWT access token |
-| `GET` | `/api/users/me` | Current authenticated user |
-| `GET` | `/api/projects` | List projects (paginated) |
-| `POST` | `/api/projects` | Create a project |
-| `GET` | `/api/projects/{id}` | Get project detail |
-| `PUT` | `/api/projects/{id}` | Update project |
-| `DELETE` | `/api/projects/{id}` | Delete project |
-| `GET` | `/api/projects/{id}/files` | List files in project (paginated) |
-| `POST` | `/api/projects/{id}/files` | Upload file (S3 presigned, sha256 dedup) |
-| `GET` | `/api/projects/{id}/files/{fid}/download` | Get presigned download URL |
-| `DELETE` | `/api/projects/{id}/files/{fid}` | Delete file |
+| Method   | Path                                            | Description                              |
+| -------- | ----------------------------------------------- | ---------------------------------------- |
+| `POST`   | `/api/auth/register`                            | Register a new user                      |
+| `POST`   | `/api/auth/login`                               | Obtain JWT access token                  |
+| `GET`    | `/api/users/me`                                 | Current authenticated user               |
+| `GET`    | `/api/projects`                                 | List projects (paginated)                |
+| `POST`   | `/api/projects`                                 | Create a project                         |
+| `GET`    | `/api/projects/{id}`                            | Get project detail                       |
+| `PUT`    | `/api/projects/{id}`                            | Update project                           |
+| `DELETE` | `/api/projects/{id}`                            | Delete project                           |
+| `GET`    | `/api/projects/{id}/files`                      | List files in project (paginated)        |
+| `POST`   | `/api/projects/{id}/files`                      | Upload file (S3 presigned, sha256 dedup) |
+| `GET`    | `/api/projects/{id}/files/{fid}/download`       | Get presigned download URL               |
+| `DELETE` | `/api/projects/{id}/files/{fid}`                | Delete file                              |
+| `GET`    | `/api/projects/{id}/alignments`                 | List horizontal alignments               |
+| `POST`   | `/api/projects/{id}/alignments`                 | Create alignment                         |
+| `GET`    | `/api/projects/{id}/alignments/{aid}`           | Get alignment detail                     |
+| `DELETE` | `/api/projects/{id}/alignments/{aid}`           | Delete alignment                         |
+| `PUT`    | `/api/projects/{id}/alignments/{aid}/ip-points` | Replace all IP points (idempotent sync)  |
+| `GET`    | `/healthz`                                      | Liveness probe (always 200)              |
+| `GET`    | `/readyz`                                       | Readiness probe (checks DB connectivity) |
 
 Full interactive docs are available at `http://localhost:8001/docs` when running locally.
 
@@ -139,8 +154,8 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 43/43]
-        B5 --> B6[schemathesis 12/12]
+        B4 --> B5[pytest --cov 58/58]
+        B5 --> B6[schemathesis 17/17]
         B6 --> B7[Upload coverage 96%]
     end
 
@@ -169,12 +184,12 @@ cd ArcSphere3D
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-| Service | URL |
-|---------|-----|
-| Frontend (Vite dev) | http://localhost:5175 |
-| Backend API | http://localhost:8001 |
-| API Docs (Swagger) | http://localhost:8001/docs |
-| MinIO Console | http://localhost:9001 |
+| Service             | URL                        |
+| ------------------- | -------------------------- |
+| Frontend (Vite dev) | http://localhost:5175      |
+| Backend API         | http://localhost:8001      |
+| API Docs (Swagger)  | http://localhost:8001/docs |
+| MinIO Console       | http://localhost:9001      |
 
 **Manual setup (without Docker)**
 
@@ -239,14 +254,14 @@ gantt
     Production Release v1.0.0   :crit,    r2, 2026-11-07, 7d
 ```
 
-| Month | Phase | Key Milestones |
-|-------|-------|----------------|
-| **M1** May 2026 | Foundation | Monorepo, CI pipeline, Three.js viewport, FastAPI skeleton, JWT auth |
-| **M2** Jun 2026 | Build | Click-select, glTF/OBJ/STL loaders, RBAC, Entra ID OAuth2 |
-| **M3** Jul 2026 | Quality | Security audit, integration test coverage, performance profiling |
-| **M4** Aug 2026 | Integration | OpenCascade.js CAD kernel, IFC advanced features |
-| **M5** Sep 2026 | Integration | AI assist PoC, WebSocket collaboration prototype |
-| **M6** Oct–Nov 2026 | Release | UAT, bugfix, CHANGELOG, **v1.0.0 release 2026-11-14** |
+| Month               | Phase       | Key Milestones                                                       |
+| ------------------- | ----------- | -------------------------------------------------------------------- |
+| **M1** May 2026     | Foundation  | Monorepo, CI pipeline, Three.js viewport, FastAPI skeleton, JWT auth |
+| **M2** Jun 2026     | Build       | Click-select, glTF/OBJ/STL loaders, RBAC, Entra ID OAuth2            |
+| **M3** Jul 2026     | Quality     | Security audit, integration test coverage, performance profiling     |
+| **M4** Aug 2026     | Integration | OpenCascade.js CAD kernel, IFC advanced features                     |
+| **M5** Sep 2026     | Integration | AI assist PoC, WebSocket collaboration prototype                     |
+| **M6** Oct–Nov 2026 | Release     | UAT, bugfix, CHANGELOG, **v1.0.0 release 2026-11-14**                |
 
 ---
 
