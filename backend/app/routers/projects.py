@@ -63,3 +63,27 @@ async def get_project(
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
+
+
+@router.delete(
+    "/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**_401, **_403, **_404},
+)
+async def delete_project(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> None:
+    """Delete a project. Owner-only. Editor/viewer members receive 403.
+
+    Cascade deletion of files and members is enforced by ON DELETE CASCADE
+    at the database layer (see migration 0001_initial / project_member.py).
+    """
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
+    await crud.delete_project(session, project_id, db_user.id)
