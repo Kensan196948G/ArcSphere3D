@@ -77,6 +77,14 @@ def _db_truncate(_db_schema: None) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """Reset the login rate limiter before each test to prevent cross-test interference."""
+    from app.routers.auth import _login_limiter
+
+    _login_limiter.reset()
+
+
+@pytest.fixture(autouse=True)
 def _mock_s3() -> None:
     """Patch all S3 helpers where files router imported them — tests need no real S3."""
     presign_mock = AsyncMock(return_value="https://s3.example.com/presigned")
