@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0005)                           | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (50 pass)                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (62 pass)                  | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
 | 22  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
@@ -280,14 +280,14 @@ gantt
 
 ArcSphere3D applies defense-in-depth across authentication, authorization, and transport.
 
-| Layer                  | Mechanism                                                                 | Standard / Reference       |
-| ---------------------- | ------------------------------------------------------------------------- | -------------------------- |
-| **Authentication**     | JWT RS256 asymmetric keypair — short-lived tokens, never stored in DB     | RFC 7519, RFC 7517 (JWKS)  |
-| **Brute-force guard**  | In-memory sliding-window rate limiter — 5 req / 60 s per IP on `/login`  | RFC 7231 §7.1.3 (429 + Retry-After) |
-| **Authorization**      | RBAC per project — `owner / editor / viewer` roles enforced at API layer  | OWASP Access Control       |
-| **Password storage**   | bcrypt 4.x with per-user salt — no plaintext, no MD5/SHA1                 | OWASP Password Storage     |
-| **Transport**          | HTTPS-only in production; HSTS recommended at reverse-proxy layer         | OWASP TLS Cheat Sheet      |
-| **File integrity**     | SHA-256 deduplication on upload — tamper-evident file storage             | —                          |
+| Layer                 | Mechanism                                                                | Standard / Reference                |
+| --------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
+| **Authentication**    | JWT RS256 asymmetric keypair — short-lived tokens, never stored in DB    | RFC 7519, RFC 7517 (JWKS)           |
+| **Brute-force guard** | In-memory sliding-window rate limiter — 5 req / 60 s per IP on `/login`  | RFC 7231 §7.1.3 (429 + Retry-After) |
+| **Authorization**     | RBAC per project — `owner / editor / viewer` roles enforced at API layer | OWASP Access Control                |
+| **Password storage**  | bcrypt 4.x with per-user salt — no plaintext, no MD5/SHA1                | OWASP Password Storage              |
+| **Transport**         | HTTPS-only in production; HSTS recommended at reverse-proxy layer        | OWASP TLS Cheat Sheet               |
+| **File integrity**    | SHA-256 deduplication on upload — tamper-evident file storage            | —                                   |
 
 ### 🛡️ Rate Limiting
 
