@@ -48,12 +48,17 @@ def test_members_requires_auth() -> None:
 # ---- List members ----
 
 
-def test_list_members_empty() -> None:
+def test_list_members_contains_owner_on_creation() -> None:
+    """Issue #66: creating a project now auto-adds the owner to project_members."""
     token = _login(DEMO_CREDS)
+    owner_id = _get_user_id(token)
     pid = _create_project(token)
     res = client.get(f"/api/projects/{pid}/members", headers=_auth(token))
     assert res.status_code == 200
-    assert res.json() == []
+    members = res.json()
+    assert len(members) == 1
+    assert members[0]["user_id"] == owner_id
+    assert members[0]["role"] == "owner"
 
 
 # ---- Add member ----
@@ -161,3 +166,83 @@ def test_other_user_cannot_list_members() -> None:
 
     res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
     assert res.status_code == 404
+
+
+# ---- Last-owner protection (Issue #66) ----
+
+
+def test_cannot_remove_last_owner_returns_409() -> None:
+    """Removing the sole owner from project_members must return 409 Conflict."""
+    token = _login(DEMO_CREDS)
+    owner_id = _get_user_id(token)
+    pid = _create_project(token)
+
+    res = client.delete(f"/api/projects/{pid}/members/{owner_id}", headers=_auth(token))
+    assert res.status_code == 409
+    assert "last owner" in res.text.lower()
+
+
+def test_can_remove_non_last_owner() -> None:
+    """When two owners exist, either can be removed."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Promote other user to owner
+    res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "owner"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 201
+
+    # Now there are 2 owners — removing the second one should succeed
+    res = client.delete(f"/api/projects/{pid}/members/{other_id}", headers=_auth(token))
+    assert res.status_code == 204
+
+
+def test_can_remove_non_owner_member() -> None:
+    """Removing an editor or viewer member is always permitted (no last-owner clash)."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+    res = client.delete(f"/api/projects/{pid}/members/{other_id}", headers=_auth(token))
+    assert res.status_code == 204
+
+
+def test_transfer_ownership_then_remove_original_owner() -> None:
+    """Transfer ownership: add second owner → promote → remove original owner."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    owner_id = _get_user_id(token)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add the other user as owner
+    res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "owner"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 201
+
+    # Original owner can now be removed (2 owners exist)
+    res = client.delete(f"/api/projects/{pid}/members/{owner_id}", headers=_auth(token))
+    assert res.status_code == 204
+
+    # Verify only the new owner remains
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
+    assert res.status_code == 200
+    remaining = res.json()
+    roles = {m["user_id"]: m["role"] for m in remaining}
+    # original owner removed, new owner still present
+    assert owner_id not in roles or roles[owner_id] != "owner"
+    assert roles.get(other_id) == "owner"

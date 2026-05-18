@@ -21,6 +21,7 @@ _400: _Responses = {400: {"description": "malformed request body"}}
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
 _403: _Responses = {403: {"description": "insufficient role"}}
 _404: _Responses = {404: {"description": "not found"}}
+_409: _Responses = {409: {"description": "conflict — e.g. removing last owner"}}
 
 
 async def _require_owner(project_id: UUID, session: Any, user: CurrentUser) -> None:
@@ -74,7 +75,7 @@ async def add_member(
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={**_401, **_403, **_404},
+    responses={**_401, **_403, **_404, **_409},
 )
 async def remove_member(
     project_id: UUID,
@@ -84,6 +85,11 @@ async def remove_member(
 ) -> None:
     """Remove a member from a project. Only the project owner may call this."""
     await _require_owner(project_id, session, user)
-    removed = await crud.remove_member(session, project_id, user_id)
-    if not removed:
+    result = await crud.remove_member(session, project_id, user_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="cannot remove the last owner",
+        )
+    if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="member not found")
