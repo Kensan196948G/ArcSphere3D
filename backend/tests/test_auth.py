@@ -134,6 +134,41 @@ def test_jwks_key_can_verify_issued_token() -> None:
     assert claims["sub"] == "demo@arcsphere3d.dev"
 
 
+def test_login_rate_limit_blocks_after_max_attempts() -> None:
+    """6th attempt within the window must return 429 with Retry-After header."""
+    from app.routers.auth import _login_limiter
+
+    _login_limiter.reset()
+    for _ in range(5):
+        client.post(
+            "/api/auth/login",
+            json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+        )
+    res = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    assert res.status_code == 429
+    assert "Retry-After" in res.headers
+
+
+def test_login_rate_limit_resets_after_clear() -> None:
+    """After limiter.reset(), the endpoint is accessible again."""
+    from app.routers.auth import _login_limiter
+
+    for _ in range(5):
+        client.post(
+            "/api/auth/login",
+            json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+        )
+    _login_limiter.reset()
+    res = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    assert res.status_code == 200
+
+
 def test_member_project_appears_in_list() -> None:
     """Projects where user is a member should appear in their project list."""
     owner_token = client.post(

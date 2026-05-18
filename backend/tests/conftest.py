@@ -72,8 +72,22 @@ def _db_truncate(_db_schema: None) -> None:
     """Truncate all tables before each test so state does not bleed between tests."""
     engine = create_engine(get_settings().database_url)
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE users, projects, files, alignments, project_members CASCADE"))
+        conn.execute(
+            text(
+                "TRUNCATE users, projects, files, alignments,"
+                " alignment_ip_points, vertical_alignments, vertical_alignment_vips,"
+                " project_members RESTART IDENTITY CASCADE"
+            )
+        )
     engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """Reset the login rate limiter before each test to prevent cross-test interference."""
+    from app.routers.auth import _login_limiter
+
+    _login_limiter.reset()
 
 
 @pytest.fixture(autouse=True)

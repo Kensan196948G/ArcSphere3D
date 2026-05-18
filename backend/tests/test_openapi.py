@@ -18,6 +18,7 @@ because the schema itself enforces the constraints at the API layer.
 
 from __future__ import annotations
 
+import schemathesis
 import schemathesis.openapi
 from fastapi.testclient import TestClient
 from hypothesis import HealthCheck, settings
@@ -28,6 +29,20 @@ from app.main import app
 
 schema = schemathesis.openapi.from_asgi("/openapi.json", app=app)
 _http_client = TestClient(app)
+
+
+@schemathesis.hook("before_call")
+def _reset_login_limiter_before_each_call(context: object, case: Case, **kwargs: object) -> None:
+    """Reset the rate limiter before every schemathesis HTTP call.
+
+    Schemathesis generates many Hypothesis examples per endpoint; without this,
+    the 5-attempts-per-60s limit fires during the conformance test run itself.
+    Dedicated rate-limit behaviour is covered in test_auth.py.
+    """
+    from app.routers.auth import _login_limiter
+
+    _login_limiter.reset()
+
 
 load_all_checks()
 _unsupported_method = next(c for c in CHECKS.get_all() if c.__name__ == "unsupported_method")

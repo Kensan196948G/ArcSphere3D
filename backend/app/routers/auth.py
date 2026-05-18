@@ -8,13 +8,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import get_settings
+from app.ratelimit import SimpleRateLimiter
 from app.schemas import CurrentUser, LoginRequest, TokenResponse
 from app.security import create_access_token, get_public_key_jwk, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+# 5 attempts per 60 seconds per client IP — brute-force mitigation.
+_login_limiter = SimpleRateLimiter(max_calls=5, window_seconds=60)
 
 # Demo users (MVP only). Replace with DB-backed store.
 _DEMO_USERS: dict[str, dict[str, str]] = {
@@ -41,9 +45,17 @@ def jwks() -> dict[str, Any]:
     responses={
         400: {"description": "malformed request body"},
         401: {"description": "invalid credentials"},
+        429: {"description": "too many requests — rate limit exceeded"},
     },
 )
-def login(payload: LoginRequest) -> TokenResponse:
+def login(request: Request, payload: LoginRequest) -> TokenResponse:
+    client_ip = request.client.host if request.client else "unknown"
+    if not _login_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="too many login attempts — try again later",
+            headers={"Retry-After": "60"},
+        )
     user = _DEMO_USERS.get(payload.email)
     if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(
