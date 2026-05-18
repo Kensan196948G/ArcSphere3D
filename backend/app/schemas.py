@@ -26,9 +26,15 @@ class CurrentUser(BaseModel):
     role: str = "viewer"
 
 
+# NUL bytes (\x00) cannot be stored in PostgreSQL text columns.
+# Excluding them at the schema layer prevents psycopg.DataError at the DB layer
+# and keeps schemathesis-generated examples within the valid input domain.
+_NO_NUL_PATTERN = r"^[^\x00]+$"
+
+
 # ---- Projects ----
 class ProjectCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
 
 
 class ProjectOut(BaseModel):
@@ -71,7 +77,7 @@ class IpPointOut(BaseModel):
 
 
 class AlignmentCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
     design_speed: int = Field(default=60, ge=20, le=120)
 
 
@@ -102,7 +108,7 @@ class VipOut(BaseModel):
 
 
 class VerticalAlignmentCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=200, pattern=_NO_NUL_PATTERN)
 
 
 class VerticalAlignmentOut(BaseModel):
