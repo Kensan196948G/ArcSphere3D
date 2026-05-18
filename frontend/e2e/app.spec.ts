@@ -1364,6 +1364,52 @@ test("MeasurePanel: クリアボタンが初期状態で無効化される", asy
 
 // ---- ProjectPanel: 作成中ローディング -----------------------------------------
 
+// ---- CAD Panel (Issue #66 next_session: OpenCascade.js integration) --------
+
+test("LeftMenu: CADパネルに切り替わると形状タブが表示される", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "CAD" }).click();
+  // Shape tabs should now be visible
+  await expect(page.getByRole("button", { name: "直方体" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "球" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "円柱" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "円錐" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "トーラス" })).toBeVisible();
+});
+
+test("CadPanel: 直方体パラメータ入力フォームが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "CAD" }).click();
+  await page.getByRole("button", { name: "直方体" }).click();
+  await expect(page.getByTestId("cad-box-width")).toBeVisible();
+  await expect(page.getByTestId("cad-box-height")).toBeVisible();
+  await expect(page.getByTestId("cad-box-depth")).toBeVisible();
+});
+
+test("CadPanel: 球タブに切り替えると半径入力が表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "CAD" }).click();
+  await page.getByRole("button", { name: "球" }).click();
+  await expect(page.getByTestId("cad-sphere-radius")).toBeVisible();
+});
+
+test("CadPanel: シーンに追加ボタンが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "CAD" }).click();
+  await expect(page.getByTestId("cad-add-btn")).toBeVisible();
+  await expect(page.getByTestId("cad-add-btn")).toBeEnabled();
+});
+
+test("CadPanel: OpenCascade.jsロードマップが表示される", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "CAD" }).click();
+  await expect(page.getByText("OpenCascade.js 統合ロードマップ")).toBeVisible();
+});
+
+// ---- ProjectPanel: 作成中ローディング -----------------------------------------
+
 test("ProjectPanel: プロジェクト作成ボタンは空の入力では無効化される", async ({
   page,
 }) => {
