@@ -40,11 +40,12 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0005)                           | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (50 pass)                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (62 pass)                  | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
-| 21  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
-| 22  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
-| 23  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
+| 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
+| 22  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
+| 23  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
+| 24  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 
 ---
 
@@ -164,7 +165,7 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 128/128]
+        B4 --> B5[pytest --cov 130/130]
         B5 --> B6[schemathesis 27/27 + auth]
         B6 --> B7[Upload coverage 96%]
     end
@@ -272,6 +273,34 @@ gantt
 | **M4** Aug 2026     | Integration | OpenCascade.js CAD kernel, IFC advanced features                     |
 | **M5** Sep 2026     | Integration | AI assist PoC, WebSocket collaboration prototype                     |
 | **M6** Oct–Nov 2026 | Release     | UAT, bugfix, CHANGELOG, **v1.0.0 release 2026-11-14**                |
+
+---
+
+## 🔒 Security
+
+ArcSphere3D applies defense-in-depth across authentication, authorization, and transport.
+
+| Layer                 | Mechanism                                                                | Standard / Reference                |
+| --------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
+| **Authentication**    | JWT RS256 asymmetric keypair — short-lived tokens, never stored in DB    | RFC 7519, RFC 7517 (JWKS)           |
+| **Brute-force guard** | In-memory sliding-window rate limiter — 5 req / 60 s per IP on `/login`  | RFC 7231 §7.1.3 (429 + Retry-After) |
+| **Authorization**     | RBAC per project — `owner / editor / viewer` roles enforced at API layer | OWASP Access Control                |
+| **Password storage**  | bcrypt 4.x with per-user salt — no plaintext, no MD5/SHA1                | OWASP Password Storage              |
+| **Transport**         | HTTPS-only in production; HSTS recommended at reverse-proxy layer        | OWASP TLS Cheat Sheet               |
+| **File integrity**    | SHA-256 deduplication on upload — tamper-evident file storage            | —                                   |
+
+### 🛡️ Rate Limiting
+
+Login endpoint (`POST /api/auth/login`) is protected by a per-IP sliding-window limiter:
+
+```
+Max attempts  : 5
+Window        : 60 seconds
+Response      : HTTP 429 + Retry-After: 60
+Reset         : automatic after window expiry
+```
+
+This prevents credential-stuffing and brute-force password attacks without requiring Redis or an external service.
 
 ---
 
