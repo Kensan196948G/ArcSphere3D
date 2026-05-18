@@ -24,14 +24,24 @@ _404: _Responses = {404: {"description": "not found"}}
 
 
 async def _require_owner(project_id: UUID, session: Any, user: CurrentUser) -> None:
-    """Raise 403 unless the authenticated user is the project owner."""
+    """3-tier access guard for member-management endpoints.
+
+    - no access (project missing OR user is neither owner nor member) -> 404
+    - access but not owner (editor / viewer member)                   -> 403
+    - owner                                                            -> pass through
+
+    Distinguishing 404 from 403 matters: returning 403 to a stranger leaks the
+    existence of the project (an IDOR signal), so non-members always see 404.
+    """
     db_user = await crud.upsert_user(session, user)
-    p = await crud.get_project(session, project_id, db_user.id)
-    if p is None:
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
 
 
-@router.get("", response_model=list[MemberOut], responses={**_401, **_404})
+@router.get("", response_model=list[MemberOut], responses={**_401, **_403, **_404})
 async def list_members(
     project_id: UUID,
     session: DbDep,

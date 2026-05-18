@@ -297,6 +297,40 @@ async def get_member_role(session: AsyncSession, project_id: UUID, user_id: UUID
     return row.role if row else None
 
 
+async def get_access_role(session: AsyncSession, project_id: UUID, user_id: UUID) -> str | None:
+    """Return the effective role of *user_id* on *project_id*.
+
+    Resolves to one of:
+      - "owner"   when the user owns the project (projects.owner_id match);
+      - "editor"  or "viewer" when registered in project_members;
+      - None      when the project does not exist or the user has no access.
+
+    Distinguishing "no access" (None) from "member but not owner" lets the
+    router return 404 vs 403 correctly — the 3-tier RBAC requirement of #61.
+    """
+    project = await get_project_by_id(session, project_id)
+    if project is None:
+        return None
+    if project.owner_id == user_id:
+        return "owner"
+    return await get_member_role(session, project_id, user_id)
+
+
+async def delete_project(session: AsyncSession, project_id: UUID, owner_id: UUID) -> bool:
+    """Delete a project owned by *owner_id*.
+
+    Returns True on success, False if the project does not exist or is not
+    owned by *owner_id*. Cascade deletion of files/members is enforced by
+    SQLAlchemy relationships and DB-level ON DELETE CASCADE.
+    """
+    project = await get_project(session, project_id, owner_id)
+    if project is None:
+        return False
+    await session.delete(project)
+    await session.commit()
+    return True
+
+
 async def list_members(session: AsyncSession, project_id: UUID) -> list[MemberOut]:
     result = await session.execute(
         select(ProjectMember).where(ProjectMember.project_id == project_id)
