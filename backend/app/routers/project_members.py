@@ -65,7 +65,10 @@ async def add_member(
 ) -> MemberOut:
     """Add or update a member's role. Only the project owner may call this."""
     await _require_owner(project_id, session, user)
-    return await crud.add_member(session, project_id, body.user_id, body.role)
+    member = await crud.add_member(session, project_id, body.user_id, body.role)
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    return member
 
 
 @router.delete(

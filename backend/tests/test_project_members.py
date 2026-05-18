@@ -134,6 +134,23 @@ def test_remove_nonexistent_member_returns_404() -> None:
     assert res.status_code == 404
 
 
+def test_add_nonexistent_user_returns_404() -> None:
+    """Regression test for #67: an unknown user_id used to cascade into a
+    PostgreSQL FK violation and surface as 500. The router now translates
+    the missing-user case to a clean 404.
+    """
+    token = _login(DEMO_CREDS)
+    pid = _create_project(token)
+    fake_uid = str(uuid.uuid4())
+    res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": fake_uid, "role": "viewer"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 404
+    assert "user not found" in res.text.lower()
+
+
 # ---- IDOR protection ----
 
 

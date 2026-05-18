@@ -348,7 +348,17 @@ async def list_members(session: AsyncSession, project_id: UUID) -> list[MemberOu
 
 async def add_member(
     session: AsyncSession, project_id: UUID, user_id: UUID, role: str
-) -> MemberOut:
+) -> MemberOut | None:
+    """Add or update *user_id*'s role on *project_id*.
+
+    Returns None when *user_id* does not refer to an existing user — that
+    case used to surface as a PostgreSQL FK violation and propagate as a
+    500. Routers translate None into a clean 404.
+    """
+    user_check = await session.execute(select(User).where(User.id == user_id))
+    if user_check.scalar_one_or_none() is None:
+        return None
+
     existing = await session.execute(
         select(ProjectMember).where(
             ProjectMember.project_id == project_id,
