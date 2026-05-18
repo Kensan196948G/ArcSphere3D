@@ -302,6 +302,19 @@ Reset         : automatic after window expiry
 
 This prevents credential-stuffing and brute-force password attacks without requiring Redis or an external service.
 
+### 🔐 3-Tier Authorization Matrix (RBAC)
+
+Every project resource enforces a **3-tier access model** distinguishing _non-member_, _member-but-not-owner_, and _owner_. Returning `404` (not `403`) to non-members prevents leaking project existence — an [IDOR](https://owasp.org/www-community/attacks/Insecure_Direct_Object_References) defense.
+
+| Role               | `GET /members` | `POST /members` | `DELETE /members/{uid}` | `DELETE /projects/{id}` |
+| ------------------ | -------------- | --------------- | ----------------------- | ----------------------- |
+| 👑 owner           | ✅ `200`       | ✅ `201`        | ✅ `204`                | ✅ `204`                |
+| ✏️ editor (member) | 🚫 `403`       | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
+| 👀 viewer (member) | 🚫 `403`       | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
+| 🪪 stranger        | ❓ `404`       | ❓ `404`        | ❓ `404`                | ❓ `404`                |
+
+**Validation hardening**: text fields (`Project.name`, `Alignment.name`, `VerticalAlignment.name`) reject NUL bytes (`\x00`) via Pydantic `pattern` constraint — defending against PostgreSQL `text` injection that previously surfaced as `500` errors. Missing `user_id` in member POST returns clean `404`, not a 500-leaking FK violation.
+
 ---
 
 ## License
