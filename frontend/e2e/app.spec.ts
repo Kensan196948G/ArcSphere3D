@@ -858,3 +858,70 @@ test("AlignmentPanel: 縦断線形にVIP座標を入力できる", async ({ page
   await expect(page.getByLabel("測点距離")).toHaveValue("100");
   await expect(page.getByLabel("標高")).toHaveValue("50");
 });
+
+// ---- Viewport pointer / keyboard events ------------------------------------
+
+test("viewport: ポインターイベントでJS例外が発生しない", async ({ page }) => {
+  // Collect JS errors, filtering WebGL-unavailable noise from headless Firefox
+  const jsErrors: string[] = [];
+  page.on("pageerror", (err) => {
+    const msg = err.message;
+    if (
+      msg.includes("WebGL") ||
+      msg.includes("THREE.WebGLRenderer") ||
+      msg.includes("getContext")
+    ) {
+      return;
+    }
+    jsErrors.push(msg);
+  });
+
+  await page.goto("/");
+  const canvas = page.locator("[data-testid='viewport-canvas']");
+  await expect(canvas).toBeVisible();
+
+  const box = await canvas.boundingBox();
+  if (box) {
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+
+    // Simulate a click (pointerdown + pointerup within 5px)
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.up();
+
+    // Simulate a drag (pointerdown + move > 5px + pointerup)
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 30, cy + 30);
+    await page.mouse.up();
+  }
+
+  expect(jsErrors).toHaveLength(0);
+});
+
+test("viewport: Escapeキーでオブジェクト選択が解除されてもJS例外が発生しない", async ({
+  page,
+}) => {
+  const jsErrors: string[] = [];
+  page.on("pageerror", (err) => {
+    const msg = err.message;
+    if (
+      msg.includes("WebGL") ||
+      msg.includes("THREE.WebGLRenderer") ||
+      msg.includes("getContext")
+    ) {
+      return;
+    }
+    jsErrors.push(msg);
+  });
+
+  await page.goto("/");
+  await expect(page.locator("[data-testid='viewport-canvas']")).toBeVisible();
+
+  // Press Escape and a non-binding key — both should be silently ignored when no object is selected
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("g");
+
+  expect(jsErrors).toHaveLength(0);
+});

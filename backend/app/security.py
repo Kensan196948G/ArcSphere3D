@@ -10,12 +10,14 @@ so longer passwords are still accepted (and verified consistently).
 
 from __future__ import annotations
 
+import base64 as _base64
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey as _RSAPublicKey
 from jose import JWTError, jwt
 
 from app.config import get_settings
@@ -98,6 +100,29 @@ def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> st
     if extra:
         payload.update(extra)
     return jwt.encode(payload, priv_pem, algorithm="RS256")
+
+
+def _int_to_base64url(n: int) -> str:
+    byte_len = (n.bit_length() + 7) // 8
+    return _base64.urlsafe_b64encode(n.to_bytes(byte_len, "big")).rstrip(b"=").decode()
+
+
+def get_public_key_jwk() -> dict[str, Any]:
+    """Return the RSA public key as a JWK (RFC 7517) dict for JWKS endpoint."""
+    settings = get_settings()
+    _, pub_pem = _get_or_generate_keys(settings)
+    raw = serialization.load_pem_public_key(pub_pem.encode())
+    if not isinstance(raw, _RSAPublicKey):
+        raise TypeError("Expected RSA public key")
+    nums = raw.public_numbers()
+    return {
+        "kty": "RSA",
+        "use": "sig",
+        "kid": "default",
+        "alg": "RS256",
+        "n": _int_to_base64url(nums.n),
+        "e": _int_to_base64url(nums.e),
+    }
 
 
 def decode_access_token(token: str) -> dict[str, Any]:

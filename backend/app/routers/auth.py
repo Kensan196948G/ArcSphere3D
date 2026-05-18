@@ -6,11 +6,13 @@ and must be replaced by a real user store + Entra ID SSO before production.
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.config import get_settings
 from app.schemas import CurrentUser, LoginRequest, TokenResponse
-from app.security import create_access_token, hash_password, verify_password
+from app.security import create_access_token, get_public_key_jwk, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -25,6 +27,12 @@ _DEMO_USERS: dict[str, dict[str, str]] = {
         "role": "viewer",
     },
 }
+
+
+@router.get("/.well-known/jwks.json", tags=["auth"])
+def jwks() -> dict[str, Any]:
+    """Return the JWKS document (RFC 7517) containing the RS256 public key."""
+    return {"keys": [get_public_key_jwk()]}
 
 
 @router.post(
