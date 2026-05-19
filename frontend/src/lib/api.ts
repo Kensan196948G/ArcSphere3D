@@ -336,3 +336,19 @@ export async function removeMember(
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
   }
 }
+
+// ---- Projects (delete) ----------------------------------------------------
+
+export async function deleteProject(
+  token: string,
+  projectId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}

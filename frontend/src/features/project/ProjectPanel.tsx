@@ -8,8 +8,15 @@ export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
   const { projects, selectedProjectId, files, loading, error } =
     useProjectStore();
-  const { fetchProjects, selectProject, createProject, uploadFile, deleteFile, getDownloadUrl } =
-    useProjectStore.getState();
+  const {
+    fetchProjects,
+    selectProject,
+    createProject,
+    deleteProject,
+    uploadFile,
+    deleteFile,
+    getDownloadUrl,
+  } = useProjectStore.getState();
   const addObject = useSceneStore((s) => s.addObject);
   const log = useSceneStore((s) => s.log);
 
@@ -63,6 +70,19 @@ export default function ProjectPanel() {
     log(`[project] ${filename} を削除`);
   }
 
+  async function handleDeleteProject() {
+    if (!selectedProjectId) return;
+    const project = projects.find((p) => p.id === selectedProjectId);
+    if (
+      !confirm(
+        `プロジェクト「${project?.name ?? selectedProjectId}」を削除しますか？この操作は取り消せません。`,
+      )
+    )
+      return;
+    await deleteProject(token, selectedProjectId);
+    log(`[project] プロジェクトを削除しました`);
+  }
+
   return (
     <div className="flex flex-col gap-3 text-xs">
       {/* プロジェクト選択 */}
@@ -84,6 +104,16 @@ export default function ProjectPanel() {
             </option>
           ))}
         </select>
+        {selectedProjectId && (
+          <button
+            type="button"
+            onClick={() => void handleDeleteProject()}
+            data-testid="project-delete-btn"
+            className="mt-1 w-full rounded border border-red-300 py-0.5 text-[10px] text-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+          >
+            🗑 プロジェクトを削除
+          </button>
+        )}
       </div>
 
       {/* プロジェクト作成 */}
