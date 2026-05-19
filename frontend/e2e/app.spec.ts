@@ -1438,8 +1438,20 @@ const MOCK_MEMBER = {
   created_at: "2026-05-20T00:00:00Z",
 };
 
+const MOCK_USER_LOOKUP = {
+  id: MOCK_MEMBER.user_id,
+  email: "editor@arcsphere3d.dev",
+};
+
 async function setupMembersApiMocks(page: Page) {
   await setupApiMocks(page);
+  await page.route(`**/api/users/lookup**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_USER_LOOKUP),
+    });
+  });
   await page.route(
     `**/api/projects/${MOCK_PROJECT.id}/members**`,
     async (route) => {
@@ -1514,7 +1526,10 @@ test("MembersPanel: メンバー一覧が表示される", async ({ page }) => {
   await page.selectOption("select", MOCK_PROJECT.id);
   await page.getByRole("button", { name: "メンバー" }).click();
   await expect(page.getByTestId("members-list")).toBeVisible();
-  await expect(page.getByText("編集者")).toBeVisible();
+  // members-list内に限定（role-selectの<option>と区別するため）
+  await expect(
+    page.getByTestId("members-list").getByText("編集者"),
+  ).toBeVisible();
 });
 
 test("MembersPanel: メンバー追加フォームが表示される", async ({ page }) => {

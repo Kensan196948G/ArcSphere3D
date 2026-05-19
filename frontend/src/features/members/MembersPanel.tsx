@@ -4,6 +4,7 @@ import { useProjectStore } from "@/state/projectStore";
 import {
   addMember,
   listMembers,
+  lookupUserByEmail,
   removeMember,
   type MemberOut,
 } from "@/lib/api";
@@ -22,7 +23,7 @@ export default function MembersPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState<"owner" | "editor" | "viewer">("viewer");
   const [adding, setAdding] = useState(false);
 
@@ -45,12 +46,14 @@ export default function MembersPanel() {
   }, [fetchMembers]);
 
   async function handleAdd() {
-    if (!token || !selectedProjectId || !userId.trim()) return;
+    if (!token || !selectedProjectId || !email.trim()) return;
     setAdding(true);
     setError(null);
     try {
-      await addMember(token, selectedProjectId, userId.trim(), role);
-      setUserId("");
+      // メールアドレスからユーザーIDを検索してからメンバー追加
+      const found = await lookupUserByEmail(token, email.trim());
+      await addMember(token, selectedProjectId, found.id, role);
+      setEmail("");
       await fetchMembers();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -139,15 +142,15 @@ export default function MembersPanel() {
         <div className="flex flex-col gap-2">
           <label className="flex flex-col gap-1">
             <span className="text-[10px] text-slate-500">
-              ユーザー ID (UUID)
+              メールアドレス
             </span>
             <input
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@example.com"
               data-testid="member-user-id-input"
-              className="rounded bg-slate-100 px-2 py-1 font-mono text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+              className="rounded bg-slate-100 px-2 py-1 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
             />
           </label>
           <label className="flex items-center justify-between gap-2">
@@ -168,7 +171,7 @@ export default function MembersPanel() {
           <button
             type="button"
             onClick={() => void handleAdd()}
-            disabled={adding || !userId.trim()}
+            disabled={adding || !email.trim()}
             data-testid="member-add-btn"
             className="rounded bg-arc-accent/80 py-1 text-[11px] font-medium text-white hover:bg-arc-accent disabled:opacity-50 dark:text-slate-900"
           >
