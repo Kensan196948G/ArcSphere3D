@@ -47,7 +47,8 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)    | ✅ Done    |
 | 24  | 👥 MembersPanel UI — メール検索でメンバー追加/削除 (Issue #71) | ✅ Done    |
 | 25  | 🗑️ Project delete UI — owner がプロジェクトを削除              | ✅ Done    |
-| 26  | 🔍 User lookup API — `GET /api/users/lookup?email=`            | ✅ Done    |
+| 26  | ✏️ Project rename UI — owner/editor がプロジェクト名変更       | ✅ Done    |
+| 27  | 🔍 User lookup API — `GET /api/users/lookup?email=`            | ✅ Done    |
 | 27  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
 | 28  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
 | 29  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
@@ -122,6 +123,7 @@ graph LR
 | `GET`    | `/api/projects`                                            | List projects (paginated)                               |
 | `POST`   | `/api/projects`                                            | Create a project                                        |
 | `GET`    | `/api/projects/{id}`                                       | Get project detail                                      |
+| `PUT`    | `/api/projects/{id}`                                       | Rename project (owner or editor)                        |
 | `DELETE` | `/api/projects/{id}`                                       | Delete project (owner only)                             |
 | `GET`    | `/api/projects/{id}/files`                                 | List files in project (paginated)                       |
 | `POST`   | `/api/projects/{id}/files`                                 | Upload file (S3 presigned, sha256 dedup)                |

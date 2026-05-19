@@ -353,6 +353,21 @@ export async function deleteProject(
   }
 }
 
+// ---- Projects (update) ----------------------------------------------------
+
+export async function updateProject(
+  token: string,
+  projectId: string,
+  name: string,
+): Promise<ProjectOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}`, {
+    method: "PUT",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return handleResponse<ProjectOut>(res);
+}
+
 // ---- Users ----------------------------------------------------------------
 
 export interface UserLookupOut {

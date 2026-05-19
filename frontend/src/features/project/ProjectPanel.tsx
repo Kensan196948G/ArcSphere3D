@@ -12,6 +12,7 @@ export default function ProjectPanel() {
     fetchProjects,
     selectProject,
     createProject,
+    renameProject,
     deleteProject,
     uploadFile,
     deleteFile,
@@ -22,6 +23,8 @@ export default function ProjectPanel() {
 
   const [newProjectName, setNewProjectName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameInput, setRenameInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -70,6 +73,15 @@ export default function ProjectPanel() {
     log(`[project] ${filename} を削除`);
   }
 
+  async function handleRenameProject(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedProjectId || !renameInput.trim()) return;
+    await renameProject(token, selectedProjectId, renameInput.trim());
+    setRenaming(false);
+    setRenameInput("");
+    log(`[project] プロジェクト名を変更しました`);
+  }
+
   async function handleDeleteProject() {
     if (!selectedProjectId) return;
     const project = projects.find((p) => p.id === selectedProjectId);
@@ -104,15 +116,59 @@ export default function ProjectPanel() {
             </option>
           ))}
         </select>
-        {selectedProjectId && (
-          <button
-            type="button"
-            onClick={() => void handleDeleteProject()}
-            data-testid="project-delete-btn"
-            className="mt-1 w-full rounded border border-red-300 py-0.5 text-[10px] text-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+        {selectedProjectId && !renaming && (
+          <div className="mt-1 flex gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const p = projects.find((x) => x.id === selectedProjectId);
+                setRenameInput(p?.name ?? "");
+                setRenaming(true);
+              }}
+              data-testid="project-rename-btn"
+              className="flex-1 rounded border border-slate-300 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+            >
+              ✏️ 名前を変更
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteProject()}
+              data-testid="project-delete-btn"
+              className="flex-1 rounded border border-red-300 py-0.5 text-[10px] text-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+            >
+              🗑 削除
+            </button>
+          </div>
+        )}
+        {selectedProjectId && renaming && (
+          <form
+            onSubmit={(e) => void handleRenameProject(e)}
+            className="mt-1 flex gap-1"
           >
-            🗑 プロジェクトを削除
-          </button>
+            <input
+              type="text"
+              value={renameInput}
+              onChange={(e) => setRenameInput(e.target.value)}
+              autoFocus
+              data-testid="project-rename-input"
+              className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+            />
+            <button
+              type="submit"
+              disabled={!renameInput.trim()}
+              data-testid="project-rename-save"
+              className="rounded bg-arc-accent/70 px-2 py-0.5 text-[10px] text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              onClick={() => setRenaming(false)}
+              className="rounded border border-slate-300 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600"
+            >
+              取消
+            </button>
+          </form>
         )}
       </div>
 

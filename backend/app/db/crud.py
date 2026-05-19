@@ -105,6 +105,17 @@ async def get_project_by_id(session: AsyncSession, project_id: UUID) -> Project 
     return result.scalar_one_or_none()
 
 
+async def update_project_name(session: AsyncSession, project_id: UUID, name: str) -> Project | None:
+    """Rename a project. Returns None if the project does not exist."""
+    p = await get_project_by_id(session, project_id)
+    if p is None:
+        return None
+    p.name = name
+    await session.commit()
+    await session.refresh(p)
+    return p
+
+
 async def create_file(
     session: AsyncSession,
     project_id: UUID,

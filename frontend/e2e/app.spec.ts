@@ -1626,3 +1626,68 @@ test("ProjectPanel: プロジェクト削除時にDELETE APIが呼ばれる", as
   await page.getByTestId("project-delete-btn").click();
   await deleteReq;
 });
+
+// ---- ProjectPanel: プロジェクト名変更 ------------------------------------------
+
+test("ProjectPanel: プロジェクト選択後に名前変更ボタンが表示される", async ({
+  page,
+}) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await expect(page.getByTestId("project-rename-btn")).toBeVisible();
+});
+
+test("ProjectPanel: 名前変更ボタンクリックで入力フォームが表示される", async ({
+  page,
+}) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByTestId("project-rename-btn").click();
+  await expect(page.getByTestId("project-rename-input")).toBeVisible();
+  await expect(page.getByTestId("project-rename-save")).toBeVisible();
+});
+
+test("ProjectPanel: プロジェクト名変更時にPUT APIが呼ばれる", async ({
+  page,
+}) => {
+  await setupApiMocks(page);
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}`, async (route) => {
+    if (route.request().method() === "PUT") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ...MOCK_PROJECT, name: "Renamed" }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByTestId("project-rename-btn").click();
+  const renameReq = page.waitForRequest(
+    (req) =>
+      req.url().includes(`/api/projects/${MOCK_PROJECT.id}`) &&
+      req.method() === "PUT",
+  );
+  await page.getByTestId("project-rename-input").fill("Renamed");
+  await page.getByTestId("project-rename-save").click();
+  await renameReq;
+});
