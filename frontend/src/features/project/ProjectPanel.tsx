@@ -8,8 +8,15 @@ export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
   const { projects, selectedProjectId, files, loading, error } =
     useProjectStore();
-  const { fetchProjects, selectProject, createProject, uploadFile, deleteFile, getDownloadUrl } =
-    useProjectStore.getState();
+  const {
+    fetchProjects,
+    selectProject,
+    createProject,
+    deleteProject,
+    uploadFile,
+    deleteFile,
+    getDownloadUrl,
+  } = useProjectStore.getState();
   const addObject = useSceneStore((s) => s.addObject);
   const log = useSceneStore((s) => s.log);
 
@@ -58,6 +65,12 @@ export default function ProjectPanel() {
     }
   }
 
+  async function handleDeleteProject(projectId: string, projectName: string) {
+    if (!window.confirm(`「${projectName}」を削除しますか？この操作は元に戻せません。`)) return;
+    await deleteProject(token, projectId);
+    log(`[project] プロジェクト「${projectName}」を削除`);
+  }
+
   async function handleDelete(fileId: string, filename: string) {
     await deleteFile(token, fileId);
     log(`[project] ${filename} を削除`);
@@ -85,6 +98,23 @@ export default function ProjectPanel() {
           ))}
         </select>
       </div>
+
+      {/* 選択中プロジェクトの削除 */}
+      {selectedProjectId && (() => {
+        const proj = projects.find((p) => p.id === selectedProjectId);
+        return proj ? (
+          <button
+            type="button"
+            onClick={() => handleDeleteProject(proj.id, proj.name)}
+            disabled={loading}
+            title="プロジェクトを削除"
+            aria-label={`${proj.name}を削除`}
+            className="self-end rounded bg-rose-100 px-2 py-0.5 text-rose-600 hover:bg-rose-200 disabled:opacity-40 dark:bg-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-900/50"
+          >
+            プロジェクトを削除
+          </button>
+        ) : null;
+      })()}
 
       {/* プロジェクト作成 */}
       <form onSubmit={handleCreateProject} className="flex gap-1">
