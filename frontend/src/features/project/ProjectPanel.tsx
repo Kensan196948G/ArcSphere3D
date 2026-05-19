@@ -6,6 +6,7 @@ import { loadFromUrl } from "@/features/viewport/loaders";
 
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
+  const userId = useAuthStore((s) => s.userId);
   const { projects, selectedProjectId, files, loading, error } =
     useProjectStore();
   const {
@@ -99,10 +100,11 @@ export default function ProjectPanel() {
         </select>
       </div>
 
-      {/* 選択中プロジェクトの削除 */}
+      {/* 選択中プロジェクトの削除（オーナーのみ） */}
       {selectedProjectId && (() => {
         const proj = projects.find((p) => p.id === selectedProjectId);
-        return proj ? (
+        const isOwner = proj && userId && proj.owner_id === userId;
+        return isOwner ? (
           <button
             type="button"
             onClick={() => handleDeleteProject(proj.id, proj.name)}

@@ -49,6 +49,20 @@ export async function login(email: string, password: string): Promise<string> {
   return data.access_token;
 }
 
+// ---- Current user ---------------------------------------------------------
+
+export interface UserMe {
+  id: string;
+  sub: string;
+  email: string;
+  role: string;
+}
+
+export async function getCurrentUser(token: string): Promise<UserMe> {
+  const res = await fetch(`${BASE}/users/me`, { headers: authHeaders(token) });
+  return handleResponse<UserMe>(res);
+}
+
 // ---- Projects -------------------------------------------------------------
 
 export async function listProjects(

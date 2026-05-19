@@ -78,6 +78,19 @@ async function setupApiMocks(
     });
   });
 
+  await page.route("**/api/users/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: MOCK_PROJECT.owner_id,
+        sub: "demo@arcsphere3d.dev",
+        email: "demo@arcsphere3d.dev",
+        role: "user",
+      }),
+    });
+  });
+
   await page.route("**/api/projects*", async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({
