@@ -125,7 +125,7 @@ async def update_alignment(
     """Update alignment name and/or design speed. Requires editor or owner role."""
     db_user = await crud.upsert_user(session, user)
     await _require_project(project_id, session, db_user.id, min_role="editor")
-    result = await crud.update_alignment(session, alignment_id, body)
+    result = await crud.update_alignment(session, alignment_id, project_id, body)
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
     return result

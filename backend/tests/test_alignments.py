@@ -396,3 +396,19 @@ def test_editor_can_patch_alignment() -> None:
     )
     assert res.status_code == 200
     assert res.json()["design_speed"] == 80
+
+
+def test_patch_alignment_wrong_project_returns_404() -> None:
+    """IDOR guard: alignment from project A must not be patchable via project B URL."""
+    token = _get_token()
+    pid_a = _create_project(token, "Project A")
+    pid_b = _create_project(token, "Project B")
+    aid_a = _create_alignment(token, pid_a, "Route in A")
+
+    # Try to patch alignment from project A using project B in the URL
+    res = client.patch(
+        f"/api/projects/{pid_b}/alignments/{aid_a}",
+        json={"name": "Hijacked"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 404

@@ -237,11 +237,11 @@ async def get_alignment(
 
 
 async def update_alignment(
-    session: AsyncSession, alignment_id: UUID, body: AlignmentUpdate
+    session: AsyncSession, alignment_id: UUID, project_id: UUID, body: AlignmentUpdate
 ) -> AlignmentOut | None:
     result = await session.execute(
         select(Alignment)
-        .where(Alignment.id == alignment_id)
+        .where(Alignment.id == alignment_id, Alignment.project_id == project_id)
         .options(selectinload(Alignment.ip_points))
     )
     a = result.scalar_one_or_none()
