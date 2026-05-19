@@ -9,7 +9,14 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import AlignmentCreate, AlignmentOut, CurrentUser, IpPointCreate, IpPointOut
+from app.schemas import (
+    AlignmentCreate,
+    AlignmentOut,
+    AlignmentUpdate,
+    CurrentUser,
+    IpPointCreate,
+    IpPointOut,
+)
 
 router = APIRouter(prefix="/api/projects/{project_id}/alignments", tags=["alignments"])
 
@@ -101,6 +108,27 @@ async def delete_alignment(
     if a is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
     await crud.delete_alignment(session, alignment_id)
+
+
+@router.patch(
+    "/{alignment_id}",
+    response_model=AlignmentOut,
+    responses={**_400, **_401, **_403, **_404, **_422},
+)
+async def update_alignment(
+    project_id: UUID,
+    alignment_id: UUID,
+    body: AlignmentUpdate,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> AlignmentOut:
+    """Update alignment name and/or design speed. Requires editor or owner role."""
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id, min_role="editor")
+    result = await crud.update_alignment(session, alignment_id, body)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alignment not found")
+    return result
 
 
 @router.put(

@@ -21,6 +21,7 @@ from app.models.user import User
 from app.schemas import (
     AlignmentCreate,
     AlignmentOut,
+    AlignmentUpdate,
     CurrentUser,
     FileMetadata,
     IpPointCreate,
@@ -233,6 +234,26 @@ async def get_alignment(
         .options(selectinload(Alignment.ip_points))
     )
     return result.scalar_one_or_none()
+
+
+async def update_alignment(
+    session: AsyncSession, alignment_id: UUID, body: AlignmentUpdate
+) -> AlignmentOut | None:
+    result = await session.execute(
+        select(Alignment)
+        .where(Alignment.id == alignment_id)
+        .options(selectinload(Alignment.ip_points))
+    )
+    a = result.scalar_one_or_none()
+    if a is None:
+        return None
+    if body.name is not None:
+        a.name = body.name
+    if body.design_speed is not None:
+        a.design_speed = body.design_speed
+    await session.commit()
+    await session.refresh(a)
+    return alignment_to_out(a)
 
 
 async def delete_alignment(session: AsyncSession, alignment_id: UUID) -> None:

@@ -183,6 +183,16 @@ def test_alignment_wrong_project_returns_404() -> None:
 OTHER_CREDS = {"email": "other@arcsphere3d.dev", "password": "arcsphere-demo"}
 
 
+def _create_alignment(token: str, project_id: str, name: str = "Route A", speed: int = 60) -> str:
+    res = client.post(
+        f"/api/projects/{project_id}/alignments",
+        json={"name": name, "design_speed": speed},
+        headers=_auth(token),
+    )
+    assert res.status_code == 201, res.text
+    return res.json()["id"]
+
+
 def _get_other_token() -> str:
     res = client.post("/api/auth/login", json=OTHER_CREDS)
     assert res.status_code == 200
@@ -247,3 +257,142 @@ def test_non_member_gets_404_not_403() -> None:
     pid = _create_project(owner)
     res = client.get(f"/api/projects/{pid}/alignments", headers=_auth(other))
     assert res.status_code == 404
+
+
+# ---- PATCH alignment (update name / design_speed) ----
+
+
+def test_patch_alignment_name_returns_200() -> None:
+    token = _get_token()
+    pid = _create_project(token)
+    aid = _create_alignment(token, pid, "Original Name")
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"name": "Updated Name"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["name"] == "Updated Name"
+    assert body["design_speed"] == 60  # unchanged
+
+
+def test_patch_alignment_design_speed_returns_200() -> None:
+    token = _get_token()
+    pid = _create_project(token)
+    aid = _create_alignment(token, pid, "Speed Test", speed=60)
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"design_speed": 80},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["design_speed"] == 80
+    assert body["name"] == "Speed Test"  # unchanged
+
+
+def test_patch_alignment_both_fields() -> None:
+    token = _get_token()
+    pid = _create_project(token)
+    aid = _create_alignment(token, pid, "Old Name", speed=40)
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"name": "New Name", "design_speed": 100},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["name"] == "New Name"
+    assert body["design_speed"] == 100
+
+
+def test_patch_alignment_empty_body_is_no_op() -> None:
+    token = _get_token()
+    pid = _create_project(token)
+    aid = _create_alignment(token, pid, "NoChange", speed=60)
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["name"] == "NoChange"
+    assert body["design_speed"] == 60
+
+
+def test_patch_alignment_invalid_speed_rejected() -> None:
+    token = _get_token()
+    pid = _create_project(token)
+    aid = _create_alignment(token, pid, "Speed Validation")
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"design_speed": 999},
+        headers=_auth(token),
+    )
+    assert res.status_code in (400, 422)
+
+
+def test_patch_alignment_nul_name_rejected() -> None:
+    token = _get_token()
+    pid = _create_project(token)
+    aid = _create_alignment(token, pid, "NUL Test")
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"name": "bad\x00name"},
+        headers=_auth(token),
+    )
+    assert res.status_code in (400, 422)
+
+
+def test_patch_nonexistent_alignment_returns_404() -> None:
+    import uuid
+
+    token = _get_token()
+    pid = _create_project(token)
+    fake_aid = str(uuid.uuid4())
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{fake_aid}",
+        json={"name": "Ghost"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 404
+
+
+def test_viewer_cannot_patch_alignment() -> None:
+    owner = _get_token()
+    viewer = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid, "Protected Route")
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"name": "Hijacked"},
+        headers=_auth(viewer),
+    )
+    assert res.status_code == 403
+
+
+def test_editor_can_patch_alignment() -> None:
+    owner = _get_token()
+    editor = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid, "Shared Route")
+    _add_member(owner, pid, _get_user_id(editor), "editor")
+
+    res = client.patch(
+        f"/api/projects/{pid}/alignments/{aid}",
+        json={"design_speed": 80},
+        headers=_auth(editor),
+    )
+    assert res.status_code == 200
+    assert res.json()["design_speed"] == 80

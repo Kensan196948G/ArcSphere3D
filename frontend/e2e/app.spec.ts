@@ -1548,3 +1548,95 @@ test("Header: ログイン前はログアウトボタンが表示されない", 
   await page.goto("/");
   await expect(page.getByRole("button", { name: "ログアウト" })).not.toBeVisible();
 });
+
+// ---- AlignmentPanel: inline edit ----------------------------------------
+
+test("AlignmentPanel: 線形詳細に編集ボタンが表示される", async ({ page }) => {
+  await setupAlignmentTests(page);
+  await page.getByRole("textbox", { name: "線形名" }).fill("編集テスト路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await expect(
+    page.getByRole("button", { name: "編集テスト路線", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "編集テスト路線", exact: true }).click();
+  // Edit button (✎) should be visible on the detail pane
+  await expect(page.getByRole("button", { name: "線形情報を編集" })).toBeVisible();
+});
+
+test("AlignmentPanel: 編集ボタンクリックでインライン編集フォームが開く", async ({
+  page,
+}) => {
+  await setupAlignmentTests(page);
+  await page.getByRole("textbox", { name: "線形名" }).fill("名前変更路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await page.getByRole("button", { name: "名前変更路線", exact: true }).click();
+  await page.getByRole("button", { name: "線形情報を編集" }).click();
+  // Edit form should appear
+  await expect(page.getByRole("textbox", { name: "線形名を編集" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "設計速度を編集" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "キャンセル" })).toBeVisible();
+});
+
+test("AlignmentPanel: 編集フォームキャンセルで元の表示に戻る", async ({
+  page,
+}) => {
+  await setupAlignmentTests(page);
+  await page.getByRole("textbox", { name: "線形名" }).fill("キャンセル路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await page.getByRole("button", { name: "キャンセル路線", exact: true }).click();
+  await page.getByRole("button", { name: "線形情報を編集" }).click();
+  await expect(page.getByRole("textbox", { name: "線形名を編集" })).toBeVisible();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+  // Form should close, edit button visible again
+  await expect(page.getByRole("button", { name: "線形情報を編集" })).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "線形名を編集" }),
+  ).not.toBeVisible();
+});
+
+test("AlignmentPanel: 線形名を編集して保存するとPATCH APIが呼ばれる", async ({
+  page,
+}) => {
+  let patchCalled = false;
+  await setupAlignmentTests(page);
+
+  await page.route(
+    `**/api/projects/${MOCK_PROJECT.id}/alignments/*`,
+    async (route) => {
+      if (route.request().method() === "PATCH") {
+        patchCalled = true;
+        const body = (await route.request().postDataJSON()) as {
+          name?: string;
+          design_speed?: number;
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ...MOCK_ALIGNMENT,
+            name: body.name ?? MOCK_ALIGNMENT.name,
+            design_speed: body.design_speed ?? 60,
+          }),
+        });
+      } else {
+        await route.fallback();
+      }
+    },
+  );
+
+  await page.getByRole("textbox", { name: "線形名" }).fill("PATCH確認路線");
+  await page.getByRole("button", { name: "線形を作成" }).click();
+  await page.getByRole("button", { name: "PATCH確認路線", exact: true }).click();
+  await page.getByRole("button", { name: "線形情報を編集" }).click();
+  await page.getByRole("textbox", { name: "線形名を編集" }).fill("更新後路線名");
+
+  const responsePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes("/alignments/") && r.request().method() === "PATCH",
+  );
+  await page.getByRole("button", { name: "保存" }).click();
+  await responsePromise;
+
+  expect(patchCalled).toBe(true);
+});

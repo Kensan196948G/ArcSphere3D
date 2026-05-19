@@ -19,6 +19,9 @@ function AlignmentDetail({ alignmentId, token, projectId }: DetailProps) {
   const [ipX, setIpX] = useState("0");
   const [ipZ, setIpZ] = useState("0");
   const [ipR, setIpR] = useState("50");
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editSpeed, setEditSpeed] = useState("");
 
   if (!alignment) return null;
 
@@ -44,16 +47,90 @@ function AlignmentDetail({ alignmentId, token, projectId }: DetailProps) {
     await store.syncIpPoints(token, projectId, alignmentId);
   }
 
+  function startEdit() {
+    setEditName(alignment.name);
+    setEditSpeed(String(alignment.designSpeed));
+    setEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    const patch: { name?: string; designSpeed?: number } = {};
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== alignment.name) patch.name = trimmed;
+    const speed = Number(editSpeed);
+    if (!isNaN(speed) && speed !== alignment.designSpeed) patch.designSpeed = speed;
+    if (Object.keys(patch).length > 0) {
+      await store.updateAlignment(token, projectId, alignmentId, patch);
+    }
+    setEditing(false);
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
-          {alignment.name}
-        </span>
-        <span className="text-[10px] text-slate-500 dark:text-slate-400">
-          V={alignment.designSpeed} km/h
-        </span>
-      </div>
+      {editing ? (
+        <div className="flex flex-col gap-1.5 rounded bg-slate-50 px-2 py-2 text-[10px] dark:bg-slate-900">
+          <label className="flex flex-col gap-0.5">
+            <span className="text-slate-500 dark:text-slate-400">線形名</span>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              aria-label="線形名を編集"
+              className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            />
+          </label>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-slate-500 dark:text-slate-400">設計速度 (km/h)</span>
+            <select
+              value={editSpeed}
+              onChange={(e) => setEditSpeed(e.target.value)}
+              aria-label="設計速度を編集"
+              className="rounded border border-slate-200 bg-white px-1 py-0.5 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            >
+              {DESIGN_SPEEDS.map((s) => (
+                <option key={s} value={s}>{s} km/h</option>
+              ))}
+            </select>
+          </label>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={handleSaveEdit}
+              className="flex-1 rounded bg-arc-accent/20 px-2 py-1 text-arc-accent ring-1 ring-arc-accent/40 hover:bg-arc-accent/30"
+              aria-label="線形情報を保存"
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded px-2 py-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+            {alignment.name}
+          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+              V={alignment.designSpeed} km/h
+            </span>
+            <button
+              type="button"
+              onClick={startEdit}
+              className="ml-1 rounded px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+              aria-label="線形情報を編集"
+              title="線形名・設計速度を編集"
+            >
+              ✎
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* IP point list */}
       {alignment.ipPoints.length > 0 && (

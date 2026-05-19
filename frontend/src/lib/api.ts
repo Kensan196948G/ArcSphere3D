@@ -229,6 +229,23 @@ export async function createAlignment(
   return handleResponse<AlignmentApiOut>(res);
 }
 
+export async function updateAlignment(
+  token: string,
+  projectId: string,
+  alignmentId: string,
+  patch: { name?: string; design_speed?: number },
+): Promise<AlignmentApiOut> {
+  const res = await fetch(
+    `${BASE}/projects/${projectId}/alignments/${alignmentId}`,
+    {
+      method: "PATCH",
+      headers: { ...authHeaders(token), "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+  return handleResponse<AlignmentApiOut>(res);
+}
+
 export async function deleteAlignment(
   token: string,
   projectId: string,

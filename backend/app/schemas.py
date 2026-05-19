@@ -81,6 +81,11 @@ class AlignmentCreate(BaseModel):
     design_speed: int = Field(default=60, ge=20, le=120)
 
 
+class AlignmentUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
+    design_speed: int | None = Field(default=None, ge=20, le=120)
+
+
 class AlignmentOut(BaseModel):
     id: UUID
     project_id: UUID

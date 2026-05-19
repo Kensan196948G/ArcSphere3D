@@ -4,6 +4,7 @@ import {
   createAlignment as apiCreateAlignment,
   deleteAlignment as apiDeleteAlignment,
   replaceIpPoints,
+  updateAlignment as apiUpdateAlignment,
   type IpPointApiOut,
 } from "@/lib/api";
 
@@ -47,6 +48,12 @@ interface AlignmentState {
     projectId: string,
     name: string,
     designSpeed: number,
+  ) => Promise<void>;
+  updateAlignment: (
+    token: string,
+    projectId: string,
+    id: string,
+    patch: { name?: string; designSpeed?: number },
   ) => Promise<void>;
   removeAlignment: (
     token: string,
@@ -124,6 +131,26 @@ export const useAlignmentStore = create<AlignmentState>((set, get) => ({
       set((s) => ({
         alignments: [...s.alignments, a],
         activeId: a.id,
+        loading: false,
+      }));
+    } catch (e) {
+      set({ loading: false, error: String(e) });
+    }
+  },
+
+  updateAlignment: async (token, projectId, id, patch) => {
+    set({ loading: true, error: null });
+    try {
+      const apiPatch: { name?: string; design_speed?: number } = {};
+      if (patch.name !== undefined) apiPatch.name = patch.name;
+      if (patch.designSpeed !== undefined) apiPatch.design_speed = patch.designSpeed;
+      const data = await apiUpdateAlignment(token, projectId, id, apiPatch);
+      set((s) => ({
+        alignments: s.alignments.map((a) =>
+          a.id === id
+            ? { ...a, name: data.name, designSpeed: data.design_speed }
+            : a,
+        ),
         loading: false,
       }));
     } catch (e) {
