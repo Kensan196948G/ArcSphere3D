@@ -122,8 +122,7 @@ graph LR
 | `GET`    | `/api/projects`                                            | List projects (paginated)                               |
 | `POST`   | `/api/projects`                                            | Create a project                                        |
 | `GET`    | `/api/projects/{id}`                                       | Get project detail                                      |
-| `PUT`    | `/api/projects/{id}`                                       | Update project                                          |
-| `DELETE` | `/api/projects/{id}`                                       | Delete project                                          |
+| `DELETE` | `/api/projects/{id}`                                       | Delete project (owner only)                             |
 | `GET`    | `/api/projects/{id}/files`                                 | List files in project (paginated)                       |
 | `POST`   | `/api/projects/{id}/files`                                 | Upload file (S3 presigned, sha256 dedup)                |
 | `GET`    | `/api/projects/{id}/files/{fid}/download`                  | Get presigned download URL                              |
