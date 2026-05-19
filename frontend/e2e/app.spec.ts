@@ -1485,9 +1485,7 @@ test("MembersPanel: プロジェクト未選択時に案内メッセージが表
   await page.getByRole("button", { name: "ログイン" }).last().click();
   await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
   await page.getByRole("button", { name: "メンバー" }).click();
-  await expect(
-    page.getByTestId("members-no-project"),
-  ).toBeVisible();
+  await expect(page.getByTestId("members-no-project")).toBeVisible();
 });
 
 test("MembersPanel: ログイン後にプロジェクトを選択するとメンバーパネルUIが表示される", async ({
@@ -1588,19 +1586,14 @@ test("ProjectPanel: プロジェクト未選択時に削除ボタンが非表示
 test("ProjectPanel: プロジェクト削除時にDELETE APIが呼ばれる", async ({
   page,
 }) => {
-  let deleteCallCount = 0;
   await setupApiMocks(page);
-  await page.route(
-    `**/api/projects/${MOCK_PROJECT.id}`,
-    async (route) => {
-      if (route.request().method() === "DELETE") {
-        deleteCallCount++;
-        await route.fulfill({ status: 204 });
-      } else {
-        await route.continue();
-      }
-    },
-  );
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}`, async (route) => {
+    if (route.request().method() === "DELETE") {
+      await route.fulfill({ status: 204 });
+    } else {
+      await route.continue();
+    }
+  });
   await page.goto("/");
   await page.getByRole("button", { name: "ログイン" }).click();
   await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
@@ -1608,8 +1601,13 @@ test("ProjectPanel: プロジェクト削除時にDELETE APIが呼ばれる", as
   await page.getByRole("button", { name: "ログイン" }).last().click();
   await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
   await page.getByText("Demo Project").click();
-  // confirm ダイアログを自動的に承認
+  // waitForRequest を先に登録してから confirm ダイアログを承認してクリック
+  const deleteReq = page.waitForRequest(
+    (req) =>
+      req.url().includes(`/api/projects/${MOCK_PROJECT.id}`) &&
+      req.method() === "DELETE",
+  );
   page.on("dialog", (dialog) => void dialog.accept());
   await page.getByTestId("project-delete-btn").click();
-  await expect(deleteCallCount).toBe(1);
+  await deleteReq;
 });
