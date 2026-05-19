@@ -131,7 +131,7 @@ export default function CadPanel() {
     const name = primitiveLabel(spec);
     mesh.name = name;
     scene.add(mesh);
-    const id = `cad-${Date.now()}`;
+    const id = `cad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     addObject({ id, name, object: mesh });
     log(`[CAD] ✓ ${name} をシーンに追加`);
   }

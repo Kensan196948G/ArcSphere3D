@@ -114,7 +114,9 @@ export function primitiveLabel(spec: PrimitiveSpec): string {
     case "sphere":
       return `Sphere(r=${spec.radius})`;
     case "cylinder":
-      return `Cylinder(r=${spec.radiusTop},h=${spec.height})`;
+      return spec.radiusTop === spec.radiusBottom
+        ? `Cylinder(r=${spec.radiusTop},h=${spec.height})`
+        : `Cylinder(rt=${spec.radiusTop},rb=${spec.radiusBottom},h=${spec.height})`;
     case "cone":
       return `Cone(r=${spec.radius},h=${spec.height})`;
     case "torus":

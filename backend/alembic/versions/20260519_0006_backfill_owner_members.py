@@ -42,15 +42,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Removing backfilled rows is safe; any that were added by application
-    # code after this migration cannot be distinguished, so we delete all
-    # owner rows whose (project_id, user_id) match (projects.id, projects.owner_id).
-    op.execute(
-        sa.text("""
-        DELETE FROM project_members pm
-        USING  projects p
-        WHERE  pm.project_id = p.id
-          AND  pm.user_id    = p.owner_id
-          AND  pm.role       = 'owner'
-        """)
+    raise RuntimeError(
+        "Irreversible migration: cannot safely distinguish backfilled owner rows "
+        "from rows added by application code after migration 0006."
     )
