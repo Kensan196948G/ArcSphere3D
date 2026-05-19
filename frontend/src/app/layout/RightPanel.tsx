@@ -72,9 +72,15 @@ export default function RightPanel() {
         return <AlignmentPanel />;
       case "cad":
         return (
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            STEP / CAD 読み込み — 近日実装予定
-          </p>
+          <div className="space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <p>STEP / IGES 読み込み — OpenCascade.js (WASM) ローダー実装済み。</p>
+            <p className="text-slate-400 dark:text-slate-500">
+              有効化するには <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">public/opencascade/</code> に
+              opencascade.js + opencascade.wasm を配置してください。
+            </p>
+            <p>対応拡張子: <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">.step .stp .iges .igs</code></p>
+            <p>プロジェクトパネルのアップロードから直接読み込めます。</p>
+          </div>
         );
       default:
         return null;

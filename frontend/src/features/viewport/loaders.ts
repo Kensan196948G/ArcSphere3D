@@ -8,7 +8,7 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-export type SupportedExt = "stl" | "obj" | "gltf" | "glb" | "ifc";
+export type SupportedExt = "stl" | "obj" | "gltf" | "glb" | "ifc" | "step" | "iges";
 
 const DEFAULT_MATERIAL = new MeshStandardMaterial({
   color: 0x9ca3af,
@@ -20,15 +20,11 @@ export function extOf(filename: string): SupportedExt | null {
   const m = filename.toLowerCase().match(/\.([a-z0-9]+)$/);
   if (!m) return null;
   const ext = m[1];
-  if (
-    ext === "stl" ||
-    ext === "obj" ||
-    ext === "gltf" ||
-    ext === "glb" ||
-    ext === "ifc"
-  ) {
-    return ext as SupportedExt;
-  }
+  const EXT_MAP: Record<string, SupportedExt> = {
+    stl: "stl", obj: "obj", gltf: "gltf", glb: "glb", ifc: "ifc",
+    step: "step", stp: "step", iges: "iges", igs: "iges",
+  };
+  if (ext in EXT_MAP) return EXT_MAP[ext];
   return null;
 }
 
@@ -93,6 +89,13 @@ export async function loadFromUrl(
       const result = await loadIfc(buf, filename);
       return result.group;
     }
+    case "step":
+    case "iges": {
+      const buf = await res.arrayBuffer();
+      const { loadStep } = await import("./occLoader");
+      const result = await loadStep(buf, filename);
+      return result.group;
+    }
   }
 }
 
@@ -142,6 +145,13 @@ export async function loadFile(file: File): Promise<Object3D> {
       const buf = await readArrayBuffer(file);
       const { loadIfc } = await import("./ifcLoader");
       const result = await loadIfc(buf, file.name);
+      return result.group;
+    }
+    case "step":
+    case "iges": {
+      const buf = await readArrayBuffer(file);
+      const { loadStep } = await import("./occLoader");
+      const result = await loadStep(buf, file.name);
       return result.group;
     }
   }

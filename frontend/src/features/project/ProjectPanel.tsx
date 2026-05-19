@@ -334,7 +334,7 @@ export default function ProjectPanel() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".stl,.obj,.gltf,.glb,.ifc,.step"
+              accept=".stl,.obj,.gltf,.glb,.ifc,.step,.stp,.iges,.igs"
               onChange={handleUpload}
               className="hidden"
             />
