@@ -203,7 +203,9 @@ def test_project_delete_cascades_to_members() -> None:
 
     members_before = client.get(f"/api/projects/{pid}/members", headers=_auth(owner))
     assert members_before.status_code == 200
-    assert len(members_before.json()) == 1
+    # Issue #66: project creation now auto-adds the owner row, so we expect
+    # owner + viewer = 2 members before deletion.
+    assert len(members_before.json()) == 2
 
     res = client.delete(f"/api/projects/{pid}", headers=_auth(owner))
     assert res.status_code == 204

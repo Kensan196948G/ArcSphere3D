@@ -14,6 +14,7 @@ import PointCloudPanel from "@/features/pointcloud/PointCloudPanel";
 import TerrainPanel from "@/features/terrain/TerrainPanel";
 import EarthworkPanel from "@/features/earthwork/EarthworkPanel";
 import AlignmentPanel from "@/features/alignment/AlignmentPanel";
+import CadPanel from "@/features/cad/CadPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -71,11 +72,7 @@ export default function RightPanel() {
       case "alignment":
         return <AlignmentPanel />;
       case "cad":
-        return (
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            STEP / CAD 読み込み — 近日実装予定
-          </p>
-        );
+        return <CadPanel />;
       default:
         return null;
     }

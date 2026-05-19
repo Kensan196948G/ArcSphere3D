@@ -72,6 +72,9 @@ async def list_projects(
 async def create_project(session: AsyncSession, owner_id: UUID, body: ProjectCreate) -> ProjectOut:
     project = Project(name=body.name, owner_id=owner_id)
     session.add(project)
+    await session.flush()  # get project.id before adding member row
+    owner_member = ProjectMember(project_id=project.id, user_id=owner_id, role="owner")
+    session.add(owner_member)
     await session.commit()
     await session.refresh(project)
     return ProjectOut(
@@ -285,6 +288,21 @@ async def upsert_ip_points(
 # ---- Project Members (RBAC) ----
 
 
+async def count_owners(session: AsyncSession, project_id: UUID) -> int:
+    """Return the number of members with role='owner' for *project_id*."""
+    from sqlalchemy import func
+
+    result = await session.execute(
+        select(func.count())
+        .select_from(ProjectMember)
+        .where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.role == "owner",
+        )
+    )
+    return result.scalar_one()
+
+
 async def get_member_role(session: AsyncSession, project_id: UUID, user_id: UUID) -> str | None:
     """Return the role of *user_id* in *project_id*, or None if not a member."""
     result = await session.execute(
@@ -381,8 +399,14 @@ async def add_member(
     )
 
 
-async def remove_member(session: AsyncSession, project_id: UUID, user_id: UUID) -> bool:
-    """Delete the membership. Returns True if it existed, False otherwise."""
+async def remove_member(session: AsyncSession, project_id: UUID, user_id: UUID) -> bool | None:
+    """Delete the membership.
+
+    Returns:
+        True   – removed successfully
+        False  – member not found
+        None   – last-owner protection triggered (caller should return 409)
+    """
     result = await session.execute(
         select(ProjectMember).where(
             ProjectMember.project_id == project_id,
@@ -392,6 +416,8 @@ async def remove_member(session: AsyncSession, project_id: UUID, user_id: UUID) 
     member = result.scalar_one_or_none()
     if member is None:
         return False
+    if member.role == "owner" and await count_owners(session, project_id) <= 1:
+        return None  # last-owner guard
     await session.delete(member)
     await session.commit()
     return True

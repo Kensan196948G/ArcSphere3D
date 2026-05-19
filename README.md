@@ -38,14 +38,16 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 14  | 🔑 JWKS endpoint (RFC 7517) — public key discovery             | ✅ Done    |
 | 15  | 📊 OpenAPI contract tests (schemathesis, 27/27 pass + auth)    | ✅ Done    |
 | 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
-| 17  | 📋 Alembic DB migrations (0001→0005)                           | ✅ Done    |
+| 17  | 📋 Alembic DB migrations (0001→0006)                           | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (62 pass)                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (81 pass)                  | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
-| 22  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
-| 23  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
-| 24  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
+| 22  | 👥 Multi-owner model + last-owner protection (Issue #66)       | ✅ Done    |
+| 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)   | ✅ Done    |
+| 24  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
+| 25  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
+| 26  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 
 ---
 
@@ -167,7 +169,7 @@ flowchart LR
         B3 --> B4[mypy]
         B4 --> B5[pytest --cov 130/130]
         B5 --> B6[schemathesis 27/27 + auth]
-        B6 --> B7[Upload coverage 96%]
+        B6 --> B7[Upload coverage 98%]
     end
 
     subgraph I["integration job"]
@@ -314,6 +316,18 @@ Every project resource enforces a **3-tier access model** distinguishing _non-me
 | 🪪 stranger        | ❓ `404`       | ❓ `404`        | ❓ `404`                | ❓ `404`                |
 
 **Validation hardening**: text fields (`Project.name`, `Alignment.name`, `VerticalAlignment.name`) reject NUL bytes (`\x00`) via Pydantic `pattern` constraint — defending against PostgreSQL `text` injection that previously surfaced as `500` errors. Missing `user_id` in member POST returns clean `404`, not a 500-leaking FK violation.
+
+### 👥 Multi-Owner Model (Issue #66)
+
+Project creation now auto-inserts an **owner row** into `project_members`.
+The last-owner protection prevents orphaning a project: `DELETE /members/{uid}` returns `409 Conflict` when the target is the sole owner.
+
+| Scenario | Result |
+|---|---|
+| Remove last owner | `409 Conflict` — "cannot remove the last owner" |
+| Remove non-last owner | `204 No Content` |
+| Remove editor / viewer | `204 No Content` |
+| Transfer ownership (add 2nd owner → remove 1st) | Both operations `201` / `204` |
 
 ---
 
