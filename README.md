@@ -40,12 +40,15 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0005)                           | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (62 pass)                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (83 pass)                  | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
-| 22  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
-| 23  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
-| 24  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
+| 22  | 🗑️ Project delete — owner-only DELETE /api/projects/{id}       | ✅ Done    |
+| 23  | ✏️ Alignment inline edit — name & design speed PATCH API       | ✅ Done    |
+| 24  | 👥 Member management API — list/add/remove (owner-only)        | ✅ Done    |
+| 25  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
+| 26  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
+| 27  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 
 ---
 

@@ -10,7 +10,7 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Issue #58 (E2E coverage 50→62), Issue #62 (NUL bytes hardening), Issue #61 (RBAC 3-tier + DELETE project) すべて完了 — 次は OpenCascade.js 統合 + alignment edit UI 仕上げ",
+  "goal": "alignment edit UI 仕上げ (PATCH endpoint + inline edit) + deleteProject + member API + E2E 62→83 完了 — 次は PR #70 (multi-owner RBAC + CAD panel + E2E 81) マージ後に integration test 安定化 + OpenCascade.js 統合",
   "phase": "Build",
   "mvp": {
     "definition": [
@@ -50,7 +50,7 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Build",
-    "last_session_summary": "Build session 2026-05-19 02:00 JST: merged PR #59 (E2E coverage 50→62, README security). Diagnosed PR #60 backend FAILURE — schemathesis (hypothesis 6.152.7) generated NUL byte (\\x00) text → PostgreSQL DataError. Filed Issue #62, fixed in PR #63 with Field(pattern=^[^\\x00]+$) on Project/Alignment/VerticalAlignment.name; closed PR #60 as superseded. Implemented Issue #61 3-tier RBAC (owner/editor/viewer/stranger 200/403/403/404) + new DELETE /api/projects/{id} endpoint (owner-only) in PR #64; +11 RBAC tests, project_members.py coverage 100%. Out of scope/deferred: last-owner protection (needs multi-owner data model), FK-violation 422 on non-existent user_id POST /members. Backend total 93 tests pass (excl. openapi). Tests green: 56 schemathesis, ruff, mypy, format, frontend, e2e, CodeQL, CodeRabbit.",
+    "last_session_summary": "Build session 2026-05-19 (claude/affectionate-bell-MXc9f): (1) PR #70 CodeRabbit fixes — migration downgrade() → RuntimeError, CadPanel ID collision fix, cylinder label fix; (2) deleteProject + member API (listMembers/addMember/removeMember) in api.ts; (3) ProjectPanel delete button with confirm dialog; (4) PATCH /api/projects/{id}/alignments/{aid} (AlignmentUpdate schema, crud.update_alignment, RBAC guard); (5) AlignmentPanel inline edit UI (name + design_speed); (6) E2E 62→83 (+21 tests: project delete, alignment IP/vertical DELETE API, PATCH API, error states, keyboard events, GIS basemap, LayerPanel, Header); (7) README feature table updated to row 27; (8) backend test_alignments.py +10 PATCH tests. All ruff/mypy clean.",
     "current_session_start_at": "2026-05-18T17:00:02.440Z",
     "session_soft_deadline": "2026-05-18T20:30:00+09:00",
     "session_hard_deadline": "2026-05-18T21:00:00+09:00",
@@ -293,13 +293,13 @@
   },
   "next_session_hints": {
     "priority_order": [
-      "Build: E2E テストカバレッジ拡充 (Playwright — ファイルアップロード / 3D ビューア / プロジェクト CRUD)",
-      "Build: glTF / OBJ / STL ローダーの E2E テスト拡充",
-      "Build: OpenCascade.js CAD kernel 統合 — 基本形状プリミティブ生成 API",
-      "Build: TypeScript v6 移行準備 (tsconfig.json baseUrl 削除 + paths 相対パス化)",
-      "Improve: README.md に rate limiting セキュリティ機能を追記"
+      "Merge: PR #70 (multi-owner RBAC + CAD panel + E2E 81) — CI 全通過待ち",
+      "Merge: claude/affectionate-bell-MXc9f (alignment PATCH + deleteProject + E2E 83) → PR 作成後マージ",
+      "Build: OpenCascade.js CAD kernel 統合 — OCC.js WASM で基本形状生成 (PR #70 の Three.js placeholder を置き換え)",
+      "Build: Member management UI — ProjectPanel にメンバー一覧・招待 UI 追加",
+      "Build: glTF / OBJ / STL ローダーの E2E テスト拡充 (Blob URL モック + Three.js geometry 確認)"
     ],
-    "resume_note": "PR #56 (rate limiting) merged. Issue #55 closed. Next: E2E tests + OpenCascade.js integration"
+    "resume_note": "claude/affectionate-bell-MXc9f に alignment PATCH + deleteProject + E2E 83 テスト追加済み。PR #70 の Docker integration テスト pending。"
   },
   "compact": {
     "last_pre_compact_at": "2026-05-18T06:45:30.588Z"
