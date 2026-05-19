@@ -51,6 +51,12 @@ async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
     return db_user
 
 
+async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
+    """Return the DB row for a user with *email*, or None if not found."""
+    result = await session.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
+
+
 async def list_projects(
     session: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 50
 ) -> list[ProjectOut]:

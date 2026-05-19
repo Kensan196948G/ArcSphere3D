@@ -352,3 +352,21 @@ export async function deleteProject(
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
   }
 }
+
+// ---- Users ----------------------------------------------------------------
+
+export interface UserLookupOut {
+  id: string;
+  email: string;
+}
+
+export async function lookupUserByEmail(
+  token: string,
+  email: string,
+): Promise<UserLookupOut> {
+  const res = await fetch(
+    `${BASE}/users/lookup?email=${encodeURIComponent(email)}`,
+    { headers: authHeaders(token) },
+  );
+  return handleResponse<UserLookupOut>(res);
+}
