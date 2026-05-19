@@ -37,6 +37,10 @@ class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
 
 
+class ProjectUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
+
+
 class ProjectOut(BaseModel):
     id: UUID
     name: str

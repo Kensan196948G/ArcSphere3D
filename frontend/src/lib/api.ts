@@ -102,6 +102,19 @@ export async function deleteProject(
   }
 }
 
+export async function updateProject(
+  token: string,
+  projectId: string,
+  name: string,
+): Promise<ProjectOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return handleResponse<ProjectOut>(res);
+}
+
 export interface ProjectMember {
   user_id: string;
   role: "owner" | "editor" | "viewer";

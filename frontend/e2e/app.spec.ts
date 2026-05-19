@@ -1308,6 +1308,85 @@ test("ProjectPanel: プロジェクト削除後にドロップダウンからプ
   expect(names).not.toContain(MOCK_PROJECT.name);
 });
 
+// ---- ProjectPanel: rename (PATCH) ------------------------------------------
+
+test("ProjectPanel: オーナーには名前変更ボタンが表示される", async ({ page }) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await expect(page.getByRole("button", { name: /名前を変更/ })).toBeVisible();
+});
+
+test("ProjectPanel: 名前変更ボタン押下で入力フォームが開く", async ({ page }) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: /名前を変更/ }).click();
+  await expect(page.getByRole("textbox", { name: "プロジェクト名を編集" })).toBeVisible();
+});
+
+test("ProjectPanel: キャンセルで入力フォームが閉じる", async ({ page }) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: /名前を変更/ }).click();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+  await expect(
+    page.getByRole("textbox", { name: "プロジェクト名を編集" }),
+  ).not.toBeVisible();
+});
+
+test("ProjectPanel: 名前を変更して保存するとPATCH APIが呼ばれる", async ({
+  page,
+}) => {
+  let patchCalled = false;
+  await setupApiMocks(page);
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}`, async (route) => {
+    if (route.request().method() === "PATCH") {
+      patchCalled = true;
+      const body = (await route.request().postDataJSON()) as { name?: string };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ...MOCK_PROJECT, name: body.name ?? MOCK_PROJECT.name }),
+      });
+    } else {
+      await route.fallback();
+    }
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: /名前を変更/ }).click();
+  await page.getByRole("textbox", { name: "プロジェクト名を編集" }).fill("新プロジェクト名");
+
+  const responsePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/api/projects/${MOCK_PROJECT.id}`) &&
+      r.request().method() === "PATCH",
+  );
+  await page.getByRole("button", { name: "保存" }).click();
+  await responsePromise;
+
+  expect(patchCalled).toBe(true);
+});
+
 // ---- AlignmentPanel: API call verification ----------------------------------
 
 test("AlignmentPanel: IP点追加でPUT APIが呼ばれる", async ({ page }) => {

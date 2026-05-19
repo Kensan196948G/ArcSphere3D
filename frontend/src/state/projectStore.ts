@@ -3,6 +3,7 @@ import {
   createProject as apiCreateProject,
   deleteFile as apiDeleteFile,
   deleteProject as apiDeleteProject,
+  updateProject as apiUpdateProject,
   getDownloadUrl,
   listFiles,
   listProjects,
@@ -22,6 +23,7 @@ interface ProjectState {
   selectProject: (token: string, projectId: string) => Promise<void>;
   createProject: (token: string, name: string) => Promise<void>;
   deleteProject: (token: string, projectId: string) => Promise<void>;
+  updateProject: (token: string, projectId: string, name: string) => Promise<void>;
   uploadFile: (token: string, file: File) => Promise<FileMetadata | null>;
   deleteFile: (token: string, fileId: string) => Promise<void>;
   getDownloadUrl: (
@@ -81,6 +83,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         selectedProjectId:
           s.selectedProjectId === projectId ? null : s.selectedProjectId,
         files: s.selectedProjectId === projectId ? [] : s.files,
+        loading: false,
+      }));
+    } catch (e) {
+      set({ loading: false, error: String(e) });
+    }
+  },
+
+  updateProject: async (token, projectId, name) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await apiUpdateProject(token, projectId, name);
+      set((s) => ({
+        projects: s.projects.map((p) => (p.id === projectId ? updated : p)),
         loading: false,
       }));
     } catch (e) {

@@ -29,6 +29,7 @@ from app.schemas import (
     MemberOut,
     ProjectCreate,
     ProjectOut,
+    ProjectUpdate,
     VerticalAlignmentCreate,
     VerticalAlignmentOut,
     VipCreate,
@@ -350,6 +351,24 @@ async def delete_project(session: AsyncSession, project_id: UUID, owner_id: UUID
     await session.delete(project)
     await session.commit()
     return True
+
+
+async def update_project(
+    session: AsyncSession, project_id: UUID, owner_id: UUID, body: ProjectUpdate
+) -> ProjectOut | None:
+    """Rename a project. Owner-only (IDOR guard via owner_id filter)."""
+    project = await get_project(session, project_id, owner_id)
+    if project is None:
+        return None
+    project.name = body.name
+    await session.commit()
+    await session.refresh(project)
+    return ProjectOut(
+        id=project.id,
+        name=project.name,
+        owner_id=project.owner_id,
+        created_at=project.created_at,
+    )
 
 
 async def list_members(session: AsyncSession, project_id: UUID) -> list[MemberOut]:

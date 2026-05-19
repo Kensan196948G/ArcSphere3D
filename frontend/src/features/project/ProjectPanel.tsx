@@ -14,6 +14,7 @@ export default function ProjectPanel() {
     selectProject,
     createProject,
     deleteProject,
+    updateProject,
     uploadFile,
     deleteFile,
     getDownloadUrl,
@@ -23,6 +24,8 @@ export default function ProjectPanel() {
 
   const [newProjectName, setNewProjectName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -66,6 +69,17 @@ export default function ProjectPanel() {
     }
   }
 
+  function startEditName(currentName: string) {
+    setEditNameValue(currentName);
+    setEditingName(true);
+  }
+
+  async function handleSaveName(projectId: string) {
+    const trimmed = editNameValue.trim();
+    if (trimmed) await updateProject(token, projectId, trimmed);
+    setEditingName(false);
+  }
+
   async function handleDeleteProject(projectId: string, projectName: string) {
     if (!window.confirm(`「${projectName}」を削除しますか？この操作は元に戻せません。`)) return;
     await deleteProject(token, projectId);
@@ -100,22 +114,65 @@ export default function ProjectPanel() {
         </select>
       </div>
 
-      {/* 選択中プロジェクトの削除（オーナーのみ） */}
+      {/* 選択中プロジェクトの操作（オーナーのみ） */}
       {selectedProjectId && (() => {
         const proj = projects.find((p) => p.id === selectedProjectId);
         const isOwner = proj && userId && proj.owner_id === userId;
-        return isOwner ? (
-          <button
-            type="button"
-            onClick={() => handleDeleteProject(proj.id, proj.name)}
-            disabled={loading}
-            title="プロジェクトを削除"
-            aria-label={`${proj.name}を削除`}
-            className="self-end rounded bg-rose-100 px-2 py-0.5 text-rose-600 hover:bg-rose-200 disabled:opacity-40 dark:bg-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-900/50"
-          >
-            プロジェクトを削除
-          </button>
-        ) : null;
+        if (!isOwner) return null;
+        return (
+          <div className="flex flex-col gap-1">
+            {editingName ? (
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  value={editNameValue}
+                  onChange={(e) => setEditNameValue(e.target.value)}
+                  aria-label="プロジェクト名を編集"
+                  className="flex-1 rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveName(proj.id);
+                    if (e.key === "Escape") setEditingName(false);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSaveName(proj.id)}
+                  disabled={!editNameValue.trim()}
+                  className="rounded bg-arc-accent/70 px-2 py-0.5 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+                >
+                  保存
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingName(false)}
+                  className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
+                >
+                  キャンセル
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => startEditName(proj.name)}
+                disabled={loading}
+                aria-label={`${proj.name}を名前変更`}
+                className="self-start rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 disabled:opacity-40 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+              >
+                ✎ 名前を変更
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleDeleteProject(proj.id, proj.name)}
+              disabled={loading}
+              title="プロジェクトを削除"
+              aria-label={`${proj.name}を削除`}
+              className="self-end rounded bg-rose-100 px-2 py-0.5 text-rose-600 hover:bg-rose-200 disabled:opacity-40 dark:bg-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-900/50"
+            >
+              プロジェクトを削除
+            </button>
+          </div>
+        );
       })()}
 
       {/* プロジェクト作成 */}

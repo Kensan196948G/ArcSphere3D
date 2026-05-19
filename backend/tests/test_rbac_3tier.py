@@ -185,6 +185,82 @@ def test_delete_nonexistent_project_returns_404() -> None:
     assert res.status_code == 404
 
 
+# ---------------- PATCH /api/projects/{id} ----------------
+
+
+def test_owner_can_rename_project() -> None:
+    owner = _login(DEMO_CREDS)
+    pid = _create_project(owner, "Original Name")
+
+    res = client.patch(f"/api/projects/{pid}", json={"name": "Renamed"}, headers=_auth(owner))
+    assert res.status_code == 200
+    assert res.json()["name"] == "Renamed"
+
+
+def test_patch_project_name_reflected_in_get() -> None:
+    owner = _login(DEMO_CREDS)
+    pid = _create_project(owner, "Before Rename")
+
+    client.patch(f"/api/projects/{pid}", json={"name": "After Rename"}, headers=_auth(owner))
+
+    res = client.get(f"/api/projects/{pid}", headers=_auth(owner))
+    assert res.status_code == 200
+    assert res.json()["name"] == "After Rename"
+
+
+def test_editor_cannot_rename_project() -> None:
+    owner = _login(DEMO_CREDS)
+    editor = _login(OTHER_CREDS)
+    pid = _create_project(owner)
+    _grant(owner, pid, _get_user_id(editor), "editor")
+
+    res = client.patch(f"/api/projects/{pid}", json={"name": "Hacked"}, headers=_auth(editor))
+    assert res.status_code == 403
+
+
+def test_viewer_cannot_rename_project() -> None:
+    owner = _login(DEMO_CREDS)
+    viewer = _login(OTHER_CREDS)
+    pid = _create_project(owner)
+    _grant(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.patch(f"/api/projects/{pid}", json={"name": "Hacked"}, headers=_auth(viewer))
+    assert res.status_code == 403
+
+
+def test_stranger_cannot_rename_project_returns_404() -> None:
+    owner = _login(DEMO_CREDS)
+    stranger = _login(OTHER_CREDS)
+    pid = _create_project(owner)
+
+    res = client.patch(f"/api/projects/{pid}", json={"name": "Hacked"}, headers=_auth(stranger))
+    assert res.status_code == 404
+
+
+def test_patch_nonexistent_project_returns_404() -> None:
+    owner = _login(DEMO_CREDS)
+    fake_pid = str(uuid.uuid4())
+
+    res = client.patch(f"/api/projects/{fake_pid}", json={"name": "Ghost"}, headers=_auth(owner))
+    assert res.status_code == 404
+
+
+def test_patch_project_empty_name_rejected() -> None:
+    owner = _login(DEMO_CREDS)
+    pid = _create_project(owner)
+
+    res = client.patch(f"/api/projects/{pid}", json={"name": ""}, headers=_auth(owner))
+    assert res.status_code == 422
+
+
+def test_patch_project_nul_name_rejected() -> None:
+    owner = _login(DEMO_CREDS)
+    pid = _create_project(owner)
+
+    res = client.patch(f"/api/projects/{pid}", json={"name": "bad\x00name"}, headers=_auth(owner))
+    assert res.status_code == 422
+
+
 # ---------------- Cascade ----------------
 
 
