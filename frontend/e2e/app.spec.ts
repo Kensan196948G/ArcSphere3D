@@ -1549,6 +1549,79 @@ test("Header: ログイン前はログアウトボタンが表示されない", 
   await expect(page.getByRole("button", { name: "ログアウト" })).not.toBeVisible();
 });
 
+// ---- File upload / 3D viewer E2E -------------------------------------------
+
+test("ProjectPanel: ファイルアップロードでPOST APIが呼ばれる", async ({
+  page,
+}) => {
+  let uploadApiCalled = false;
+  await setupApiMocks(page);
+  await page.route("**/api/files/upload*", async (route) => {
+    if (route.request().method() === "POST") {
+      uploadApiCalled = true;
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(MOCK_FILE),
+      });
+    } else {
+      await route.fallback();
+    }
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+
+  // Trigger upload via the hidden file input
+  const fileInput = page.locator('input[type="file"]').first();
+  await fileInput.setInputFiles({
+    name: "test-model.stl",
+    mimeType: "model/stl",
+    buffer: Buffer.from("solid test\nendsolid test"),
+  });
+
+  await page.waitForResponse((r) => r.url().includes("/api/files/upload"));
+  expect(uploadApiCalled).toBe(true);
+});
+
+test("ProjectPanel: 3DビューアボタンクリックでダウンロードURLが取得される", async ({
+  page,
+}) => {
+  let downloadApiCalled = false;
+  await setupApiMocks(page);
+  await page.route(
+    `**/api/files/${MOCK_PROJECT.id}/${MOCK_FILE.id}/download`,
+    async (route) => {
+      downloadApiCalled = true;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ url: "https://s3.example.com/cube.stl", expires_in: 3600 }),
+      });
+    },
+  );
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await expect(page.getByText("cube.stl")).toBeVisible();
+
+  const responsePromise = page.waitForResponse(
+    (r) => r.url().includes("/download"),
+  );
+  await page.getByTitle("3D ビューアで開く").click();
+  await responsePromise;
+
+  expect(downloadApiCalled).toBe(true);
+});
+
 // ---- AlignmentPanel: inline edit ----------------------------------------
 
 test("AlignmentPanel: 線形詳細に編集ボタンが表示される", async ({ page }) => {
