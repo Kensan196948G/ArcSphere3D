@@ -40,14 +40,17 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0006)                           | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (81 pass)                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (90 pass)                  | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
 | 22  | 👥 Multi-owner model + last-owner protection (Issue #66)       | ✅ Done    |
-| 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)   | ✅ Done    |
-| 24  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
-| 25  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
-| 26  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
+| 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)    | ✅ Done    |
+| 24  | 👥 MembersPanel UI — メール検索でメンバー追加/削除 (Issue #71) | ✅ Done    |
+| 25  | 🗑️ Project delete UI — owner がプロジェクトを削除              | ✅ Done    |
+| 26  | 🔍 User lookup API — `GET /api/users/lookup?email=`            | ✅ Done    |
+| 27  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
+| 28  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
+| 29  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 
 ---
 
@@ -115,6 +118,7 @@ graph LR
 | `POST`   | `/api/auth/login`                                          | Obtain JWT access token (RS256)                         |
 | `GET`    | `/api/auth/.well-known/jwks.json`                          | JWKS — RSA public key for token verification (RFC 7517) |
 | `GET`    | `/api/users/me`                                            | Current authenticated user (DB UUID)                    |
+| `GET`    | `/api/users/lookup?email=`                                 | Look up user ID by email address (authenticated)        |
 | `GET`    | `/api/projects`                                            | List projects (paginated)                               |
 | `POST`   | `/api/projects`                                            | Create a project                                        |
 | `GET`    | `/api/projects/{id}`                                       | Get project detail                                      |
@@ -322,12 +326,12 @@ Every project resource enforces a **3-tier access model** distinguishing _non-me
 Project creation now auto-inserts an **owner row** into `project_members`.
 The last-owner protection prevents orphaning a project: `DELETE /members/{uid}` returns `409 Conflict` when the target is the sole owner.
 
-| Scenario | Result |
-|---|---|
-| Remove last owner | `409 Conflict` — "cannot remove the last owner" |
-| Remove non-last owner | `204 No Content` |
-| Remove editor / viewer | `204 No Content` |
-| Transfer ownership (add 2nd owner → remove 1st) | Both operations `201` / `204` |
+| Scenario                                        | Result                                          |
+| ----------------------------------------------- | ----------------------------------------------- |
+| Remove last owner                               | `409 Conflict` — "cannot remove the last owner" |
+| Remove non-last owner                           | `204 No Content`                                |
+| Remove editor / viewer                          | `204 No Content`                                |
+| Transfer ownership (add 2nd owner → remove 1st) | Both operations `201` / `204`                   |
 
 ---
 
