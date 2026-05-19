@@ -1387,6 +1387,77 @@ test("ProjectPanel: 名前を変更して保存するとPATCH APIが呼ばれる
   expect(patchCalled).toBe(true);
 });
 
+// ---- ProjectPanel: member management ----------------------------------------
+
+test("ProjectPanel: オーナーにはメンバー管理ボタンが表示される", async ({ page }) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await expect(page.getByRole("button", { name: "メンバー管理" })).toBeVisible();
+});
+
+test("ProjectPanel: メンバー管理ボタンでパネルが開く", async ({ page }) => {
+  await setupApiMocks(page);
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}/members`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([]),
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー管理" }).click();
+  await expect(page.getByRole("textbox", { name: "追加するユーザーID" })).toBeVisible();
+});
+
+test("ProjectPanel: メンバー追加でPOST APIが呼ばれる", async ({ page }) => {
+  const NEW_MEMBER_ID = "aaaaaaaa-0000-0000-0000-000000000042";
+  let postCalled = false;
+  await setupApiMocks(page);
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}/members`, async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) });
+    } else if (route.request().method() === "POST") {
+      postCalled = true;
+      const body = (await route.request().postDataJSON()) as { user_id: string; role: string };
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({ user_id: body.user_id, role: body.role, created_at: "2026-05-19T00:00:00Z" }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー管理" }).click();
+  await page.getByRole("textbox", { name: "追加するユーザーID" }).fill(NEW_MEMBER_ID);
+
+  const responsePromise = page.waitForResponse(
+    (r) => r.url().includes("/members") && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "メンバーを追加" }).click();
+  await responsePromise;
+
+  expect(postCalled).toBe(true);
+});
+
 // ---- AlignmentPanel: API call verification ----------------------------------
 
 test("AlignmentPanel: IP点追加でPUT APIが呼ばれる", async ({ page }) => {

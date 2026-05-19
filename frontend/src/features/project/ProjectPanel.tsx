@@ -3,6 +3,12 @@ import { useAuthStore } from "@/state/authStore";
 import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
+import {
+  listMembers,
+  addMember,
+  removeMember,
+  type ProjectMember,
+} from "@/lib/api";
 
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
@@ -28,9 +34,22 @@ export default function ProjectPanel() {
   const [editNameValue, setEditNameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Member management state
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [newMemberUserId, setNewMemberUserId] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState<"editor" | "viewer">("viewer");
+  const [memberError, setMemberError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchProjects(token);
   }, [token, fetchProjects]);
+
+  useEffect(() => {
+    setMembers([]);
+    setMembersOpen(false);
+    setMemberError(null);
+  }, [selectedProjectId]);
 
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault();
@@ -84,6 +103,42 @@ export default function ProjectPanel() {
     if (!window.confirm(`「${projectName}」を削除しますか？この操作は元に戻せません。`)) return;
     await deleteProject(token, projectId);
     log(`[project] プロジェクト「${projectName}」を削除`);
+  }
+
+  async function handleOpenMembers(projectId: string) {
+    setMemberError(null);
+    setMembersOpen((v) => !v);
+    if (!membersOpen) {
+      try {
+        const data = await listMembers(token, projectId);
+        setMembers(data);
+      } catch (e) {
+        setMemberError(String(e));
+      }
+    }
+  }
+
+  async function handleAddMember(projectId: string) {
+    const uid = newMemberUserId.trim();
+    if (!uid) return;
+    setMemberError(null);
+    try {
+      const m = await addMember(token, projectId, uid, newMemberRole);
+      setMembers((prev) => [...prev.filter((x) => x.user_id !== m.user_id), m]);
+      setNewMemberUserId("");
+    } catch (e) {
+      setMemberError(String(e));
+    }
+  }
+
+  async function handleRemoveMember(projectId: string, userId: string) {
+    setMemberError(null);
+    try {
+      await removeMember(token, projectId, userId);
+      setMembers((prev) => prev.filter((m) => m.user_id !== userId));
+    } catch (e) {
+      setMemberError(String(e));
+    }
   }
 
   async function handleDelete(fileId: string, filename: string) {
@@ -161,6 +216,72 @@ export default function ProjectPanel() {
                 ✎ 名前を変更
               </button>
             )}
+            {/* メンバー管理 */}
+            <div>
+              <button
+                type="button"
+                onClick={() => handleOpenMembers(proj.id)}
+                aria-label="メンバー管理"
+                className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+              >
+                👥 メンバー管理
+              </button>
+              {membersOpen && (
+                <div className="mt-1 rounded border border-slate-200 p-2 dark:border-slate-700">
+                  {memberError && (
+                    <p className="mb-1 text-rose-500 dark:text-rose-400">{memberError}</p>
+                  )}
+                  <ul className="mb-2 space-y-0.5">
+                    {members.map((m) => (
+                      <li key={m.user_id} className="flex items-center justify-between text-[11px]">
+                        <span className="truncate text-slate-600 dark:text-slate-300" title={m.user_id}>
+                          {m.user_id.slice(0, 8)}… ({m.role})
+                        </span>
+                        {m.user_id !== userId && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(proj.id, m.user_id)}
+                            aria-label={`${m.user_id}を削除`}
+                            className="ml-1 shrink-0 rounded px-1 py-0.5 text-rose-500 hover:bg-rose-400/20 dark:text-rose-400"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={newMemberUserId}
+                      onChange={(e) => setNewMemberUserId(e.target.value)}
+                      placeholder="ユーザー ID"
+                      aria-label="追加するユーザーID"
+                      className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+                    />
+                    <select
+                      value={newMemberRole}
+                      onChange={(e) => setNewMemberRole(e.target.value as "editor" | "viewer")}
+                      aria-label="ロールを選択"
+                      className="rounded bg-slate-100 px-1 py-0.5 text-[11px] text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                    >
+                      <option value="viewer">viewer</option>
+                      <option value="editor">editor</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => handleAddMember(proj.id)}
+                      disabled={!newMemberUserId.trim()}
+                      aria-label="メンバーを追加"
+                      className="rounded bg-arc-accent/70 px-2 py-0.5 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => handleDeleteProject(proj.id, proj.name)}
