@@ -114,8 +114,8 @@ export default function MembersPanel() {
                 key={m.user_id}
                 className="flex items-center justify-between rounded bg-slate-100/60 px-2 py-1 dark:bg-slate-800/40"
               >
-                <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300">
-                  {m.user_id.slice(0, 8)}…
+                <span className="flex-1 truncate text-[10px] text-slate-600 dark:text-slate-300">
+                  {m.email}
                 </span>
                 <span className="rounded bg-slate-200 px-1 text-[10px] dark:bg-slate-700">
                   {ROLE_LABELS[m.role] ?? m.role}
@@ -141,9 +141,7 @@ export default function MembersPanel() {
         </h3>
         <div className="flex flex-col gap-2">
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] text-slate-500">
-              メールアドレス
-            </span>
+            <span className="text-[10px] text-slate-500">メールアドレス</span>
             <input
               type="email"
               value={email}

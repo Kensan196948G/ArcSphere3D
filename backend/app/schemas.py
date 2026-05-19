@@ -132,6 +132,7 @@ class MemberAdd(BaseModel):
 class MemberOut(BaseModel):
     project_id: UUID
     user_id: UUID
+    email: str
     role: str
     created_at: datetime
 

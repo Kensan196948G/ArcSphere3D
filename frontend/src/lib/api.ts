@@ -26,6 +26,7 @@ export interface ProjectOut {
 export interface MemberOut {
   project_id: string;
   user_id: string;
+  email: string;
   role: "owner" | "editor" | "viewer";
   created_at: string;
 }

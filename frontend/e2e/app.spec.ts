@@ -1434,6 +1434,7 @@ test("ProjectPanel: プロジェクト作成ボタンは空の入力では無効
 const MOCK_MEMBER = {
   project_id: MOCK_PROJECT.id,
   user_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  email: "editor@arcsphere3d.dev",
   role: "editor",
   created_at: "2026-05-20T00:00:00Z",
 };
@@ -1526,6 +1527,10 @@ test("MembersPanel: メンバー一覧が表示される", async ({ page }) => {
   await page.selectOption("select", MOCK_PROJECT.id);
   await page.getByRole("button", { name: "メンバー" }).click();
   await expect(page.getByTestId("members-list")).toBeVisible();
+  // メールアドレスとロールが表示されることを確認
+  await expect(
+    page.getByTestId("members-list").getByText("editor@arcsphere3d.dev"),
+  ).toBeVisible();
   // members-list内に限定（role-selectの<option>と区別するため）
   await expect(
     page.getByTestId("members-list").getByText("編集者"),
