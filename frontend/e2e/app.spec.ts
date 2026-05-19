@@ -1428,3 +1428,129 @@ test("ProjectPanel: プロジェクト作成ボタンは空の入力では無効
   await page.getByPlaceholder("新しいプロジェクト名").fill("テスト");
   await expect(page.locator('button[type="submit"]')).toBeEnabled();
 });
+
+// ---- MembersPanel -----------------------------------------------------------
+
+const MOCK_MEMBER = {
+  project_id: MOCK_PROJECT.id,
+  user_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  role: "editor",
+  created_at: "2026-05-20T00:00:00Z",
+};
+
+async function setupMembersApiMocks(page: Page) {
+  await setupApiMocks(page);
+  await page.route(
+    `**/api/projects/${MOCK_PROJECT.id}/members**`,
+    async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([MOCK_MEMBER]),
+        });
+      } else if (route.request().method() === "POST") {
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify(MOCK_MEMBER),
+        });
+      } else if (route.request().method() === "DELETE") {
+        await route.fulfill({ status: 204 });
+      } else {
+        await route.continue();
+      }
+    },
+  );
+}
+
+test("LeftMenu: メンバーパネルに切り替わるとメンバー管理UIが表示される", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "メンバー" }).click();
+  // ログイン前はログイン案内メッセージが表示される
+  await expect(page.getByText("ログインしてください。")).toBeVisible();
+});
+
+test("MembersPanel: プロジェクト未選択時に案内メッセージが表示される", async ({
+  page,
+}) => {
+  await setupApiMocks(page);
+  await page.goto("/");
+  // ログインするがプロジェクトは選択しない
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(
+    page.getByTestId("members-no-project"),
+  ).toBeVisible();
+});
+
+test("MembersPanel: ログイン後にプロジェクトを選択するとメンバーパネルUIが表示される", async ({
+  page,
+}) => {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.getByText("Demo Project").click();
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("members-panel")).toBeVisible();
+});
+
+test("MembersPanel: メンバー一覧が表示される", async ({ page }) => {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.getByText("Demo Project").click();
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("members-list")).toBeVisible();
+  await expect(page.getByText("編集者")).toBeVisible();
+});
+
+test("MembersPanel: メンバー追加フォームが表示される", async ({ page }) => {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.getByText("Demo Project").click();
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("member-user-id-input")).toBeVisible();
+  await expect(page.getByTestId("member-role-select")).toBeVisible();
+  await expect(page.getByTestId("member-add-btn")).toBeVisible();
+});
+
+test("MembersPanel: ユーザーID未入力では追加ボタンが無効化される", async ({
+  page,
+}) => {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.getByText("Demo Project").click();
+  await page.getByRole("button", { name: "メンバー" }).click();
+  // 空の状態では追加ボタンが無効化される
+  await expect(page.getByTestId("member-add-btn")).toBeDisabled();
+  // ID を入力すると有効化される
+  await page
+    .getByTestId("member-user-id-input")
+    .fill("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+  await expect(page.getByTestId("member-add-btn")).toBeEnabled();
+});

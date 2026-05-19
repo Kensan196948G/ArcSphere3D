@@ -15,6 +15,7 @@ import TerrainPanel from "@/features/terrain/TerrainPanel";
 import EarthworkPanel from "@/features/earthwork/EarthworkPanel";
 import AlignmentPanel from "@/features/alignment/AlignmentPanel";
 import CadPanel from "@/features/cad/CadPanel";
+import MembersPanel from "@/features/members/MembersPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -31,6 +32,7 @@ const PANEL_TITLES: Record<string, string> = {
   earthwork: "土量計算",
   alignment: "線形設計",
   cad: "CAD 読み込み",
+  members: "メンバー管理",
 };
 
 export default function RightPanel() {
@@ -73,6 +75,8 @@ export default function RightPanel() {
         return <AlignmentPanel />;
       case "cad":
         return <CadPanel />;
+      case "members":
+        return <MembersPanel />;
       default:
         return null;
     }
