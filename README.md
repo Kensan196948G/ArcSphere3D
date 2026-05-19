@@ -48,7 +48,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 24  | 👥 Member management API — list/add/remove (owner-only)        | ✅ Done    |
 | 25  | ✏️ Project rename — owner-only PATCH /api/projects/{id}        | ✅ Done    |
 | 26  | 👥 Member management UI — inline list/invite/remove in panel   | ✅ Done    |
-| 27  | 📐 OpenCascade.js STEP/IGES CAD loader                         | 🔮 Planned |
+| 27  | 📐 OpenCascade.js STEP/IGES CAD loader (WASM scaffold)         | 🚧 In Progress |
 | 28  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
 | 29  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 

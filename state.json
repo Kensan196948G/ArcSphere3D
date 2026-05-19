@@ -10,7 +10,7 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "project rename PATCH + E2E 89 完了 — 次は PR #70 マージ後に OpenCascade.js 統合 + member management UI",
+  "goal": "OCC.js STEP/IGES loader scaffold + member management UI + E2E 92 完了 — 次は opencascade.wasm 配置 + PR #70 マージ",
   "phase": "Build",
   "mvp": {
     "definition": [
@@ -50,7 +50,7 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Build",
-    "last_session_summary": "Build session 2026-05-19 (claude/affectionate-bell-MXc9f): (1) PATCH /api/projects/{id} (project rename) — crud.update_project() with IDOR guard (owner_id filter), router PATCH endpoint (owner-only 403/404 RBAC), updateProject() in api.ts and projectStore.ts; (2) ProjectPanel inline rename UI — ✎ button, textbox with keyboard support (Enter/Escape), save/cancel; (3) backend test_rbac_3tier.py +8 PATCH tests; (4) E2E 85→89 (+4 rename tests); (5) README E2E count 83→89, row 25 project rename. All ruff/mypy clean.",
+    "last_session_summary": "Build session 2026-05-19 (claude/affectionate-bell-MXc9f): (1) Project rename — PATCH /api/projects/{id} CRUD+router+frontend+8 backend tests+4 E2E; (2) Member management UI — owner-only toggle section in ProjectPanel (list/add/remove + 3 E2E); (3) OCC.js STEP/IGES loader scaffold — occLoader.ts with BRepMesh tessellation, loadStep(), .step/.stp/.iges/.igs in extOf()+loaders.ts+upload accept; (4) E2E 85→92; README rows 25-29. All ruff/mypy clean. PR #70 7/7 green all CodeRabbit resolved.",
     "current_session_start_at": "2026-05-18T17:00:02.440Z",
     "session_soft_deadline": "2026-05-18T20:30:00+09:00",
     "session_hard_deadline": "2026-05-18T21:00:00+09:00",
@@ -293,13 +293,13 @@
   },
   "next_session_hints": {
     "priority_order": [
-      "Merge: PR #70 (multi-owner RBAC + CAD panel + E2E 81) — CI 全通過待ち",
-      "PR: claude/affectionate-bell-MXc9f (alignment PATCH + deleteProject + project rename + E2E 89) → PR 作成後マージ",
-      "Build: OpenCascade.js CAD kernel 統合 — OCC.js WASM で基本形状生成 (PR #70 の Three.js placeholder を置き換え)",
-      "Build: Member management UI — ProjectPanel にメンバー一覧・招待 UI 追加",
-      "Build: glTF / OBJ / STL ローダーの E2E テスト拡充 (Blob URL モック + Three.js geometry 確認)"
+      "Merge: PR #70 (multi-owner RBAC + CAD panel + E2E 81) — CI 7/7 green, all CodeRabbit resolved",
+      "PR/Merge: claude/affectionate-bell-MXc9f (PATCH alignment+project+member UI+OCC.js scaffold+E2E 92)",
+      "Deploy: place opencascade.wasm in public/opencascade/ and add script tag to index.html",
+      "Build: E2E テスト拡充 — STEP/IGES loader mock + Blob URL テスト",
+      "Build: VerticalAlignment inline edit (VIP CRUD UI)"
     ],
-    "resume_note": "claude/affectionate-bell-MXc9f に project rename PATCH + E2E 89 追加済み。5d0aa8d commit 済み push 済み。"
+    "resume_note": "claude/affectionate-bell-MXc9f に project rename + member UI + OCC.js scaffold + E2E 92 追加済み。235e8e5 commit push 済み。PR #70 マージ待ち (7/7 green)。"
   },
   "compact": {
     "last_pre_compact_at": "2026-05-18T06:45:30.588Z"
