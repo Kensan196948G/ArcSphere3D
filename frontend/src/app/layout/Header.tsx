@@ -4,6 +4,7 @@ import { useSceneStore } from "@/state/sceneStore";
 import { useThemeStore } from "@/state/themeStore";
 import { useUiStore } from "@/state/uiStore";
 import LoginModal from "@/features/auth/LoginModal";
+import { parseJwtPayload } from "@/lib/api";
 
 export default function Header() {
   const objectCount = useSceneStore((s) => s.objects.length);
@@ -12,6 +13,8 @@ export default function Header() {
   const { theme, toggle } = useThemeStore();
   const setActivePanel = useUiStore((s) => s.setActivePanel);
   const [showLogin, setShowLogin] = useState(false);
+
+  const userEmail = token ? (parseJwtPayload(token)?.email ?? null) : null;
 
   function handleLogout() {
     logout();
@@ -37,20 +40,35 @@ export default function Header() {
           <button
             type="button"
             onClick={toggle}
-            title={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+            title={
+              theme === "dark"
+                ? "ライトモードに切り替え"
+                : "ダークモードに切り替え"
+            }
             className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
           {token ? (
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
-            >
-              ログアウト
-            </button>
+            <>
+              {userEmail && (
+                <span
+                  data-testid="user-email"
+                  className="max-w-[160px] truncate text-slate-400 dark:text-slate-500"
+                  title={userEmail}
+                >
+                  {userEmail}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                ログアウト
+              </button>
+            </>
           ) : (
             <button
               type="button"

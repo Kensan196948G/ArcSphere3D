@@ -2469,3 +2469,38 @@ test("ModelPanel: フィルター入力はエラーなく動作する (Issue #11
   // ページロード後に JS エラーがないことを確認
   expect(errors).toHaveLength(0);
 });
+
+// ---- Header: ユーザーメール表示 (Issue #116) ----------------------------------
+
+test("Header: 未ログイン時はユーザーメールが表示されない (Issue #116)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator('[data-testid="user-email"]')).not.toBeVisible();
+});
+
+test("Header: ログイン後にユーザーメールが Header に表示される (Issue #116)", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/login", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: MOCK_TOKEN,
+        token_type: "bearer",
+        expires_in: 3600,
+      }),
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible({
+    timeout: 5000,
+  });
+  // MOCK_TOKEN に含まれる email が表示されること
+  await expect(page.locator('[data-testid="user-email"]')).toBeVisible();
+});
