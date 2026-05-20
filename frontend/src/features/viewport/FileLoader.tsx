@@ -26,6 +26,17 @@ export default function FileLoader() {
       e.target.value = "";
       return;
     }
+
+    // STEP/IGES does not need the 3D scene — handle before scene init
+    if (ext === "step" || ext === "stp" || ext === "iges" || ext === "igs") {
+      log(
+        `[CAD] ${file.name} を受信しました。STEP/IGES 読み込みは OpenCascade.js WASM カーネル統合後に利用可能になります。CAD パネルで詳細をご確認ください。`,
+      );
+      setActivePanel("cad");
+      e.target.value = "";
+      return;
+    }
+
     setBusy(true);
     log(`[ローダー] ${file.name} を読み込み中 (${file.size} バイト)…`);
     try {
@@ -33,7 +44,6 @@ export default function FileLoader() {
       if (!scene) throw new Error("Three.js シーンがまだ初期化されていません");
 
       if (ext === "ifc") {
-        // IFC: keep model open for property queries
         const buf = await file.arrayBuffer();
         const { group, modelId } = await loadIfc(buf, file.name);
         scene.add(group);
@@ -41,7 +51,6 @@ export default function FileLoader() {
         addObject({ id, name: file.name, object: group });
         ifcStore.addModel({ modelId, sceneObjectId: id, filename: file.name });
 
-        // Load spatial tree in background
         try {
           const rawTree = await getIfcSpatialStructure(modelId);
           ifcStore.setSpatialTree(normalizeNode(rawTree));
@@ -49,23 +58,10 @@ export default function FileLoader() {
           log("[BIM] 空間ツリーの読み込みに失敗しました");
         }
 
-        // Auto-switch to BIM panel
         setActivePanel("bim");
         log(
           `[ローダー] ✓ ${file.name} (IFC modelId=${modelId}) を読み込みました`,
         );
-      } else if (
-        ext === "step" ||
-        ext === "stp" ||
-        ext === "iges" ||
-        ext === "igs"
-      ) {
-        // STEP/IGES: OpenCascade.js WASM カーネルは未実装
-        // 現状はファイルを受け付け、CAD パネルへ誘導するガイドを表示する
-        log(
-          `[CAD] ${file.name} を受信しました。STEP/IGES 読み込みは OpenCascade.js WASM カーネル統合後に利用可能になります。CAD パネルで詳細をご確認ください。`,
-        );
-        setActivePanel("cad");
       } else {
         const obj = await loadFile(file);
         scene.add(obj);
@@ -96,6 +92,7 @@ export default function FileLoader() {
       </button>
       <input
         ref={inputRef}
+        data-testid="file-input"
         type="file"
         accept=".stl,.obj,.gltf,.glb,.ifc,.step,.stp,.iges,.igs"
         className="hidden"
