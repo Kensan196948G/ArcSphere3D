@@ -62,6 +62,7 @@ export default function ModelPanel() {
 
   const [renaming, setRenaming] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [filterText, setFilterText] = useState("");
 
   function getObjectColor(): string {
     if (!obj3d) return "#ffffff";
@@ -322,46 +323,84 @@ export default function ModelPanel() {
             </button>
           )}
         </div>
+        {objects.length > 1 && (
+          <div className="mb-1 flex items-center gap-1">
+            <input
+              type="text"
+              data-testid="scene-filter-input"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              placeholder="フィルター…"
+              className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700 outline-none placeholder:text-slate-400 focus:ring-1 focus:ring-arc-accent dark:bg-slate-800 dark:text-slate-200"
+            />
+            {filterText && (
+              <button
+                type="button"
+                onClick={() => setFilterText("")}
+                className="rounded px-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                title="クリア"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        )}
         {objects.length === 0 ? (
           <p className="text-slate-400 dark:text-slate-500">オブジェクトなし</p>
         ) : (
-          <ul className="space-y-1">
-            {objects.map((o) => {
-              const active = selectedId === o.id;
-              return (
-                <li
-                  key={o.id}
-                  className={
-                    "flex items-center justify-between rounded px-2 py-1 " +
-                    (active
-                      ? "bg-arc-accent/30 ring-1 ring-arc-accent/60"
-                      : "bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-800")
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => select(active ? null : o.id)}
-                    className="flex-1 truncate text-left"
-                  >
-                    <span className="mr-1 text-slate-400">
-                      {active ? "◉" : "▣"}
-                    </span>
-                    <span className={o.visible ? "" : "opacity-40"}>
-                      {o.name}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setObjectVisibility(o.id, !o.visible)}
-                    className="ml-1 text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    title={o.visible ? "非表示" : "表示"}
-                  >
-                    {o.visible ? "👁" : "🙈"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          (() => {
+            const filtered = filterText
+              ? objects.filter((o) =>
+                  o.name.toLowerCase().includes(filterText.toLowerCase()),
+                )
+              : objects;
+            return (
+              <>
+                {filterText && (
+                  <p className="mb-1 text-[10px] text-slate-400">
+                    {filtered.length} / {objects.length} 件
+                  </p>
+                )}
+                <ul className="space-y-1">
+                  {filtered.map((o) => {
+                    const active = selectedId === o.id;
+                    return (
+                      <li
+                        key={o.id}
+                        className={
+                          "flex items-center justify-between rounded px-2 py-1 " +
+                          (active
+                            ? "bg-arc-accent/30 ring-1 ring-arc-accent/60"
+                            : "bg-slate-100/80 hover:bg-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-800")
+                        }
+                      >
+                        <button
+                          type="button"
+                          onClick={() => select(active ? null : o.id)}
+                          className="flex-1 truncate text-left"
+                        >
+                          <span className="mr-1 text-slate-400">
+                            {active ? "◉" : "▣"}
+                          </span>
+                          <span className={o.visible ? "" : "opacity-40"}>
+                            {o.name}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setObjectVisibility(o.id, !o.visible)}
+                          className="ml-1 text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          title={o.visible ? "非表示" : "表示"}
+                        >
+                          {o.visible ? "👁" : "🙈"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            );
+          })()
         )}
       </section>
     </div>
