@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,6 +28,7 @@ from app.schemas import (
     MemberOut,
     ProjectCreate,
     ProjectOut,
+    ProjectStats,
     VerticalAlignmentCreate,
     VerticalAlignmentOut,
     VipCreate,
@@ -545,3 +546,38 @@ async def upsert_vips(
         await session.refresh(vip)
 
     return [_vip_to_out(v) for v in sorted(new_vips, key=lambda v: v.seq)]
+
+
+async def get_project_stats(session: AsyncSession, project_id: UUID) -> ProjectStats:
+    """Return aggregate counts for *project_id*."""
+    file_count = (
+        await session.execute(
+            select(func.count()).select_from(File).where(File.project_id == project_id)
+        )
+    ).scalar_one()
+    alignment_count = (
+        await session.execute(
+            select(func.count()).select_from(Alignment).where(Alignment.project_id == project_id)
+        )
+    ).scalar_one()
+    vertical_count = (
+        await session.execute(
+            select(func.count())
+            .select_from(VerticalAlignment)
+            .join(Alignment, Alignment.id == VerticalAlignment.alignment_id)
+            .where(Alignment.project_id == project_id)
+        )
+    ).scalar_one()
+    member_count = (
+        await session.execute(
+            select(func.count())
+            .select_from(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
+        )
+    ).scalar_one()
+    return ProjectStats(
+        file_count=file_count,
+        alignment_count=alignment_count,
+        vertical_count=vertical_count,
+        member_count=member_count,
+    )
