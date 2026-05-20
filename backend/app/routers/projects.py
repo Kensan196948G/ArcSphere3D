@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import CurrentUser, ProjectCreate, ProjectOut, ProjectUpdate
+from app.schemas import CurrentUser, ProjectCreate, ProjectOut, ProjectStats, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -111,3 +111,21 @@ async def delete_project(
     if role != "owner":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
     await crud.delete_project(session, project_id, db_user.id)
+
+
+@router.get(
+    "/{project_id}/stats",
+    response_model=ProjectStats,
+    responses={**_401, **_403, **_404},
+)
+async def get_project_stats(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> ProjectStats:
+    """Return aggregate counts (files, alignments, verticals, members) for the project."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    return await crud.get_project_stats(session, project_id)

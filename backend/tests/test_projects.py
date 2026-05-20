@@ -1,4 +1,4 @@
-"""Integration tests for PUT /api/projects/{id} (project rename)."""
+"""Integration tests for PUT /api/projects/{id} (project rename) and GET /stats."""
 
 from __future__ import annotations
 
@@ -139,3 +139,60 @@ def test_rename_nul_byte_rejected() -> None:
         headers=_auth(token),
     )
     assert res.status_code in (400, 422)
+
+# ---- GET /api/projects/{id}/stats -------------------------------------------
+
+
+def test_stats_returns_200_for_owner() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, "Stats Test")
+    res = client.get(f"/api/projects/{project_id}/stats", headers=_auth(token))
+    assert res.status_code == 200
+    body = res.json()
+    assert "file_count" in body
+    assert "alignment_count" in body
+    assert "vertical_count" in body
+    assert "member_count" in body
+    # Owner is always a member
+    assert body["member_count"] >= 1
+
+
+def test_stats_initial_counts_are_zero_except_member() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, "Empty Stats Test")
+    body = client.get(f"/api/projects/{project_id}/stats", headers=_auth(token)).json()
+    assert body["file_count"] == 0
+    assert body["alignment_count"] == 0
+    assert body["vertical_count"] == 0
+    assert body["member_count"] == 1  # owner auto-added
+
+
+def test_stats_reflects_added_alignment() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, "Alignment Stats")
+    client.post(
+        f"/api/projects/{project_id}/alignments",
+        json={"name": "R1"},
+        headers=_auth(token),
+    )
+    body = client.get(f"/api/projects/{project_id}/stats", headers=_auth(token)).json()
+    assert body["alignment_count"] == 1
+
+
+def test_stats_non_member_gets_404() -> None:
+    owner = _login(DEMO_CREDS)
+    other = _login(OTHER_CREDS)
+    project_id = _create_project(owner, "Private Stats")
+    res = client.get(f"/api/projects/{project_id}/stats", headers=_auth(other))
+    assert res.status_code == 404
+
+
+def test_stats_viewer_can_access() -> None:
+    owner = _login(DEMO_CREDS)
+    viewer = _login(OTHER_CREDS)
+    project_id = _create_project(owner, "Viewer Stats")
+    viewer_id = _get_user_id(viewer)
+    _add_member(owner, project_id, viewer_id, role="viewer")
+    res = client.get(f"/api/projects/{project_id}/stats", headers=_auth(viewer))
+    assert res.status_code == 200
+    assert res.json()["member_count"] == 2  # owner + viewer

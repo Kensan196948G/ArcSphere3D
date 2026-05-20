@@ -48,6 +48,13 @@ class ProjectOut(BaseModel):
     created_at: datetime
 
 
+class ProjectStats(BaseModel):
+    file_count: int
+    alignment_count: int
+    vertical_count: int
+    member_count: int
+
+
 # ---- Files ----
 class FileMetadata(BaseModel):
     id: UUID
