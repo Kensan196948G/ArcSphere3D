@@ -20,38 +20,40 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 
 ## Feature Status
 
-| #   | Feature                                                        | Status     |
-| --- | -------------------------------------------------------------- | ---------- |
-| 1   | 🔐 JWT authentication (RS256 asymmetric keypair)               | ✅ Done    |
-| 2   | 📁 Project management CRUD                                     | ✅ Done    |
-| 3   | 📤 File upload — S3 presigned + sha256 deduplication           | ✅ Done    |
-| 4   | 🏗️ IFC 3D viewer (web-ifc, client-side WASM)                   | ✅ Done    |
-| 5   | 🎮 Three.js viewport — Grid / Axes / Transform Controls        | ✅ Done    |
-| 6   | 🌙 Light / Dark theme                                          | ✅ Done    |
-| 7   | 🗺️ GIS background map (MapLibre GL JS)                         | ✅ Done    |
-| 8   | ☁️ Point cloud viewer (LAS/LAZ, color modes)                   | ✅ Done    |
-| 9   | 🏔️ Terrain TIN surface (Delaunay triangulation)                | ✅ Done    |
-| 10  | 🏗️ Earthwork calculation (cut/fill volumes)                    | ✅ Done    |
-| 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)            | ✅ Done    |
-| 12  | 📏 Vertical alignment (VIP method, profile view + backend API) | ✅ Done    |
-| 13  | 🔭 Click-to-select + emissive highlight (raycasting)           | ✅ Done    |
-| 14  | 🔑 JWKS endpoint (RFC 7517) — public key discovery             | ✅ Done    |
-| 15  | 📊 OpenAPI contract tests (schemathesis, 27/27 pass + auth)    | ✅ Done    |
-| 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
-| 17  | 📋 Alembic DB migrations (0001→0006)                           | ✅ Done    |
-| 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (90 pass)                  | ✅ Done    |
-| 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
-| 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
-| 22  | 👥 Multi-owner model + last-owner protection (Issue #66)       | ✅ Done    |
-| 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)    | ✅ Done    |
-| 24  | 👥 MembersPanel UI — メール検索でメンバー追加/削除 (Issue #71) | ✅ Done    |
-| 25  | 🗑️ Project delete UI — owner がプロジェクトを削除              | ✅ Done    |
-| 26  | ✏️ Project rename UI — owner/editor がプロジェクト名変更       | ✅ Done    |
-| 27  | 🔍 User lookup API — `GET /api/users/lookup?email=`            | ✅ Done    |
-| 27  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
-| 28  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
-| 29  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
+| #   | Feature                                                                           | Status     |
+| --- | --------------------------------------------------------------------------------- | ---------- |
+| 1   | 🔐 JWT authentication (RS256 asymmetric keypair)                                  | ✅ Done    |
+| 2   | 📁 Project management CRUD                                                        | ✅ Done    |
+| 3   | 📤 File upload — S3 presigned + sha256 deduplication                              | ✅ Done    |
+| 4   | 🏗️ IFC 3D viewer (web-ifc, client-side WASM)                                      | ✅ Done    |
+| 5   | 🎮 Three.js viewport — Grid / Axes / Transform Controls                           | ✅ Done    |
+| 6   | 🌙 Light / Dark theme                                                             | ✅ Done    |
+| 7   | 🗺️ GIS background map (MapLibre GL JS)                                            | ✅ Done    |
+| 8   | ☁️ Point cloud viewer (LAS/LAZ, color modes)                                      | ✅ Done    |
+| 9   | 🏔️ Terrain TIN surface (Delaunay triangulation)                                   | ✅ Done    |
+| 10  | 🏗️ Earthwork calculation (cut/fill volumes)                                       | ✅ Done    |
+| 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)                               | ✅ Done    |
+| 12  | 📏 Vertical alignment (VIP method, profile view + backend API)                    | ✅ Done    |
+| 13  | 🔭 Click-to-select + emissive highlight (raycasting)                              | ✅ Done    |
+| 14  | 🔑 JWKS endpoint (RFC 7517) — public key discovery                                | ✅ Done    |
+| 15  | 📊 OpenAPI contract tests (schemathesis, 27/27 pass + auth)                       | ✅ Done    |
+| 16  | 🐳 Docker Compose integration test stack                                          | ✅ Done    |
+| 17  | 📋 Alembic DB migrations (0001→0006)                                              | ✅ Done    |
+| 18  | 🏥 /readyz DB connectivity probe                                                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (96 pass)                                     | ✅ Done    |
+| 20  | 👥 RBAC — member access (owner/editor/viewer per project)                         | ✅ Done    |
+| 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s)                    | ✅ Done    |
+| 22  | 👥 Multi-owner model + last-owner protection (Issue #66)                          | ✅ Done    |
+| 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)                       | ✅ Done    |
+| 24  | 👥 MembersPanel UI — メール検索でメンバー追加/削除 (Issue #71)                    | ✅ Done    |
+| 25  | 🗑️ Project delete UI — owner がプロジェクトを削除                                 | ✅ Done    |
+| 26  | ✏️ Project rename UI — owner/editor がプロジェクト名変更                          | ✅ Done    |
+| 27  | 🔍 User lookup API — `GET /api/users/lookup?email=`                               | ✅ Done    |
+| 28  | 📧 MembersPanel UX — email 表示 + バリデーション + editor/viewer 閲覧 (Issue #73) | ✅ Done    |
+| 29  | 📐 Alignment 3D renderer — IP点クリック選択・3Dビュー連携 (Issue #76)             | ✅ Done    |
+| 30  | 📐 OpenCascade.js STEP/IGES CAD kernel integration                                | 🔮 Planned |
+| 31  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 32  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 ---
 
@@ -139,7 +141,7 @@ graph LR
 | `GET`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`      | Get vertical alignment detail                           |
 | `DELETE` | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`      | Delete vertical alignment                               |
 | `PUT`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}/vips` | Replace all VIPs (idempotent sync)                      |
-| `GET`    | `/api/projects/{id}/members`                               | List project members (owner only)                       |
+| `GET`    | `/api/projects/{id}/members`                               | List project members (any member — Issue #73)           |
 | `POST`   | `/api/projects/{id}/members`                               | Add / update member role (owner only)                   |
 | `DELETE` | `/api/projects/{id}/members/{uid}`                         | Remove member (owner only)                              |
 | `GET`    | `/healthz`                                                 | Liveness probe (always 200)                             |
@@ -313,12 +315,12 @@ This prevents credential-stuffing and brute-force password attacks without requi
 
 Every project resource enforces a **3-tier access model** distinguishing _non-member_, _member-but-not-owner_, and _owner_. Returning `404` (not `403`) to non-members prevents leaking project existence — an [IDOR](https://owasp.org/www-community/attacks/Insecure_Direct_Object_References) defense.
 
-| Role               | `GET /members` | `POST /members` | `DELETE /members/{uid}` | `DELETE /projects/{id}` |
-| ------------------ | -------------- | --------------- | ----------------------- | ----------------------- |
-| 👑 owner           | ✅ `200`       | ✅ `201`        | ✅ `204`                | ✅ `204`                |
-| ✏️ editor (member) | 🚫 `403`       | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
-| 👀 viewer (member) | 🚫 `403`       | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
-| 🪪 stranger        | ❓ `404`       | ❓ `404`        | ❓ `404`                | ❓ `404`                |
+| Role               | `GET /members`       | `POST /members` | `DELETE /members/{uid}` | `DELETE /projects/{id}` |
+| ------------------ | -------------------- | --------------- | ----------------------- | ----------------------- |
+| 👑 owner           | ✅ `200`             | ✅ `201`        | ✅ `204`                | ✅ `204`                |
+| ✏️ editor (member) | ✅ `200` (Issue #73) | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
+| 👀 viewer (member) | ✅ `200` (Issue #73) | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
+| 🪪 stranger        | ❓ `404`             | ❓ `404`        | ❓ `404`                | ❓ `404`                |
 
 **Validation hardening**: text fields (`Project.name`, `Alignment.name`, `VerticalAlignment.name`) reject NUL bytes (`\x00`) via Pydantic `pattern` constraint — defending against PostgreSQL `text` injection that previously surfaced as `500` errors. Missing `user_id` in member POST returns clean `404`, not a 500-leaking FK violation.
 

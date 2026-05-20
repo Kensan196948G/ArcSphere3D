@@ -10,7 +10,7 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Issue #71 (MembersPanel + deleteProject + renameProject + users/lookup) 実装完了 — E2E 90→93、backend 99+8テスト追加。PR #72 CI 通過後マージ予定",
+  "goal": "Issue #73 + #76 実装完了 — E2E 94→96、backend +12テスト。PR #77/#78 CI 通過後マージ予定",
   "phase": "Build",
   "mvp": {
     "definition": [
