@@ -53,7 +53,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 29  | 📐 Alignment 3D renderer — IP点クリック選択・3Dビュー連携 (Issue #76)             | ✅ Done    |
 | 30  | 📂 FileLoader E2E — STL/GLB/STEP/IGES アップロードテスト (Issue #81)              | ✅ Done    |
 | 31  | 🔐 Files API RBAC — viewer/editor/non-member アクセス制御テスト (Issue #83)       | ✅ Done    |
-| 32  | 🔐 Alignments/Verticals RBAC — GET/DELETE/IP点置換テスト (Issue #85)              | 🔄 Review  |
+| 32  | 🔐 Alignments/Verticals RBAC — GET/DELETE/IP点置換テスト (Issue #85)              | ✅ Done    |
 | 33  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
 | 34  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
 | 35  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
