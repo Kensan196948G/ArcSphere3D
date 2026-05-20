@@ -8,7 +8,16 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-export type SupportedExt = "stl" | "obj" | "gltf" | "glb" | "ifc";
+export type SupportedExt =
+  | "stl"
+  | "obj"
+  | "gltf"
+  | "glb"
+  | "ifc"
+  | "step"
+  | "stp"
+  | "iges"
+  | "igs";
 
 const DEFAULT_MATERIAL = new MeshStandardMaterial({
   color: 0x9ca3af,
@@ -25,7 +34,11 @@ export function extOf(filename: string): SupportedExt | null {
     ext === "obj" ||
     ext === "gltf" ||
     ext === "glb" ||
-    ext === "ifc"
+    ext === "ifc" ||
+    ext === "step" ||
+    ext === "stp" ||
+    ext === "iges" ||
+    ext === "igs"
   ) {
     return ext as SupportedExt;
   }
@@ -93,6 +106,13 @@ export async function loadFromUrl(
       const result = await loadIfc(buf, filename);
       return result.group;
     }
+    case "step":
+    case "stp":
+    case "iges":
+    case "igs":
+      throw new Error(
+        "STEP/IGES 読み込みは OpenCascade.js WASM カーネル統合後に利用可能になります",
+      );
   }
 }
 
@@ -144,5 +164,12 @@ export async function loadFile(file: File): Promise<Object3D> {
       const result = await loadIfc(buf, file.name);
       return result.group;
     }
+    case "step":
+    case "stp":
+    case "iges":
+    case "igs":
+      throw new Error(
+        "STEP/IGES 読み込みは OpenCascade.js WASM カーネル統合後に利用可能になります",
+      );
   }
 }
