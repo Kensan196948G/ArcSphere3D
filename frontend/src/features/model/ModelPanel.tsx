@@ -3,7 +3,13 @@ import { useLayerStore } from "@/state/layerStore";
 import { useViewportStore } from "@/state/viewportStore";
 import FileLoader from "@/features/viewport/FileLoader";
 import { useState } from "react";
-import { Color, Mesh, MeshStandardMaterial, MeshPhongMaterial, MeshBasicMaterial } from "three";
+import {
+  Color,
+  Mesh,
+  MeshStandardMaterial,
+  MeshPhongMaterial,
+  MeshBasicMaterial,
+} from "three";
 
 const MODES: { id: TransformMode; label: string; hint: string }[] = [
   { id: "translate", label: "移動", hint: "W" },
@@ -77,10 +83,27 @@ export default function ModelPanel() {
         mat instanceof MeshBasicMaterial
       ) {
         hex = new Color(mat.color).getHexString();
-        return;
       }
     });
     return `#${hex}`;
+  }
+
+  function getObjectOpacity(): number {
+    if (!obj3d) return 1;
+    let opacity = 1;
+    obj3d.traverse((child) => {
+      const m = child as Mesh;
+      if (!m.isMesh) return;
+      const mat = Array.isArray(m.material) ? m.material[0] : m.material;
+      if (
+        mat instanceof MeshStandardMaterial ||
+        mat instanceof MeshPhongMaterial ||
+        mat instanceof MeshBasicMaterial
+      ) {
+        opacity = mat.opacity;
+      }
+    });
+    return opacity;
   }
 
   function applyObjectColor(hex: string) {
@@ -97,6 +120,26 @@ export default function ModelPanel() {
           mat instanceof MeshBasicMaterial
         ) {
           mat.color.set(c);
+          mat.needsUpdate = true;
+        }
+      });
+    });
+  }
+
+  function applyObjectOpacity(value: number) {
+    if (!obj3d) return;
+    obj3d.traverse((child) => {
+      const m = child as Mesh;
+      if (!m.isMesh) return;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      mats.forEach((mat) => {
+        if (
+          mat instanceof MeshStandardMaterial ||
+          mat instanceof MeshPhongMaterial ||
+          mat instanceof MeshBasicMaterial
+        ) {
+          mat.opacity = value;
+          mat.transparent = value < 1;
           mat.needsUpdate = true;
         }
       });
@@ -279,6 +322,26 @@ export default function ModelPanel() {
               className="h-6 w-10 cursor-pointer rounded border border-slate-300 bg-transparent p-0.5 dark:border-slate-600"
               title="オブジェクトの色を変更"
             />
+          </div>
+
+          {/* 不透明度 */}
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-[10px] text-slate-500">
+              不透明度
+            </span>
+            <input
+              type="range"
+              data-testid="opacity-slider"
+              min="0"
+              max="1"
+              step="0.01"
+              value={getObjectOpacity()}
+              onChange={(e) => applyObjectOpacity(Number(e.target.value))}
+              className="flex-1 accent-arc-accent"
+            />
+            <span className="w-8 text-right text-[10px] text-slate-400">
+              {Math.round(getObjectOpacity() * 100)}%
+            </span>
           </div>
 
           {/* レイヤー */}
