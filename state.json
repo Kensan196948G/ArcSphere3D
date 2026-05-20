@@ -10,7 +10,7 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Issue #71 (MembersPanel + deleteProject + renameProject + users/lookup) 実装完了 — E2E 90→93、backend 99+8テスト追加。PR #72 CI 通過後マージ予定",
+  "goal": "Issue #73 (MembersPanel UX: email表示 + バリデーション + editor/viewer読み取り公開) 実装完了 — E2E 87→95、backend +4テスト追加。PR #72 マージ済み。",
   "phase": "Build",
   "mvp": {
     "definition": [
@@ -69,6 +69,8 @@
     "last_green_run_id": "26050580680"
   },
   "completed_issues": [
+    "feat/issue-73-members-ux-email-validation-editor-viewer",
+    "feat/alignment-3d-renderer-ip-points",
     "feat/issue-66-multi-owner-last-owner-protection",
     "test/e2e-coverage-62-to-81",
     "feat/cad-panel-three-js-primitives",
@@ -301,12 +303,12 @@
   "next_session_hints": {
     "priority_order": [
       "Build: OpenCascade.js WASM 統合 — STEP/IGES ファイル読み込み (cadPrimitives.ts → OCC.js swap-in)",
-      "Build: Alignment edit UI 仕上げ (IP 点を 3D ビューに描画、クリックで選択)",
+      "Build: Alignment IP点クリック選択 — raycasting で IP点を選択・移動 (useAlignmentRenderer に追加)",
       "Build: glTF / OBJ / STL ローダーの E2E テスト拡充 (ファイル選択→シーン追加フロー)",
-      "Build: TypeScript v6 移行準備 (tsconfig.json baseUrl 削除 + paths 相対パス化)",
-      "Improve: E2E テスト 81 → 90+ (Playwright — ファイルアップロード完全フロー)"
+      "Build: MembersPanel — editor/viewer 表示時に読み取り専用メモを改善",
+      "Improve: E2E テスト 95 → 100+ (Playwright — alignment renderer, file upload flow)"
     ],
-    "resume_note": "Issue #66 done, E2E 62→81, CAD panel (Three.js primitives). Next: OCC.js WASM + alignment 3D edit"
+    "resume_note": "Issue #73 done (MembersPanel UX), useAlignmentRenderer (IP点3D描画), E2E 87→95. PR #74 CI 通過待ち. Next: OCC.js WASM + IP点クリック選択"
   },
   "compact": {
     "last_pre_compact_at": "2026-05-18T06:45:30.588Z"

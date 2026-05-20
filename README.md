@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                       | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0006)                           | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                               | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (90 pass)                  | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (95 pass)                  | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)      | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s) | ✅ Done    |
 | 22  | 👥 Multi-owner model + last-owner protection (Issue #66)       | ✅ Done    |
@@ -49,9 +49,12 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 25  | 🗑️ Project delete UI — owner がプロジェクトを削除              | ✅ Done    |
 | 26  | ✏️ Project rename UI — owner/editor がプロジェクト名変更       | ✅ Done    |
 | 27  | 🔍 User lookup API — `GET /api/users/lookup?email=`            | ✅ Done    |
-| 27  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
-| 28  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
-| 29  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
+| 28  | 📧 MembersPanel UX — email 表示・即時バリデーション (Issue #73) | ✅ Done    |
+| 29  | 🔓 Members read-only for editor/viewer (Issue #73)             | ✅ Done    |
+| 30  | 🗺️ Alignment 3D renderer — IP点・路線を3Dビューに描画         | ✅ Done    |
+| 31  | 📐 OpenCascade.js STEP/IGES CAD kernel integration             | 🔮 Planned |
+| 32  | 🌐 Real-time collaboration (WebSocket)                         | 🔮 Planned |
+| 33  | 🤖 AI-assisted CAD commands                                    | 🔮 Planned |
 
 ---
 
