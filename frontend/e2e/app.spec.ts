@@ -1185,6 +1185,16 @@ test("ModelPanel: ファイルを開くボタンが表示される", async ({ pa
   ).toBeVisible();
 });
 
+test("ModelPanel: STEP/IGES 形式もファイル選択ボタンに含まれる (Issue #75)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  await expect(
+    page.getByRole("button", { name: /\.step\s*\/\s*\.iges/ }),
+  ).toBeVisible();
+});
+
 test("ModelPanel: 初期状態でシーンオブジェクトが空", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "モデル" }).click();

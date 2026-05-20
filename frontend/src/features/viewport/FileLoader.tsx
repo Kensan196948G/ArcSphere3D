@@ -4,10 +4,7 @@ import { useIfcStore } from "@/state/ifcStore";
 import { useUiStore } from "@/state/uiStore";
 import { getActiveScene } from "@/lib/threeContext";
 import { extOf, loadFile } from "./loaders";
-import {
-  loadIfc,
-  getIfcSpatialStructure,
-} from "./ifcLoader";
+import { loadIfc, getIfcSpatialStructure } from "./ifcLoader";
 import type { IFCSpatialNode } from "@/state/ifcStore";
 
 export default function FileLoader() {
@@ -57,6 +54,18 @@ export default function FileLoader() {
         log(
           `[ローダー] ✓ ${file.name} (IFC modelId=${modelId}) を読み込みました`,
         );
+      } else if (
+        ext === "step" ||
+        ext === "stp" ||
+        ext === "iges" ||
+        ext === "igs"
+      ) {
+        // STEP/IGES: OpenCascade.js WASM カーネルは未実装
+        // 現状はファイルを受け付け、CAD パネルへ誘導するガイドを表示する
+        log(
+          `[CAD] ${file.name} を受信しました。STEP/IGES 読み込みは OpenCascade.js WASM カーネル統合後に利用可能になります。CAD パネルで詳細をご確認ください。`,
+        );
+        setActivePanel("cad");
       } else {
         const obj = await loadFile(file);
         scene.add(obj);
@@ -81,12 +90,14 @@ export default function FileLoader() {
         disabled={busy}
         className="w-full rounded bg-arc-accent2/80 px-3 py-2 text-sm font-medium text-white hover:bg-arc-accent2 disabled:opacity-50 dark:text-slate-900"
       >
-        {busy ? "読み込み中…" : "📂 .stl / .obj / .gltf / .glb / .ifc を開く"}
+        {busy
+          ? "読み込み中…"
+          : "📂 .stl / .obj / .gltf / .glb / .ifc / .step / .iges を開く"}
       </button>
       <input
         ref={inputRef}
         type="file"
-        accept=".stl,.obj,.gltf,.glb,.ifc"
+        accept=".stl,.obj,.gltf,.glb,.ifc,.step,.stp,.iges,.igs"
         className="hidden"
         onChange={onChange}
       />
