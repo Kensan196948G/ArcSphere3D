@@ -441,3 +441,66 @@ def test_viewer_can_get_download_url() -> None:
     res = client.get(f"/api/files/{pid}/{file_id}/download", headers=_auth(other_token))
     assert res.status_code == 200
     assert "url" in res.json()
+
+
+# ---- PATCH /api/files/{id} — rename -----------------------------------------
+
+
+def test_owner_can_rename_file() -> None:
+    owner_token, pid, file_id = _setup_project_with_file()
+    res = client.patch(
+        f"/api/files/{file_id}",
+        json={"filename": "renamed.stl"},
+        headers=_auth(owner_token),
+    )
+    assert res.status_code == 200
+    assert res.json()["filename"] == "renamed.stl"
+
+
+def test_editor_can_rename_file() -> None:
+    owner_token, pid, file_id = _setup_project_with_file()
+    editor_token = _login(OTHER_CREDS)
+    editor_id = _get_user_id(editor_token)
+    _add_member(owner_token, pid, editor_id, "editor")
+    res = client.patch(
+        f"/api/files/{file_id}",
+        json={"filename": "editor_renamed.stl"},
+        headers=_auth(editor_token),
+    )
+    assert res.status_code == 200
+    assert res.json()["filename"] == "editor_renamed.stl"
+
+
+def test_viewer_cannot_rename_file_gets_403() -> None:
+    owner_token, pid, file_id = _setup_project_with_file()
+    viewer_token = _login(OTHER_CREDS)
+    viewer_id = _get_user_id(viewer_token)
+    _add_member(owner_token, pid, viewer_id, "viewer")
+    res = client.patch(
+        f"/api/files/{file_id}",
+        json={"filename": "should_fail.stl"},
+        headers=_auth(viewer_token),
+    )
+    assert res.status_code == 403
+
+
+def test_rename_unknown_file_returns_404() -> None:
+    import uuid
+
+    owner_token, _pid, _file_id = _setup_project_with_file()
+    res = client.patch(
+        f"/api/files/{uuid.uuid4()}",
+        json={"filename": "ghost.stl"},
+        headers=_auth(owner_token),
+    )
+    assert res.status_code == 404
+
+
+def test_rename_empty_filename_rejected() -> None:
+    owner_token, _pid, file_id = _setup_project_with_file()
+    res = client.patch(
+        f"/api/files/{file_id}",
+        json={"filename": ""},
+        headers=_auth(owner_token),
+    )
+    assert res.status_code in (400, 422)

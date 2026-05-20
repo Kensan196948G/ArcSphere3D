@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # ---- Auth ----
@@ -63,6 +63,17 @@ class FileMetadata(BaseModel):
     size_bytes: int
     content_type: str
     uploaded_at: datetime
+
+
+class FilePatch(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+
+    @field_validator("filename")
+    @classmethod
+    def no_nul(cls, v: str) -> str:
+        if "\x00" in v:
+            raise ValueError("NUL bytes not allowed")
+        return v
 
 
 class DownloadUrl(BaseModel):
