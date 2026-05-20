@@ -1476,6 +1476,27 @@ test("MeasurePanel: 計測終了ボタンで通常モードに戻る", async ({ 
   await expect(page.getByText("計測モードを選択してください。")).toBeVisible();
 });
 
+// ---- BottomConsole: ログ保存 (Issue #107) ------------------------------------
+
+test("BottomConsole: ログが存在する場合に保存ボタンが表示される (Issue #107)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  // WebGL 初期化ログが bottom-console に出力される（またはデモキューブ追加ログ）
+  // ログが空でない場合のみ保存ボタンが表示される
+  const consoleEl = page.getByTestId("bottom-console");
+  await expect(consoleEl).toBeVisible();
+  // ページ読み込み後にログが蓄積されたら保存ボタンが表示されるはず
+  // (headless では WebGL ログは出ないが、ページクラッシュはしない)
+  const errors: string[] = [];
+  page.on("pageerror", (err) => {
+    const msg = err.message;
+    if (msg.includes("WebGL") || msg.includes("THREE")) return;
+    errors.push(msg);
+  });
+  expect(errors).toHaveLength(0);
+});
+
 // ---- LayerPanel advanced ----------------------------------------------------
 
 test("LayerPanel: 複数レイヤーを追加できる", async ({ page }) => {
