@@ -1877,6 +1877,36 @@ test("ProjectPanel: プロジェクト選択後に名前変更ボタンが表示
   await expect(page.getByTestId("project-rename-btn")).toBeVisible();
 });
 
+test("ProjectPanel: プロジェクト選択後に統計バッジが表示される (Issue #99)", async ({
+  page,
+}) => {
+  await setupApiMocks(page);
+  // LIFO: stats route added after setupApiMocks overrides the generic projects* catch-all
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}/stats`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        file_count: 3,
+        alignment_count: 2,
+        vertical_count: 1,
+        member_count: 4,
+      }),
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  const statsEl = page.getByTestId("project-stats");
+  await expect(statsEl).toBeVisible({ timeout: 3000 });
+  await expect(statsEl).toContainText("3"); // file_count
+  await expect(statsEl).toContainText("4"); // member_count
+});
+
 test("ProjectPanel: 名前変更ボタンクリックで入力フォームが表示される", async ({
   page,
 }) => {

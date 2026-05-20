@@ -3,6 +3,7 @@ import { useAuthStore } from "@/state/authStore";
 import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
+import { getProjectStats, type ProjectStats } from "@/lib/api";
 
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
@@ -25,11 +26,28 @@ export default function ProjectPanel() {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState("");
+  const [stats, setStats] = useState<ProjectStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchProjects(token);
   }, [token, fetchProjects]);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setStats(null);
+      return;
+    }
+    const controller = new AbortController();
+    getProjectStats(token, selectedProjectId)
+      .then((s) => {
+        if (!controller.signal.aborted) setStats(s);
+      })
+      .catch(() => {
+        /* stats are non-critical — ignore errors */
+      });
+    return () => controller.abort();
+  }, [token, selectedProjectId]);
 
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault();
@@ -116,6 +134,17 @@ export default function ProjectPanel() {
             </option>
           ))}
         </select>
+        {selectedProjectId && stats && (
+          <div
+            className="mt-1 flex gap-2 rounded bg-slate-100 px-2 py-1 text-[10px] text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+            data-testid="project-stats"
+          >
+            <span title="ファイル数">📄 {stats.file_count}</span>
+            <span title="線形数">📐 {stats.alignment_count}</span>
+            <span title="縦断数">📏 {stats.vertical_count}</span>
+            <span title="メンバー数">👥 {stats.member_count}</span>
+          </div>
+        )}
         {selectedProjectId && !renaming && (
           <div className="mt-1 flex gap-1">
             <button
