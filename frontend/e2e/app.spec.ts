@@ -1500,7 +1500,7 @@ test("LayerPanel: デフォルトレイヤーには削除ボタンがない (Iss
   await page.goto("/");
   await page.getByRole("button", { name: "レイヤー" }).click();
   // デフォルトレイヤーが表示されている
-  await expect(page.getByText("デフォルト")).toBeVisible();
+  await expect(page.getByRole("button", { name: "デフォルト" })).toBeVisible();
   // 削除ボタンは存在しない（デフォルトレイヤーのみの状態）
   await expect(page.getByTitle("レイヤーを削除")).not.toBeVisible();
 });
