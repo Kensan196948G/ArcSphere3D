@@ -247,3 +247,100 @@ def test_non_member_gets_404_not_403() -> None:
     pid = _create_project(owner)
     res = client.get(f"/api/projects/{pid}/alignments", headers=_auth(other))
     assert res.status_code == 404
+
+
+def _create_alignment(owner_token: str, pid: str, name: str = "Test Route") -> str:
+    res = client.post(
+        f"/api/projects/{pid}/alignments",
+        json={"name": name, "design_speed": 60},
+        headers=_auth(owner_token),
+    )
+    assert res.status_code == 201
+    return res.json()["id"]
+
+
+# ---- RBAC: GET single / DELETE / PUT ip-points (Issue #85) ----
+
+
+def test_viewer_can_get_alignment() -> None:
+    """A viewer may read a single alignment (min_role=viewer)."""
+    owner = _get_token()
+    viewer = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.get(f"/api/projects/{pid}/alignments/{aid}", headers=_auth(viewer))
+    assert res.status_code == 200
+    assert res.json()["id"] == aid
+
+
+def test_non_member_get_alignment_gets_404() -> None:
+    """Non-member gets 404 on single alignment GET (IDOR defense)."""
+    owner = _get_token()
+    other = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+
+    res = client.get(f"/api/projects/{pid}/alignments/{aid}", headers=_auth(other))
+    assert res.status_code == 404
+
+
+def test_viewer_cannot_delete_alignment_gets_403() -> None:
+    """A viewer may not delete alignments — min_role=editor required."""
+    owner = _get_token()
+    viewer = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.delete(f"/api/projects/{pid}/alignments/{aid}", headers=_auth(viewer))
+    assert res.status_code == 403
+
+
+def test_editor_can_delete_alignment() -> None:
+    """An editor may delete alignments."""
+    owner = _get_token()
+    editor = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    _add_member(owner, pid, _get_user_id(editor), "editor")
+
+    res = client.delete(f"/api/projects/{pid}/alignments/{aid}", headers=_auth(editor))
+    assert res.status_code == 204
+
+
+def test_viewer_cannot_replace_ip_points_gets_403() -> None:
+    """A viewer may not update IP points — min_role=editor required."""
+    owner = _get_token()
+    viewer = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.put(
+        f"/api/projects/{pid}/alignments/{aid}/ip-points",
+        json=[{"seq": 0, "x": 100.0, "z": 0.0, "radius": 500.0}],
+        headers=_auth(viewer),
+    )
+    assert res.status_code == 403
+
+
+def test_editor_can_replace_ip_points() -> None:
+    """An editor may update IP points."""
+    owner = _get_token()
+    editor = _get_other_token()
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    _add_member(owner, pid, _get_user_id(editor), "editor")
+
+    res = client.put(
+        f"/api/projects/{pid}/alignments/{aid}/ip-points",
+        json=[
+            {"seq": 0, "x": 100.0, "z": 0.0, "radius": 500.0},
+            {"seq": 1, "x": 200.0, "z": 50.0, "radius": 300.0},
+        ],
+        headers=_auth(editor),
+    )
+    assert res.status_code == 200
+    assert len(res.json()) == 2
