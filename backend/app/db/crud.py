@@ -368,16 +368,19 @@ async def delete_project(session: AsyncSession, project_id: UUID, owner_id: UUID
 
 async def list_members(session: AsyncSession, project_id: UUID) -> list[MemberOut]:
     result = await session.execute(
-        select(ProjectMember).where(ProjectMember.project_id == project_id)
+        select(ProjectMember, User.email)
+        .join(User, ProjectMember.user_id == User.id)
+        .where(ProjectMember.project_id == project_id)
     )
     return [
         MemberOut(
             project_id=m.project_id,
             user_id=m.user_id,
             role=m.role,
+            email=email,
             created_at=m.created_at,
         )
-        for m in result.scalars().all()
+        for m, email in result.all()
     ]
 
 

@@ -59,6 +59,82 @@ def test_list_members_contains_owner_on_creation() -> None:
     assert len(members) == 1
     assert members[0]["user_id"] == owner_id
     assert members[0]["role"] == "owner"
+    # Issue #73: email must be present in the response
+    assert members[0]["email"] == DEMO_CREDS["email"]
+
+
+def test_list_members_includes_email() -> None:
+    """Issue #73: MemberOut now includes the member's email address."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add the other user as editor
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(token))
+    assert res.status_code == 200
+    members = res.json()
+    emails = {m["email"] for m in members}
+    assert DEMO_CREDS["email"] in emails
+    assert OTHER_CREDS["email"] in emails
+
+
+def test_editor_can_list_members() -> None:
+    """Issue #73: editor/viewer members may read the member list (read-only access)."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add the other user as editor
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+
+    # Editor can now list members
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
+    assert res.status_code == 200
+    assert len(res.json()) == 2
+
+
+def test_viewer_can_list_members() -> None:
+    """Issue #73: viewer may read the member list but cannot add/remove."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add as viewer
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "viewer"},
+        headers=_auth(token),
+    )
+
+    # Viewer can list members
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
+    assert res.status_code == 200
+
+    # Viewer cannot add members (403)
+    fake_uid = str(uuid.uuid4())
+    res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": fake_uid, "role": "viewer"},
+        headers=_auth(other_token),
+    )
+    assert res.status_code == 403
+
+    # Viewer cannot remove members (403)
+    res = client.delete(f"/api/projects/{pid}/members/{other_id}", headers=_auth(other_token))
+    assert res.status_code == 403
 
 
 # ---- Add member ----

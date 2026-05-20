@@ -133,6 +133,7 @@ class MemberOut(BaseModel):
     project_id: UUID
     user_id: UUID
     role: str
+    email: str | None = None
     created_at: datetime
 
 

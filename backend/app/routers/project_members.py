@@ -24,6 +24,18 @@ _404: _Responses = {404: {"description": "not found"}}
 _409: _Responses = {409: {"description": "conflict — e.g. removing last owner"}}
 
 
+async def _require_member(project_id: UUID, session: Any, user: CurrentUser) -> str:
+    """Require the caller to be any project member (owner / editor / viewer).
+
+    Returns the caller's role. Non-members always see 404 to avoid IDOR.
+    """
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    return role
+
+
 async def _require_owner(project_id: UUID, session: Any, user: CurrentUser) -> None:
     """3-tier access guard for member-management endpoints.
 
@@ -42,13 +54,14 @@ async def _require_owner(project_id: UUID, session: Any, user: CurrentUser) -> N
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
 
 
-@router.get("", response_model=list[MemberOut], responses={**_401, **_403, **_404})
+@router.get("", response_model=list[MemberOut], responses={**_401, **_404})
 async def list_members(
     project_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
 ) -> list[MemberOut]:
-    await _require_owner(project_id, session, user)
+    """List project members. Accessible to any project member (owner / editor / viewer)."""
+    await _require_member(project_id, session, user)
     return await crud.list_members(session, project_id)
 
 

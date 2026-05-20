@@ -27,7 +27,15 @@ export interface MemberOut {
   project_id: string;
   user_id: string;
   role: "owner" | "editor" | "viewer";
+  email: string | null;
   created_at: string;
+}
+
+export interface UserMeOut {
+  id: string;
+  sub: string;
+  email: string;
+  role: string;
 }
 
 export interface FileMetadata {
@@ -384,4 +392,9 @@ export async function lookupUserByEmail(
     { headers: authHeaders(token) },
   );
   return handleResponse<UserLookupOut>(res);
+}
+
+export async function getMe(token: string): Promise<UserMeOut> {
+  const res = await fetch(`${BASE}/users/me`, { headers: authHeaders(token) });
+  return handleResponse<UserMeOut>(res);
 }
