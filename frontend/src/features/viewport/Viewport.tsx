@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useAlignmentRenderer } from "@/features/alignment/useAlignmentRenderer";
 import { useMeasureTool } from "@/features/measure/useMeasureTool";
 import { useThreeScene } from "./useThreeScene";
 import ViewportToolbar from "./ViewportToolbar";
@@ -7,6 +8,7 @@ export default function Viewport() {
   const ref = useRef<HTMLDivElement>(null);
   useThreeScene(ref);
   useMeasureTool();
+  useAlignmentRenderer();
 
   return (
     <div className="relative h-full w-full">
