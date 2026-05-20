@@ -387,6 +387,25 @@ export async function lookupUserByEmail(
   return handleResponse<UserLookupOut>(res);
 }
 
+// ---- Project stats --------------------------------------------------------
+
+export interface ProjectStats {
+  file_count: number;
+  alignment_count: number;
+  vertical_count: number;
+  member_count: number;
+}
+
+export async function getProjectStats(
+  token: string,
+  projectId: string,
+): Promise<ProjectStats> {
+  const res = await fetch(`${BASE}/projects/${projectId}/stats`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<ProjectStats>(res);
+}
+
 // ---- JWT utils (client-side payload decode, no signature check) -----------
 
 export interface JwtPayload {
