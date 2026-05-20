@@ -302,3 +302,98 @@ def test_non_member_gets_404() -> None:
     aid = _create_alignment(owner, pid)
     res = client.get(f"/api/projects/{pid}/alignments/{aid}/verticals", headers=_auth(other))
     assert res.status_code == 404
+
+
+def _create_vertical(owner_token: str, pid: str, aid: str, name: str = "縦断L") -> str:
+    res = client.post(
+        f"/api/projects/{pid}/alignments/{aid}/verticals",
+        json={"name": name},
+        headers=_auth(owner_token),
+    )
+    assert res.status_code == 201
+    return res.json()["id"]
+
+
+# ---- RBAC: GET single / DELETE / PUT vips (Issue #85) ----
+
+
+def test_viewer_can_get_vertical() -> None:
+    """A viewer may read a single vertical alignment (min_role=viewer)."""
+    owner = _get_token()
+    viewer = _get_token(OTHER_CREDS)
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    vid = _create_vertical(owner, pid, aid)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.get(f"/api/projects/{pid}/alignments/{aid}/verticals/{vid}", headers=_auth(viewer))
+    assert res.status_code == 200
+    assert res.json()["id"] == vid
+
+
+def test_viewer_cannot_delete_vertical_gets_403() -> None:
+    """A viewer may not delete vertical alignments — min_role=editor required."""
+    owner = _get_token()
+    viewer = _get_token(OTHER_CREDS)
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    vid = _create_vertical(owner, pid, aid)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.delete(
+        f"/api/projects/{pid}/alignments/{aid}/verticals/{vid}", headers=_auth(viewer)
+    )
+    assert res.status_code == 403
+
+
+def test_editor_can_delete_vertical() -> None:
+    """An editor may delete vertical alignments."""
+    owner = _get_token()
+    editor = _get_token(OTHER_CREDS)
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    vid = _create_vertical(owner, pid, aid)
+    _add_member(owner, pid, _get_user_id(editor), "editor")
+
+    res = client.delete(
+        f"/api/projects/{pid}/alignments/{aid}/verticals/{vid}", headers=_auth(editor)
+    )
+    assert res.status_code == 204
+
+
+def test_viewer_cannot_replace_vips_gets_403() -> None:
+    """A viewer may not update VIPs — min_role=editor required."""
+    owner = _get_token()
+    viewer = _get_token(OTHER_CREDS)
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    vid = _create_vertical(owner, pid, aid)
+    _add_member(owner, pid, _get_user_id(viewer), "viewer")
+
+    res = client.put(
+        f"/api/projects/{pid}/alignments/{aid}/verticals/{vid}/vips",
+        json=[{"seq": 0, "station": 0.0, "elevation": 10.0, "vc_length": 0.0}],
+        headers=_auth(viewer),
+    )
+    assert res.status_code == 403
+
+
+def test_editor_can_replace_vips() -> None:
+    """An editor may update VIPs."""
+    owner = _get_token()
+    editor = _get_token(OTHER_CREDS)
+    pid = _create_project(owner)
+    aid = _create_alignment(owner, pid)
+    vid = _create_vertical(owner, pid, aid)
+    _add_member(owner, pid, _get_user_id(editor), "editor")
+
+    res = client.put(
+        f"/api/projects/{pid}/alignments/{aid}/verticals/{vid}/vips",
+        json=[
+            {"seq": 0, "station": 0.0, "elevation": 10.0, "vc_length": 0.0},
+            {"seq": 1, "station": 100.0, "elevation": 20.0, "vc_length": 50.0},
+        ],
+        headers=_auth(editor),
+    )
+    assert res.status_code == 200
+    assert len(res.json()) == 2
