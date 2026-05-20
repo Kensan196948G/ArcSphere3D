@@ -1,19 +1,19 @@
-"""3-tier RBAC integration tests (Issue #61).
+"""3-tier RBAC integration tests (Issue #61, updated Issue #73).
 
 Validates the owner / editor / viewer / stranger access matrix for:
 
-  - GET    /api/projects/{id}/members          (owner-only)
+  - GET    /api/projects/{id}/members          (any member — Issue #73)
   - POST   /api/projects/{id}/members          (owner-only)
   - DELETE /api/projects/{id}/members/{uid}    (owner-only)
-  - DELETE /api/projects/{id}                  (owner-only, new endpoint)
+  - DELETE /api/projects/{id}                  (owner-only)
 
-The matrix:
+The matrix (updated for Issue #73: editors/viewers may read members):
 
   | role     | members write | members read | project delete |
   |----------|---------------|--------------|----------------|
   | owner    | 201/204       | 200          | 204            |
-  | editor   | 403           | 403          | 403            |
-  | viewer   | 403           | 403          | 403            |
+  | editor   | 403           | 200          | 403            |
+  | viewer   | 403           | 200          | 403            |
   | stranger | 404           | 404          | 404            |
 
 The owner/non-owner-but-member/non-member distinction is what separates 403
@@ -69,24 +69,26 @@ def _grant(owner_token: str, project_id: str, user_id: str, role: str) -> None:
 # ---------------- GET /members ----------------
 
 
-def test_viewer_member_gets_403_on_list_members() -> None:
+def test_viewer_member_can_list_members() -> None:
+    """Issue #73: viewer members now have read access to the member list."""
     owner = _login(DEMO_CREDS)
     viewer = _login(OTHER_CREDS)
     pid = _create_project(owner)
     _grant(owner, pid, _get_user_id(viewer), "viewer")
 
     res = client.get(f"/api/projects/{pid}/members", headers=_auth(viewer))
-    assert res.status_code == 403
+    assert res.status_code == 200
 
 
-def test_editor_member_gets_403_on_list_members() -> None:
+def test_editor_member_can_list_members() -> None:
+    """Issue #73: editor members now have read access to the member list."""
     owner = _login(DEMO_CREDS)
     editor = _login(OTHER_CREDS)
     pid = _create_project(owner)
     _grant(owner, pid, _get_user_id(editor), "editor")
 
     res = client.get(f"/api/projects/{pid}/members", headers=_auth(editor))
-    assert res.status_code == 403
+    assert res.status_code == 200
 
 
 # ---------------- POST /members ----------------

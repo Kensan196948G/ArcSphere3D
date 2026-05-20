@@ -159,13 +159,111 @@ def test_add_nonexistent_user_returns_404() -> None:
 # ---- IDOR protection ----
 
 
-def test_other_user_cannot_list_members() -> None:
+def test_non_member_cannot_list_members_gets_404() -> None:
+    """Non-members still receive 404 to prevent IDOR disclosure."""
     token = _login(DEMO_CREDS)
     other_token = _login(OTHER_CREDS)
     pid = _create_project(token)
 
     res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
     assert res.status_code == 404
+
+
+# ---- Issue #73: editor/viewer read access ----
+
+
+def test_editor_can_list_members() -> None:
+    """An editor member may read the members list (read-only access)."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add other user as editor
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
+    assert res.status_code == 200
+    user_ids = [m["user_id"] for m in res.json()]
+    assert other_id in user_ids
+
+
+def test_viewer_can_list_members() -> None:
+    """A viewer member may read the members list (read-only access)."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add other user as viewer
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "viewer"},
+        headers=_auth(token),
+    )
+
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(other_token))
+    assert res.status_code == 200
+    assert any(m["user_id"] == other_id for m in res.json())
+
+
+def test_editor_cannot_add_member_gets_403() -> None:
+    """Editors may not add new members — only owners can."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add other user as editor
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+
+    # Editor tries to add themselves back (or anyone) — must be 403
+    res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "owner"},
+        headers=_auth(other_token),
+    )
+    assert res.status_code == 403
+
+
+def test_viewer_cannot_remove_member_gets_403() -> None:
+    """Viewers may not remove members — only owners can."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    owner_id = _get_user_id(token)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add other user as viewer
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "viewer"},
+        headers=_auth(token),
+    )
+
+    # Viewer tries to remove the owner — must be 403
+    res = client.delete(f"/api/projects/{pid}/members/{owner_id}", headers=_auth(other_token))
+    assert res.status_code == 403
+
+
+def test_member_list_includes_email_field() -> None:
+    """Issue #73: MemberOut must include the email field."""
+    token = _login(DEMO_CREDS)
+    pid = _create_project(token)
+    res = client.get(f"/api/projects/{pid}/members", headers=_auth(token))
+    assert res.status_code == 200
+    members = res.json()
+    assert len(members) >= 1
+    assert "email" in members[0]
+    assert "@" in members[0]["email"]
 
 
 # ---- Last-owner protection (Issue #66) ----

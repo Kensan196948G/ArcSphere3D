@@ -386,3 +386,23 @@ export async function lookupUserByEmail(
   );
   return handleResponse<UserLookupOut>(res);
 }
+
+// ---- JWT utils (client-side payload decode, no signature check) -----------
+
+export interface JwtPayload {
+  sub: string;
+  email?: string;
+  role?: string;
+  exp?: number;
+}
+
+export function parseJwtPayload(token: string): JwtPayload | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload)) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
