@@ -38,6 +38,7 @@ export interface Alignment {
 interface AlignmentState {
   alignments: Alignment[];
   activeId: string | null;
+  selectedIpId: string | null;
   loading: boolean;
   error: string | null;
 
@@ -54,6 +55,7 @@ interface AlignmentState {
     id: string,
   ) => Promise<void>;
   setActive: (id: string | null) => void;
+  setSelectedIpId: (ipId: string | null) => void;
   addIpPoint: (
     alignmentId: string,
     x: number,
@@ -85,6 +87,7 @@ function fromApi(data: IpPointApiOut): IpPoint {
 export const useAlignmentStore = create<AlignmentState>((set, get) => ({
   alignments: [],
   activeId: null,
+  selectedIpId: null,
   loading: false,
   error: null,
 
@@ -145,7 +148,8 @@ export const useAlignmentStore = create<AlignmentState>((set, get) => ({
     }
   },
 
-  setActive: (id) => set({ activeId: id }),
+  setActive: (id) => set({ activeId: id, selectedIpId: null }),
+  setSelectedIpId: (ipId) => set({ selectedIpId: ipId }),
 
   addIpPoint: (alignmentId, x, z, radius) =>
     set((s) => {

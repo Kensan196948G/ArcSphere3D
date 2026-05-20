@@ -3,6 +3,7 @@ import { useAlignmentStore } from "@/state/alignmentStore";
 import { useProjectStore } from "@/state/projectStore";
 import { useAuthStore } from "@/state/authStore";
 import { useAlignment } from "./useAlignment";
+import { useAlignmentRenderer } from "./useAlignmentRenderer";
 import VerticalAlignmentPanel from "./VerticalAlignmentPanel";
 
 const DESIGN_SPEEDS = [20, 30, 40, 50, 60, 80, 100, 120] as const;
@@ -16,6 +17,8 @@ interface DetailProps {
 function AlignmentDetail({ alignmentId, token, projectId }: DetailProps) {
   const store = useAlignmentStore();
   const alignment = useAlignment(alignmentId);
+  const selectedIpId = useAlignmentStore((s) => s.selectedIpId);
+  const setSelectedIpId = useAlignmentStore((s) => s.setSelectedIpId);
   const [ipX, setIpX] = useState("0");
   const [ipZ, setIpZ] = useState("0");
   const [ipR, setIpR] = useState("50");
@@ -61,24 +64,41 @@ function AlignmentDetail({ alignmentId, token, projectId }: DetailProps) {
           <p className="mb-1 font-semibold text-slate-600 dark:text-slate-300">
             IP 点一覧
           </p>
-          {alignment.ipPoints.map((p, i) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between py-0.5"
-            >
-              <span className="text-slate-500 dark:text-slate-400">
-                IP{i + 1} ({p.x.toFixed(1)}, {p.z.toFixed(1)}) R={p.radius}m
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemoveIp(p.id)}
-                className="ml-2 text-rose-400 hover:text-rose-600"
-                aria-label={`IP${i + 1}を削除`}
+          {alignment.ipPoints.map((p, i) => {
+            const isSelected = p.id === selectedIpId;
+            return (
+              <div
+                key={p.id}
+                className={`flex items-center justify-between rounded px-1 py-0.5 transition-colors ${
+                  isSelected
+                    ? "bg-yellow-100 dark:bg-yellow-900/30"
+                    : "hover:bg-slate-200/50 dark:hover:bg-slate-700/30"
+                }`}
+                data-testid="ip-point-row"
               >
-                ×
-              </button>
-            </div>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => setSelectedIpId(isSelected ? null : p.id)}
+                  className={`flex-1 text-left text-[10px] ${
+                    isSelected
+                      ? "font-semibold text-yellow-700 dark:text-yellow-300"
+                      : "text-slate-500 dark:text-slate-400"
+                  }`}
+                  aria-label={`IP${i + 1}を選択`}
+                >
+                  IP{i + 1} ({p.x.toFixed(1)}, {p.z.toFixed(1)}) R={p.radius}m
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveIp(p.id)}
+                  className="ml-2 text-rose-400 hover:text-rose-600"
+                  aria-label={`IP${i + 1}を削除`}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -172,6 +192,9 @@ export default function AlignmentPanel() {
   const [newName, setNewName] = useState("");
   const [newSpeed, setNewSpeed] = useState<number>(60);
   const [tab, setTab] = useState<AlignTab>("horizontal");
+
+  // Render active alignment IP points and elements in the 3D viewport
+  useAlignmentRenderer();
 
   useEffect(() => {
     if (!token || !selectedProjectId) return;
