@@ -59,12 +59,15 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 35  | 🎯 Viewport ドラッグ&ドロップ + useFileProcessor フック (Issue #91)               | ✅ Done    |
 | 36  | 🎬 カメラプリセットビュー — 平面図/正面/側面/3D (Issue #93)                       | ✅ Done    |
 | 37  | ⌨️ Delete/Backspace キーで選択オブジェクト削除 (Issue #95)                        | ✅ Done    |
-| 38  | 📊 GET /api/projects/{id}/stats — 統計 API (Issue #97)                            | 🔄 CI中    |
-| 39  | 📊 ProjectPanel 統計バッジ表示 (Issue #99)                                        | 🔄 CI中    |
+| 38  | 📊 GET /api/projects/{id}/stats — 統計 API (Issue #97)                            | ✅ Done    |
+| 39  | 📊 ProjectPanel 統計バッジ表示 (Issue #99)                                        | ✅ Done    |
 | 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API (Issue #101)                        | 🔄 CI中    |
-| 41  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 42  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 43  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 41  | 📷 Viewport スクリーンショット保存 (Issue #103)                                   | 🔄 CI中    |
+| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー (Issue #105/#107)                | 🔄 CI中    |
+| 43  | 🗑️ シーン全削除ボタン + clearScene (Issue #108)                                   | 🔄 CI中    |
+| 44  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 45  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 46  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 ---
 
