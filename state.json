@@ -10,8 +10,8 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Issue #73/#76/#75 実装完了 — E2E 97+、PR #77 merged。PR #78/#79 CI 通過後マージ予定",
-  "phase": "Build",
+  "goal": "Issue #76/#81/#83 実装完了 — E2E 102、PR #79/#80/#82 merged。PR #78/#84 CI 通過後マージ予定",
+  "phase": "Verify",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -49,14 +49,14 @@
     "repair_count": 0,
     "max_repair": 3,
     "same_error_limit": 2,
-    "phase": "Build",
-    "last_session_summary": "Build session 2026-05-19: Issue #66 (multi-owner model + last-owner protection) — create_project now auto-adds owner to project_members; count_owners(); remove_member returns None→409 for last owner; Migration 0006 backfills existing projects. 98/98 backend tests pass. E2E coverage 62→81 tests (+14 new: BottomConsole, ModelPanel FileLoader, ProjectPanel empty/download/3Dopen, MeasurePanel area/height/end, LayerPanel multi, AIPanel multi-msg, CadPanel 5 tests). feat(cad): CadPanel with Three.js primitive shapes (Box/Sphere/Cylinder/Cone/Torus) replacing placeholder 'STEP/CAD — 近日実装予定'. cadPrimitives.ts factory API designed for OCC.js WASM swap-in. README updated (feature table, security matrix, multi-owner section).",
-    "current_session_start_at": "2026-05-18T17:00:02.440Z",
-    "session_soft_deadline": "2026-05-18T20:30:00+09:00",
-    "session_hard_deadline": "2026-05-18T21:00:00+09:00",
+    "phase": "Verify",
+    "last_session_summary": "Build session 2026-05-21: Issue #71/#73 (MembersPanel UX email validation + editor/viewer read-only, PR #77/#73 merged), Issue #76 (Alignment 3D renderer + IP click selection, PR #78 CI passing), Issue #75 (STEP/IGES placeholder, PR #79 merged), fix schemathesis BIGINT overflow (PR #80 merged), Issue #81 (FileLoader E2E tests 97→102, PR #82 merged), Issue #83 (files RBAC tests +9, PR #84 CI running). E2E: 90→102. Backend tests: 177→186.",
+    "current_session_start_at": "2026-05-20T17:00:11.000Z",
+    "session_soft_deadline": "2026-05-20T20:30:00+09:00",
+    "session_hard_deadline": "2026-05-20T21:00:00+09:00",
     "last_trigger": "cron",
-    "last_cron_session_id": "20260519-020001-ArcSphere3D",
-    "last_stop_at": "2026-05-19T17:52:11.570Z"
+    "last_cron_session_id": "20260521-020011-ArcSphere3D",
+    "last_stop_at": ""
   },
   "automation": {
     "auto_issue_generation": true,
@@ -300,13 +300,13 @@
   },
   "next_session_hints": {
     "priority_order": [
-      "Build: OpenCascade.js WASM 統合 — STEP/IGES ファイル読み込み (cadPrimitives.ts → OCC.js swap-in)",
-      "Build: Alignment edit UI 仕上げ (IP 点を 3D ビューに描画、クリックで選択)",
-      "Build: glTF / OBJ / STL ローダーの E2E テスト拡充 (ファイル選択→シーン追加フロー)",
-      "Build: TypeScript v6 移行準備 (tsconfig.json baseUrl 削除 + paths 相対パス化)",
-      "Improve: E2E テスト 81 → 90+ (Playwright — ファイルアップロード完全フロー)"
+      "Verify: PR #78 (Issue #76 Alignment 3D renderer) — integration CI 完了後マージ",
+      "Verify: PR #84 (Issue #83 files RBAC tests) — CI 完了後マージ",
+      "Build: OpenCascade.js WASM 統合フェーズ2 — web-ifc → OCC.js swap-in (Issue #75 フォローアップ)",
+      "Build: TypeScript strict mode 強化 — tsconfig.json strict:true + noUncheckedIndexedAccess",
+      "Improve: backend E2E coverage — alignments/verticals RBAC テスト追加"
     ],
-    "resume_note": "Issue #66 done, E2E 62→81, CAD panel (Three.js primitives). Next: OCC.js WASM + alignment 3D edit"
+    "resume_note": "Session 2026-05-21: E2E 90→102, backend tests 177→186, PR #79/#80/#82 merged. PR #78/#84 in review. BIGINT overflow fix deployed."
   },
   "compact": {
     "last_pre_compact_at": "2026-05-18T06:45:30.588Z"
