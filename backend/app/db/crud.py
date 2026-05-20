@@ -368,16 +368,19 @@ async def delete_project(session: AsyncSession, project_id: UUID, owner_id: UUID
 
 async def list_members(session: AsyncSession, project_id: UUID) -> list[MemberOut]:
     result = await session.execute(
-        select(ProjectMember).where(ProjectMember.project_id == project_id)
+        select(ProjectMember, User)
+        .join(User, User.id == ProjectMember.user_id)
+        .where(ProjectMember.project_id == project_id)
     )
     return [
         MemberOut(
             project_id=m.project_id,
             user_id=m.user_id,
+            email=u.email,
             role=m.role,
             created_at=m.created_at,
         )
-        for m in result.scalars().all()
+        for m, u in result.all()
     ]
 
 
@@ -390,8 +393,9 @@ async def add_member(
     case used to surface as a PostgreSQL FK violation and propagate as a
     500. Routers translate None into a clean 404.
     """
-    user_check = await session.execute(select(User).where(User.id == user_id))
-    if user_check.scalar_one_or_none() is None:
+    user_result = await session.execute(select(User).where(User.id == user_id))
+    db_user = user_result.scalar_one_or_none()
+    if db_user is None:
         return None
 
     existing = await session.execute(
@@ -411,6 +415,7 @@ async def add_member(
     return MemberOut(
         project_id=member.project_id,
         user_id=member.user_id,
+        email=db_user.email,
         role=member.role,
         created_at=member.created_at,
     )

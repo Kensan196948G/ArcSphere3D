@@ -25,14 +25,11 @@ _409: _Responses = {409: {"description": "conflict — e.g. removing last owner"
 
 
 async def _require_owner(project_id: UUID, session: Any, user: CurrentUser) -> None:
-    """3-tier access guard for member-management endpoints.
+    """3-tier access guard for write operations (owner only).
 
-    - no access (project missing OR user is neither owner nor member) -> 404
-    - access but not owner (editor / viewer member)                   -> 403
-    - owner                                                            -> pass through
-
-    Distinguishing 404 from 403 matters: returning 403 to a stranger leaks the
-    existence of the project (an IDOR signal), so non-members always see 404.
+    - no access (project missing OR non-member) -> 404
+    - member but not owner (editor / viewer)     -> 403
+    - owner                                      -> pass through
     """
     db_user = await crud.upsert_user(session, user)
     role = await crud.get_access_role(session, project_id, db_user.id)
@@ -42,13 +39,26 @@ async def _require_owner(project_id: UUID, session: Any, user: CurrentUser) -> N
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
 
 
-@router.get("", response_model=list[MemberOut], responses={**_401, **_403, **_404})
+async def _require_member(project_id: UUID, session: Any, user: CurrentUser) -> None:
+    """3-tier access guard for read operations (any member role).
+
+    - no access (project missing OR non-member) -> 404
+    - any member (owner / editor / viewer)      -> pass through
+    """
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+
+
+@router.get("", response_model=list[MemberOut], responses={**_401, **_404})
 async def list_members(
     project_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
 ) -> list[MemberOut]:
-    await _require_owner(project_id, session, user)
+    """List project members. Any member (owner/editor/viewer) may call this."""
+    await _require_member(project_id, session, user)
     return await crud.list_members(session, project_id)
 
 

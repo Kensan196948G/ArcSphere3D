@@ -36,7 +36,9 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-const MOCK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
+// Valid JWT: sub="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", role="owner" (parsed by parseJwtPayload in MembersPanel)
+const MOCK_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhYWFhYWFhYS1iYmJiLWNjY2MtZGRkZC1lZWVlZWVlZWVlZWUiLCJlbWFpbCI6ImRlbW9AYXJjc3BoZXJlM2QuZGV2Iiwicm9sZSI6Im93bmVyIiwiZXhwIjo5OTk5OTk5OTk5fQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 const MOCK_PROJECT = {
   id: "00000000-0000-0000-0000-000000000001",
   name: "Demo Project",
@@ -1431,16 +1433,26 @@ test("ProjectPanel: プロジェクト作成ボタンは空の入力では無効
 
 // ---- MembersPanel -----------------------------------------------------------
 
-const MOCK_MEMBER = {
+// Owner = current user (sub in MOCK_TOKEN)
+const MOCK_MEMBER_OWNER = {
   project_id: MOCK_PROJECT.id,
   user_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  email: "demo@arcsphere3d.dev",
+  role: "owner",
+  created_at: "2026-05-20T00:00:00Z",
+};
+// Editor = another member (used to test read access and email/role display)
+const MOCK_MEMBER_EDITOR = {
+  project_id: MOCK_PROJECT.id,
+  user_id: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  email: "editor@arcsphere3d.dev",
   role: "editor",
   created_at: "2026-05-20T00:00:00Z",
 };
 
 const MOCK_USER_LOOKUP = {
-  id: MOCK_MEMBER.user_id,
-  email: "editor@arcsphere3d.dev",
+  id: MOCK_MEMBER_EDITOR.user_id,
+  email: MOCK_MEMBER_EDITOR.email,
 };
 
 async function setupMembersApiMocks(page: Page) {
@@ -1459,13 +1471,13 @@ async function setupMembersApiMocks(page: Page) {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify([MOCK_MEMBER]),
+          body: JSON.stringify([MOCK_MEMBER_OWNER, MOCK_MEMBER_EDITOR]),
         });
       } else if (route.request().method() === "POST") {
         await route.fulfill({
           status: 201,
           contentType: "application/json",
-          body: JSON.stringify(MOCK_MEMBER),
+          body: JSON.stringify(MOCK_MEMBER_OWNER),
         });
       } else if (route.request().method() === "DELETE") {
         await route.fulfill({ status: 204 });
@@ -1526,6 +1538,10 @@ test("MembersPanel: メンバー一覧が表示される", async ({ page }) => {
   await page.selectOption("select", MOCK_PROJECT.id);
   await page.getByRole("button", { name: "メンバー" }).click();
   await expect(page.getByTestId("members-list")).toBeVisible();
+  // メールアドレスとロールが表示されることを確認
+  await expect(
+    page.getByTestId("members-list").getByText("editor@arcsphere3d.dev"),
+  ).toBeVisible();
   // members-list内に限定（role-selectの<option>と区別するため）
   await expect(
     page.getByTestId("members-list").getByText("編集者"),
@@ -1547,7 +1563,7 @@ test("MembersPanel: メンバー追加フォームが表示される", async ({ 
   await expect(page.getByTestId("member-add-btn")).toBeVisible();
 });
 
-test("MembersPanel: ユーザーID未入力では追加ボタンが無効化される", async ({
+test("MembersPanel: メール未入力では追加ボタンが無効化される", async ({
   page,
 }) => {
   await setupMembersApiMocks(page);
@@ -1561,11 +1577,30 @@ test("MembersPanel: ユーザーID未入力では追加ボタンが無効化さ�
   await page.getByRole("button", { name: "メンバー" }).click();
   // 空の状態では追加ボタンが無効化される
   await expect(page.getByTestId("member-add-btn")).toBeDisabled();
-  // ID を入力すると有効化される
+  // 有効なメールアドレスを入力すると有効化される
   await page
     .getByTestId("member-user-id-input")
-    .fill("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    .fill("newuser@arcsphere3d.dev");
   await expect(page.getByTestId("member-add-btn")).toBeEnabled();
+});
+
+test("MembersPanel: 無効なメールアドレス入力でバリデーションエラーが表示される", async ({
+  page,
+}) => {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  // 無効な値を入力してフォーカスを外す
+  await page.getByTestId("member-user-id-input").fill("not-an-email");
+  await page.getByTestId("member-user-id-input").blur();
+  // バリデーションエラーメッセージが表示される
+  await expect(page.getByTestId("email-validation-error")).toBeVisible();
 });
 
 // ---- ProjectPanel: プロジェクト削除 ------------------------------------------
