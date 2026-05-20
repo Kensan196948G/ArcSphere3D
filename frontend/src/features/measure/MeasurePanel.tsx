@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMeasureStore, type MeasureMode } from "@/state/measureStore";
 
 const MODES: { id: MeasureMode; label: string; description: string }[] = [
@@ -27,6 +28,17 @@ const UNIT: Record<MeasureMode, string> = {
 
 export default function MeasurePanel() {
   const { mode, points, result, setMode, clear } = useMeasureStore();
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    if (result === null) return;
+    void navigator.clipboard
+      .writeText(`${result.toFixed(3)} ${UNIT[mode]}`)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+  }
 
   const handleMode = (id: MeasureMode) => {
     if (mode === id) {
@@ -71,9 +83,20 @@ export default function MeasurePanel() {
             点数: {points.length}
           </p>
           {result !== null && (
-            <p className="mt-1 text-base font-mono font-semibold text-slate-700 dark:text-slate-200">
-              {result.toFixed(3)} {UNIT[mode]}
-            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-base font-mono font-semibold text-slate-700 dark:text-slate-200">
+                {result.toFixed(3)} {UNIT[mode]}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopy}
+                data-testid="measure-copy-btn"
+                title="クリップボードにコピー"
+                className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
+              >
+                {copied ? "✓" : "コピー"}
+              </button>
+            </div>
           )}
         </div>
       )}
