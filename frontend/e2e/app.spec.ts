@@ -1433,6 +1433,7 @@ test("ProjectPanel: プロジェクト作成ボタンは空の入力では無効
 
 const MOCK_OWNER_ID = "11111111-2222-3333-4444-555555555555";
 const MOCK_EDITOR_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+const MOCK_NULL_EMAIL_ID = "cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa";
 
 const MOCK_OWNER_MEMBER = {
   project_id: MOCK_PROJECT.id,
@@ -1450,6 +1451,14 @@ const MOCK_MEMBER = {
   created_at: "2026-05-20T00:00:00Z",
 };
 
+const MOCK_MEMBER_NULL_EMAIL = {
+  project_id: MOCK_PROJECT.id,
+  user_id: MOCK_NULL_EMAIL_ID,
+  role: "viewer",
+  email: null,
+  created_at: "2026-05-20T00:00:00Z",
+};
+
 const MOCK_USER_LOOKUP = {
   id: MOCK_EDITOR_ID,
   email: "editor@arcsphere3d.dev",
@@ -1460,6 +1469,13 @@ const MOCK_ME = {
   sub: "demo",
   email: "demo@arcsphere3d.dev",
   role: "admin",
+};
+
+const MOCK_EDITOR_ME = {
+  id: MOCK_EDITOR_ID,
+  sub: "editor",
+  email: "editor@arcsphere3d.dev",
+  role: "user",
 };
 
 async function setupMembersApiMocks(page: Page) {
@@ -1485,7 +1501,7 @@ async function setupMembersApiMocks(page: Page) {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify([MOCK_OWNER_MEMBER, MOCK_MEMBER]),
+          body: JSON.stringify([MOCK_OWNER_MEMBER, MOCK_MEMBER, MOCK_MEMBER_NULL_EMAIL]),
         });
       } else if (route.request().method() === "POST") {
         await route.fulfill({
@@ -1630,6 +1646,62 @@ test("MembersPanel: メンバー一覧にメールアドレスが表示される
   await expect(
     page.getByTestId("members-list").getByTestId("member-email").first(),
   ).toContainText("@");
+});
+
+test("MembersPanel: email が null のメンバーは UUID 短縮表示にフォールバックする", async ({
+  page,
+}) => {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("members-list")).toBeVisible();
+  // email: null のメンバーは UUID の先頭8文字+"…" を表示する
+  const nullEmailEntry = page
+    .getByTestId("members-list")
+    .getByTestId("member-email")
+    .filter({ hasText: MOCK_NULL_EMAIL_ID.slice(0, 8) });
+  await expect(nullEmailEntry).toBeVisible();
+});
+
+test("MembersPanel: editor ロールのユーザーには追加フォームが表示されない", async ({
+  page,
+}) => {
+  await setupApiMocks(page);
+  await page.route(`**/api/users/me**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_EDITOR_ME),
+    });
+  });
+  await page.route(
+    `**/api/projects/${MOCK_PROJECT.id}/members**`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([MOCK_OWNER_MEMBER, MOCK_MEMBER]),
+      });
+    },
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("editor@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("members-panel")).toBeVisible();
+  // editor には追加フォームと削除ボタンが表示されない
+  await expect(page.getByTestId("member-add-btn")).not.toBeVisible();
+  await expect(page.getByTestId("members-readonly-note")).toBeVisible();
 });
 
 // ---- ProjectPanel: プロジェクト削除 ------------------------------------------

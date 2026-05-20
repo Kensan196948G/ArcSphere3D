@@ -19,7 +19,7 @@ const ROLE_LABELS: Record<string, string> = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidEmail(v: string): boolean {
-  return EMAIL_RE.test(v);
+  return EMAIL_RE.test(v.trim());
 }
 
 export default function MembersPanel() {
@@ -59,10 +59,13 @@ export default function MembersPanel() {
   }, [token, selectedProjectId]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setMyUserId(null);
+      return;
+    }
     getMe(token)
       .then((me) => setMyUserId(me.id))
-      .catch(() => {/* ignore */});
+      .catch(() => setMyUserId(null));
   }, [token]);
 
   useEffect(() => {
