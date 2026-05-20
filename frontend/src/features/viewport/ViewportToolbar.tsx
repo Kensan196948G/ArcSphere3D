@@ -1,4 +1,5 @@
 import { useViewportStore } from "@/state/viewportStore";
+import type { CameraPreset } from "@/state/viewportStore";
 
 interface ToolBtnProps {
   label: string;
@@ -25,21 +26,65 @@ function ToolBtn({ label, title, active, onClick }: ToolBtnProps) {
   );
 }
 
+const PRESETS: { preset: CameraPreset; label: string; title: string }[] = [
+  { preset: "perspective", label: "🔭 3D", title: "パース（3D）ビュー" },
+  { preset: "top", label: "⬆ 上", title: "平面図ビュー（真上）" },
+  { preset: "front", label: "正面", title: "正面ビュー" },
+  { preset: "side", label: "側面", title: "側面ビュー（右）" },
+];
+
 export default function ViewportToolbar() {
   const {
-    showGrid, showAxes, wireframe,
-    ambientIntensity, dirIntensity,
-    toggleGrid, toggleAxes, toggleWireframe,
-    setAmbientIntensity, setDirIntensity,
+    showGrid,
+    showAxes,
+    wireframe,
+    ambientIntensity,
+    dirIntensity,
+    toggleGrid,
+    toggleAxes,
+    toggleWireframe,
+    setAmbientIntensity,
+    setDirIntensity,
     resetCamera,
+    setCameraPreset,
   } = useViewportStore();
 
   return (
     <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 rounded-lg bg-slate-900/80 px-3 py-2 shadow-lg backdrop-blur">
-      <ToolBtn label="グリッド" title="グリッド表示切替" active={showGrid} onClick={toggleGrid} />
-      <ToolBtn label="軸" title="座標軸表示切替" active={showAxes} onClick={toggleAxes} />
-      <ToolBtn label="ワイヤー" title="ワイヤーフレーム切替" active={wireframe} onClick={toggleWireframe} />
-      <ToolBtn label="カメラリセット" title="カメラ位置をリセット" onClick={resetCamera} />
+      <ToolBtn
+        label="グリッド"
+        title="グリッド表示切替"
+        active={showGrid}
+        onClick={toggleGrid}
+      />
+      <ToolBtn
+        label="軸"
+        title="座標軸表示切替"
+        active={showAxes}
+        onClick={toggleAxes}
+      />
+      <ToolBtn
+        label="ワイヤー"
+        title="ワイヤーフレーム切替"
+        active={wireframe}
+        onClick={toggleWireframe}
+      />
+      <ToolBtn
+        label="カメラリセット"
+        title="カメラ位置をリセット"
+        onClick={resetCamera}
+      />
+
+      <div className="mx-1 h-4 w-px bg-slate-600" />
+
+      {PRESETS.map(({ preset, label, title }) => (
+        <ToolBtn
+          key={preset}
+          label={label}
+          title={title}
+          onClick={() => setCameraPreset(preset)}
+        />
+      ))}
 
       <div className="mx-1 h-4 w-px bg-slate-600" />
 
@@ -47,7 +92,9 @@ export default function ViewportToolbar() {
         <span>環境光</span>
         <input
           type="range"
-          min="0" max="2" step="0.05"
+          min="0"
+          max="2"
+          step="0.05"
           value={ambientIntensity}
           onChange={(e) => setAmbientIntensity(Number(e.target.value))}
           className="w-20 accent-arc-accent"
@@ -59,7 +106,9 @@ export default function ViewportToolbar() {
         <span>指向光</span>
         <input
           type="range"
-          min="0" max="3" step="0.05"
+          min="0"
+          max="3"
+          step="0.05"
           value={dirIntensity}
           onChange={(e) => setDirIntensity(Number(e.target.value))}
           className="w-20 accent-arc-accent"

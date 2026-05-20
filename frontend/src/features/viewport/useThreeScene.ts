@@ -250,13 +250,23 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
         });
       }
       if (state._cameraResetCount !== prev._cameraResetCount) {
-        camera.position.set(
-          DEFAULT_CAM_POS.x,
-          DEFAULT_CAM_POS.y,
-          DEFAULT_CAM_POS.z,
-        );
-        camera.lookAt(0, 0, 0);
-        controls.target.set(0, 0.5, 0);
+        const PRESET_CAM: Record<
+          string,
+          { pos: [number, number, number]; target: [number, number, number] }
+        > = {
+          perspective: {
+            pos: [DEFAULT_CAM_POS.x, DEFAULT_CAM_POS.y, DEFAULT_CAM_POS.z],
+            target: [0, 0.5, 0],
+          },
+          top: { pos: [0, 20, 0.001], target: [0, 0, 0] },
+          front: { pos: [0, 5, 20], target: [0, 0, 0] },
+          side: { pos: [20, 5, 0], target: [0, 0, 0] },
+        };
+        const { pos, target } =
+          PRESET_CAM[state._cameraPreset] ?? PRESET_CAM.perspective;
+        camera.position.set(...pos);
+        camera.lookAt(...target);
+        controls.target.set(...target);
         controls.update();
       }
     });
