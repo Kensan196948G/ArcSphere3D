@@ -26,7 +26,9 @@ function Vec3Input({
       <div className="flex gap-1">
         {(["x", "y", "z"] as const).map((ax) => (
           <label key={ax} className="flex flex-1 flex-col items-center gap-0.5">
-            <span className="text-[9px] text-slate-400">{ax.toUpperCase()}</span>
+            <span className="text-[9px] text-slate-400">
+              {ax.toUpperCase()}
+            </span>
             <input
               type="number"
               step="0.01"
@@ -46,6 +48,7 @@ export default function ModelPanel() {
   const selectedId = useSceneStore((s) => s.selectedId);
   const select = useSceneStore((s) => s.select);
   const removeObject = useSceneStore((s) => s.removeObject);
+  const clearScene = useSceneStore((s) => s.clearScene);
   const transformMode = useSceneStore((s) => s.transformMode);
   const setTransformMode = useSceneStore((s) => s.setTransformMode);
   const { renameObject, duplicateObject, setObjectVisibility, setObjectLayer } =
@@ -198,7 +201,9 @@ export default function ModelPanel() {
             </button>
             <button
               type="button"
-              onClick={() => setObjectVisibility(selected.id, !selected.visible)}
+              onClick={() =>
+                setObjectVisibility(selected.id, !selected.visible)
+              }
               className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
             >
               {selected.visible ? "非表示" : "表示"}
@@ -214,7 +219,9 @@ export default function ModelPanel() {
 
           {/* レイヤー */}
           <div>
-            <span className="mb-0.5 block text-[10px] text-slate-500">レイヤー</span>
+            <span className="mb-0.5 block text-[10px] text-slate-500">
+              レイヤー
+            </span>
             <select
               value={selected.layerId}
               onChange={(e) => setObjectLayer(selected.id, e.target.value)}
@@ -232,9 +239,26 @@ export default function ModelPanel() {
 
       {/* シーンオブジェクト一覧 */}
       <section className="flex-1 overflow-auto">
-        <h3 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          シーンオブジェクト
-        </h3>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            シーンオブジェクト
+          </h3>
+          {objects.length > 0 && (
+            <button
+              type="button"
+              data-testid="scene-clear-btn"
+              onClick={() => {
+                if (confirm("シーン内の全オブジェクトを削除しますか？")) {
+                  clearScene();
+                }
+              }}
+              className="rounded px-1.5 py-0.5 text-[10px] text-rose-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20"
+              title="シーンをクリア"
+            >
+              全削除
+            </button>
+          )}
+        </div>
         {objects.length === 0 ? (
           <p className="text-slate-400 dark:text-slate-500">オブジェクトなし</p>
         ) : (
@@ -256,8 +280,12 @@ export default function ModelPanel() {
                     onClick={() => select(active ? null : o.id)}
                     className="flex-1 truncate text-left"
                   >
-                    <span className="mr-1 text-slate-400">{active ? "◉" : "▣"}</span>
-                    <span className={o.visible ? "" : "opacity-40"}>{o.name}</span>
+                    <span className="mr-1 text-slate-400">
+                      {active ? "◉" : "▣"}
+                    </span>
+                    <span className={o.visible ? "" : "opacity-40"}>
+                      {o.name}
+                    </span>
                   </button>
                   <button
                     type="button"

@@ -16,8 +16,12 @@ interface SceneState {
   logs: string[];
   selectedId: string | null;
   transformMode: TransformMode;
-  addObject: (obj: Omit<SceneObject, "layerId" | "visible"> & Partial<Pick<SceneObject, "layerId" | "visible">>) => void;
+  addObject: (
+    obj: Omit<SceneObject, "layerId" | "visible"> &
+      Partial<Pick<SceneObject, "layerId" | "visible">>,
+  ) => void;
   removeObject: (id: string) => void;
+  clearScene: () => void;
   select: (id: string | null) => void;
   setTransformMode: (mode: TransformMode) => void;
   renameObject: (id: string, name: string) => void;
@@ -34,10 +38,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   transformMode: "translate",
   addObject: (obj) =>
     set((s) => ({
-      objects: [
-        ...s.objects,
-        { layerId: "default", visible: true, ...obj },
-      ],
+      objects: [...s.objects, { layerId: "default", visible: true, ...obj }],
       logs: [...s.logs, `[scene] + ${obj.name}`].slice(-200),
     })),
   removeObject: (id) =>
@@ -51,10 +52,21 @@ export const useSceneStore = create<SceneState>((set, get) => ({
         logs: [...s.logs, `[scene] - ${target.name}`].slice(-200),
       };
     }),
+  clearScene: () =>
+    set((s) => {
+      s.objects.forEach((o) => o.object.removeFromParent());
+      return {
+        objects: [],
+        selectedId: null,
+        logs: [...s.logs, "[scene] ✕ シーンをクリア"].slice(-200),
+      };
+    }),
   select: (id) =>
     set((s) => {
       if (s.selectedId === id) return s;
-      const name = id ? s.objects.find((o) => o.id === id)?.name ?? id : "none";
+      const name = id
+        ? (s.objects.find((o) => o.id === id)?.name ?? id)
+        : "none";
       return {
         selectedId: id,
         logs: [...s.logs, `[scene] ◉ select ${name}`].slice(-200),
@@ -71,7 +83,9 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   renameObject: (id, name) =>
     set((s) => ({
       objects: s.objects.map((o) =>
-        o.id === id ? { ...o, name, object: Object.assign(o.object, { name }) } : o,
+        o.id === id
+          ? { ...o, name, object: Object.assign(o.object, { name }) }
+          : o,
       ),
       logs: [...s.logs, `[scene] ✎ rename ${name}`].slice(-200),
     })),
@@ -86,7 +100,13 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     set((s) => ({
       objects: [
         ...s.objects,
-        { id: newId, name: newName, object: clone, layerId: src.layerId, visible: src.visible },
+        {
+          id: newId,
+          name: newName,
+          object: clone,
+          layerId: src.layerId,
+          visible: src.visible,
+        },
       ],
       logs: [...s.logs, `[scene] ⧉ duplicate ${src.name}`].slice(-200),
     }));
@@ -105,6 +125,5 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     set((s) => ({
       objects: s.objects.map((o) => (o.id === id ? { ...o, layerId } : o)),
     })),
-  log: (line) =>
-    set((s) => ({ logs: [...s.logs, line].slice(-200) })),
+  log: (line) => set((s) => ({ logs: [...s.logs, line].slice(-200) })),
 }));
