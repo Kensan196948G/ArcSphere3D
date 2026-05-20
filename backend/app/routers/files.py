@@ -14,7 +14,7 @@ from app.db import crud
 from app.deps import CurrentUserDep, DbDep
 from app.logging import logger
 from app.s3 import delete_object, generate_presigned_url, put_object
-from app.schemas import CurrentUser, DownloadUrl, FileMetadata
+from app.schemas import CurrentUser, DownloadUrl, FileMetadata, FilePatch
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -198,3 +198,29 @@ async def list_files(
     db_user = await crud.upsert_user(session, user)
     await _require_project(project_id, session, db_user.id, min_role="viewer")
     return await crud.list_files(session, project_id, skip=skip, limit=limit)
+
+
+@router.patch("/{file_id}", response_model=FileMetadata, responses={**_401, **_403, **_404})
+async def rename_file(
+    file_id: UUID,
+    body: FilePatch,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> FileMetadata:
+    """Rename an uploaded file. Owner and editor may rename; viewer gets 403."""
+    db_user = await crud.upsert_user(session, user)
+    db_file = await crud.get_file_by_id(session, file_id)
+    if db_file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
+    await _require_project(db_file.project_id, session, db_user.id, min_role="editor")
+    db_file.filename = body.filename
+    await session.commit()
+    await session.refresh(db_file)
+    return FileMetadata(
+        id=db_file.id,
+        project_id=db_file.project_id,
+        filename=db_file.filename,
+        size_bytes=db_file.size_bytes,
+        content_type=db_file.content_type,
+        uploaded_at=db_file.uploaded_at,
+    )
