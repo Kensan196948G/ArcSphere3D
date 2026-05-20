@@ -27,7 +27,7 @@ _ROLE_RANK = {"owner": 3, "editor": 2, "viewer": 1}
 async def list_projects(
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
-    skip: int = Query(default=0, ge=0),
+    skip: int = Query(default=0, ge=0, le=2_147_483_647),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[ProjectOut]:
     db_user = await crud.upsert_user(session, user)

@@ -44,7 +44,7 @@ async def list_alignments(
     project_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
-    skip: int = Query(default=0, ge=0),
+    skip: int = Query(default=0, ge=0, le=2_147_483_647),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[AlignmentOut]:
     db_user = await crud.upsert_user(session, user)
