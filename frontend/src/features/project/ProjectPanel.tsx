@@ -8,13 +8,23 @@ export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
   const { projects, selectedProjectId, files, loading, error } =
     useProjectStore();
-  const { fetchProjects, selectProject, createProject, uploadFile, deleteFile, getDownloadUrl } =
-    useProjectStore.getState();
+  const {
+    fetchProjects,
+    selectProject,
+    createProject,
+    renameProject,
+    deleteProject,
+    uploadFile,
+    deleteFile,
+    getDownloadUrl,
+  } = useProjectStore.getState();
   const addObject = useSceneStore((s) => s.addObject);
   const log = useSceneStore((s) => s.log);
 
   const [newProjectName, setNewProjectName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameInput, setRenameInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,6 +73,28 @@ export default function ProjectPanel() {
     log(`[project] ${filename} を削除`);
   }
 
+  async function handleRenameProject(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedProjectId || !renameInput.trim()) return;
+    await renameProject(token, selectedProjectId, renameInput.trim());
+    setRenaming(false);
+    setRenameInput("");
+    log(`[project] プロジェクト名を変更しました`);
+  }
+
+  async function handleDeleteProject() {
+    if (!selectedProjectId) return;
+    const project = projects.find((p) => p.id === selectedProjectId);
+    if (
+      !confirm(
+        `プロジェクト「${project?.name ?? selectedProjectId}」を削除しますか？この操作は取り消せません。`,
+      )
+    )
+      return;
+    await deleteProject(token, selectedProjectId);
+    log(`[project] プロジェクトを削除しました`);
+  }
+
   return (
     <div className="flex flex-col gap-3 text-xs">
       {/* プロジェクト選択 */}
@@ -84,6 +116,60 @@ export default function ProjectPanel() {
             </option>
           ))}
         </select>
+        {selectedProjectId && !renaming && (
+          <div className="mt-1 flex gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const p = projects.find((x) => x.id === selectedProjectId);
+                setRenameInput(p?.name ?? "");
+                setRenaming(true);
+              }}
+              data-testid="project-rename-btn"
+              className="flex-1 rounded border border-slate-300 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+            >
+              ✏️ 名前を変更
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteProject()}
+              data-testid="project-delete-btn"
+              className="flex-1 rounded border border-red-300 py-0.5 text-[10px] text-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+            >
+              🗑 削除
+            </button>
+          </div>
+        )}
+        {selectedProjectId && renaming && (
+          <form
+            onSubmit={(e) => void handleRenameProject(e)}
+            className="mt-1 flex gap-1"
+          >
+            <input
+              type="text"
+              value={renameInput}
+              onChange={(e) => setRenameInput(e.target.value)}
+              autoFocus
+              data-testid="project-rename-input"
+              className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+            />
+            <button
+              type="submit"
+              disabled={!renameInput.trim()}
+              data-testid="project-rename-save"
+              className="rounded bg-arc-accent/70 px-2 py-0.5 text-[10px] text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              onClick={() => setRenaming(false)}
+              className="rounded border border-slate-300 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600"
+            >
+              取消
+            </button>
+          </form>
+        )}
       </div>
 
       {/* プロジェクト作成 */}

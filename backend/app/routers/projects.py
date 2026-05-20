@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import CurrentUser, ProjectCreate, ProjectOut
+from app.schemas import CurrentUser, ProjectCreate, ProjectOut, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -60,6 +60,30 @@ async def get_project(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     p = await crud.get_project_by_id(session, project_id)
+    if p is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
+
+
+@router.put(
+    "/{project_id}",
+    response_model=ProjectOut,
+    responses={**_400, **_401, **_403, **_404},
+)
+async def update_project(
+    project_id: UUID,
+    body: ProjectUpdate,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> ProjectOut:
+    """Rename a project. Owner and editor may rename; viewer gets 403."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role == "viewer":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="editor or owner only")
+    p = await crud.update_project_name(session, project_id, body.name)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)

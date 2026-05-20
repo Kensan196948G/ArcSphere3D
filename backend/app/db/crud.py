@@ -51,6 +51,12 @@ async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
     return db_user
 
 
+async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
+    """Return the DB row for a user with *email*, or None if not found."""
+    result = await session.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
+
+
 async def list_projects(
     session: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 50
 ) -> list[ProjectOut]:
@@ -97,6 +103,17 @@ async def get_project_by_id(session: AsyncSession, project_id: UUID) -> Project 
     """Return the project regardless of ownership (used for member-based access)."""
     result = await session.execute(select(Project).where(Project.id == project_id))
     return result.scalar_one_or_none()
+
+
+async def update_project_name(session: AsyncSession, project_id: UUID, name: str) -> Project | None:
+    """Rename a project. Returns None if the project does not exist."""
+    p = await get_project_by_id(session, project_id)
+    if p is None:
+        return None
+    p.name = name
+    await session.commit()
+    await session.refresh(p)
+    return p
 
 
 async def create_file(

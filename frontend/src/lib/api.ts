@@ -23,6 +23,13 @@ export interface ProjectOut {
   created_at: string;
 }
 
+export interface MemberOut {
+  project_id: string;
+  user_id: string;
+  role: "owner" | "editor" | "viewer";
+  created_at: string;
+}
+
 export interface FileMetadata {
   id: string;
   project_id: string;
@@ -287,4 +294,94 @@ export async function replaceVips(
     },
   );
   return handleResponse<VipApiOut[]>(res);
+}
+
+// ---- Project Members ------------------------------------------------------
+
+export async function listMembers(
+  token: string,
+  projectId: string,
+): Promise<MemberOut[]> {
+  const res = await fetch(`${BASE}/projects/${projectId}/members`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<MemberOut[]>(res);
+}
+
+export async function addMember(
+  token: string,
+  projectId: string,
+  userId: string,
+  role: "owner" | "editor" | "viewer",
+): Promise<MemberOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}/members`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, role }),
+  });
+  return handleResponse<MemberOut>(res);
+}
+
+export async function removeMember(
+  token: string,
+  projectId: string,
+  userId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}/members/${userId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
+// ---- Projects (delete) ----------------------------------------------------
+
+export async function deleteProject(
+  token: string,
+  projectId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
+// ---- Projects (update) ----------------------------------------------------
+
+export async function updateProject(
+  token: string,
+  projectId: string,
+  name: string,
+): Promise<ProjectOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}`, {
+    method: "PUT",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return handleResponse<ProjectOut>(res);
+}
+
+// ---- Users ----------------------------------------------------------------
+
+export interface UserLookupOut {
+  id: string;
+  email: string;
+}
+
+export async function lookupUserByEmail(
+  token: string,
+  email: string,
+): Promise<UserLookupOut> {
+  const res = await fetch(
+    `${BASE}/users/lookup?email=${encodeURIComponent(email)}`,
+    { headers: authHeaders(token) },
+  );
+  return handleResponse<UserLookupOut>(res);
 }
