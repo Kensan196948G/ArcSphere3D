@@ -192,7 +192,7 @@ async def list_files(
     project_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
-    skip: int = Query(default=0, ge=0),
+    skip: int = Query(default=0, ge=0, le=2_147_483_647),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[FileMetadata]:
     db_user = await crud.upsert_user(session, user)
