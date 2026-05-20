@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/files", tags=["files"])
 
 _Responses = dict[int | str, dict[str, Any]]
 
+_400: _Responses = {400: {"description": "malformed request body"}}
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
 _403: _Responses = {403: {"description": "insufficient role"}}
 _404: _Responses = {404: {"description": "not found"}}
@@ -200,7 +201,7 @@ async def list_files(
     return await crud.list_files(session, project_id, skip=skip, limit=limit)
 
 
-@router.patch("/{file_id}", response_model=FileMetadata, responses={**_401, **_403, **_404})
+@router.patch("/{file_id}", response_model=FileMetadata, responses={**_400, **_401, **_403, **_404})
 async def rename_file(
     file_id: UUID,
     body: FilePatch,
