@@ -140,6 +140,7 @@ def test_rename_nul_byte_rejected() -> None:
     )
     assert res.status_code in (400, 422)
 
+
 # ---- GET /api/projects/{id}/stats -------------------------------------------
 
 
