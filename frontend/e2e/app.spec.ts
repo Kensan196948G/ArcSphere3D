@@ -2148,6 +2148,35 @@ test("Viewport: STEP ファイルドロップでログが出力される (Issue 
   );
 });
 
+// ---- ViewportToolbar: カメラプリセット (Issue #93) --------------------------
+
+test("ViewportToolbar: カメラプリセットボタンが 4 つ表示される (Issue #93)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByTitle("パース（3D）ビュー")).toBeVisible();
+  await expect(page.getByTitle("平面図ビュー（真上）")).toBeVisible();
+  await expect(page.getByTitle("正面ビュー")).toBeVisible();
+  await expect(page.getByTitle("側面ビュー（右）")).toBeVisible();
+});
+
+test("ViewportToolbar: カメラプリセットボタンクリックでエラーが発生しない (Issue #93)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const errors: string[] = [];
+  page.on("pageerror", (err) => errors.push(err.message));
+  for (const title of [
+    "平面図ビュー（真上）",
+    "正面ビュー",
+    "側面ビュー（右）",
+    "パース（3D）ビュー",
+  ]) {
+    await page.getByTitle(title).click();
+  }
+  expect(errors).toHaveLength(0);
+});
+
 // ---- ログイン失敗・API エラーフィードバック (Issue #87) ----------------------
 
 test("LoginModal: 誤認証情報でログイン失敗するとエラーメッセージが表示される (Issue #87)", async ({
