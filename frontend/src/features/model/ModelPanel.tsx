@@ -2,6 +2,7 @@ import { useSceneStore, type TransformMode } from "@/state/sceneStore";
 import { useLayerStore } from "@/state/layerStore";
 import FileLoader from "@/features/viewport/FileLoader";
 import { useState } from "react";
+import { Color, Mesh, MeshStandardMaterial, MeshPhongMaterial, MeshBasicMaterial } from "three";
 
 const MODES: { id: TransformMode; label: string; hint: string }[] = [
   { id: "translate", label: "移動", hint: "W" },
@@ -57,6 +58,45 @@ export default function ModelPanel() {
 
   const [renaming, setRenaming] = useState(false);
   const [nameInput, setNameInput] = useState("");
+
+  function getObjectColor(): string {
+    if (!obj3d) return "#ffffff";
+    let hex = "ffffff";
+    obj3d.traverse((child) => {
+      const m = child as Mesh;
+      if (!m.isMesh) return;
+      const mat = Array.isArray(m.material) ? m.material[0] : m.material;
+      if (
+        mat instanceof MeshStandardMaterial ||
+        mat instanceof MeshPhongMaterial ||
+        mat instanceof MeshBasicMaterial
+      ) {
+        hex = new Color(mat.color).getHexString();
+        return;
+      }
+    });
+    return `#${hex}`;
+  }
+
+  function applyObjectColor(hex: string) {
+    if (!obj3d) return;
+    const c = new Color(hex);
+    obj3d.traverse((child) => {
+      const m = child as Mesh;
+      if (!m.isMesh) return;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      mats.forEach((mat) => {
+        if (
+          mat instanceof MeshStandardMaterial ||
+          mat instanceof MeshPhongMaterial ||
+          mat instanceof MeshBasicMaterial
+        ) {
+          mat.color.set(c);
+          mat.needsUpdate = true;
+        }
+      });
+    });
+  }
 
   function startRename() {
     if (!selected) return;
@@ -210,6 +250,19 @@ export default function ModelPanel() {
             >
               削除
             </button>
+          </div>
+
+          {/* カラー */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-500">色</span>
+            <input
+              type="color"
+              data-testid="object-color-input"
+              value={getObjectColor()}
+              onChange={(e) => applyObjectColor(e.target.value)}
+              className="h-6 w-10 cursor-pointer rounded border border-slate-300 bg-transparent p-0.5 dark:border-slate-600"
+              title="オブジェクトの色を変更"
+            />
           </div>
 
           {/* レイヤー */}
