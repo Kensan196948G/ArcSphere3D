@@ -10,13 +10,36 @@ from app.main import app
 
 client = TestClient(app)
 
+DEMO_CREDS = {"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"}
+OTHER_CREDS = {"email": "other@arcsphere3d.dev", "password": "arcsphere-demo"}
+
+
+def _login(creds: dict[str, str] = DEMO_CREDS) -> str:
+    res = client.post("/api/auth/login", json=creds)
+    return res.json()["access_token"]
+
 
 def _login_token() -> str:
+    return _login(DEMO_CREDS)
+
+
+def _auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _get_user_id(token: str) -> str:
+    res = client.get("/api/users/me", headers=_auth(token))
+    assert res.status_code == 200
+    return res.json()["id"]
+
+
+def _add_member(owner_token: str, pid: str, user_id: str, role: str) -> None:
     res = client.post(
-        "/api/auth/login",
-        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+        f"/api/projects/{pid}/members",
+        json={"user_id": user_id, "role": role},
+        headers=_auth(owner_token),
     )
-    return res.json()["access_token"]
+    assert res.status_code == 201, res.text
 
 
 def _create_project(headers: dict[str, str], name: str = "TestProject") -> str:
@@ -285,3 +308,136 @@ def test_delete_file_s3_failure_is_non_fatal() -> None:
     assert res.status_code == 204
     listed = client.get(f"/api/files/{pid}", headers=h)
     assert file_id not in [f["id"] for f in listed.json()]
+
+
+# ---- RBAC: editor/viewer/non-member アクセス制御 (Issue #83) ------------------
+
+
+def _setup_project_with_file() -> tuple[str, str, str]:
+    """Return (owner_token, project_id, file_id)."""
+    token = _login(DEMO_CREDS)
+    h = _auth(token)
+    res = client.post("/api/projects", json={"name": "RBAC Test Project"}, headers=h)
+    assert res.status_code == 201
+    pid = res.json()["id"]
+    up = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("rbac.stl", b"solid x\nendsolid x\n", "model/stl")},
+        headers=h,
+    )
+    assert up.status_code == 201
+    return token, pid, up.json()["id"]
+
+
+def test_viewer_can_list_files() -> None:
+    """A viewer member may list project files (min_role=viewer)."""
+    owner_token, pid, _ = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "viewer")
+
+    res = client.get(f"/api/files/{pid}", headers=_auth(other_token))
+    assert res.status_code == 200
+    assert len(res.json()) == 1
+
+
+def test_editor_can_list_files() -> None:
+    """An editor member may list project files (min_role=viewer)."""
+    owner_token, pid, _ = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "editor")
+
+    res = client.get(f"/api/files/{pid}", headers=_auth(other_token))
+    assert res.status_code == 200
+
+
+def test_viewer_cannot_upload_gets_403() -> None:
+    """A viewer may not upload files — min_role=editor required."""
+    owner_token, pid, _ = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "viewer")
+
+    res = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("new.stl", b"solid n\nendsolid n\n", "model/stl")},
+        headers=_auth(other_token),
+    )
+    assert res.status_code == 403
+
+
+def test_editor_can_upload_file() -> None:
+    """An editor may upload files to the project."""
+    owner_token, pid, _ = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "editor")
+
+    res = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("editor.stl", b"solid e\nendsolid e\n", "model/stl")},
+        headers=_auth(other_token),
+    )
+    assert res.status_code == 201
+    assert res.json()["filename"] == "editor.stl"
+
+
+def test_viewer_cannot_delete_gets_403() -> None:
+    """A viewer may not delete files — min_role=editor required."""
+    owner_token, pid, file_id = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "viewer")
+
+    res = client.delete(f"/api/files/{file_id}", headers=_auth(other_token))
+    assert res.status_code == 403
+
+
+def test_editor_can_delete_file() -> None:
+    """An editor may delete files."""
+    owner_token, pid, file_id = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "editor")
+
+    res = client.delete(f"/api/files/{file_id}", headers=_auth(other_token))
+    assert res.status_code == 204
+
+
+def test_non_member_list_files_gets_404() -> None:
+    """Non-member gets 404 (IDOR defense) — cannot even tell the project exists."""
+    owner_token, pid, _ = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+
+    res = client.get(f"/api/files/{pid}", headers=_auth(other_token))
+    assert res.status_code == 404
+
+
+def test_non_member_upload_gets_404() -> None:
+    """Non-member gets 404 when trying to upload — IDOR defense."""
+    owner_token, pid, _ = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+
+    res = client.post(
+        "/api/files/upload",
+        params={"project_id": pid},
+        files={"upload_file": ("attack.stl", b"solid\nendsolid\n", "model/stl")},
+        headers=_auth(other_token),
+    )
+    assert res.status_code == 404
+
+
+def test_viewer_can_get_download_url() -> None:
+    """A viewer may generate download URLs (min_role=viewer)."""
+    owner_token, pid, file_id = _setup_project_with_file()
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(owner_token, pid, other_id, "viewer")
+
+    res = client.get(f"/api/files/{pid}/{file_id}/download", headers=_auth(other_token))
+    assert res.status_code == 200
+    assert "url" in res.json()
