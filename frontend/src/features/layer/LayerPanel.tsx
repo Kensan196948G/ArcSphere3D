@@ -3,8 +3,14 @@ import { useLayerStore } from "@/state/layerStore";
 import { useSceneStore } from "@/state/sceneStore";
 
 export default function LayerPanel() {
-  const { layers, addLayer, removeLayer, renameLayer, toggleLayerVisibility, setLayerColor } =
-    useLayerStore();
+  const {
+    layers,
+    addLayer,
+    removeLayer,
+    renameLayer,
+    toggleLayerVisibility,
+    setLayerColor,
+  } = useLayerStore();
   const objects = useSceneStore((s) => s.objects);
   const { setObjectLayer } = useSceneStore.getState();
 
@@ -103,6 +109,7 @@ export default function LayerPanel() {
               {/* 表示切替 */}
               <button
                 type="button"
+                data-testid={`layer-visibility-${layer.id}`}
                 onClick={() => {
                   toggleLayerVisibility(layer.id);
                   const visible = !layer.visible;
@@ -110,7 +117,9 @@ export default function LayerPanel() {
                     .filter((o) => o.layerId === layer.id)
                     .forEach((o) => {
                       o.object.visible = visible;
-                      useSceneStore.getState().setObjectVisibility(o.id, visible);
+                      useSceneStore
+                        .getState()
+                        .setObjectVisibility(o.id, visible);
                     });
                 }}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -123,6 +132,7 @@ export default function LayerPanel() {
               {layer.id !== "default" && (
                 <button
                   type="button"
+                  data-testid={`layer-delete-${layer.id}`}
                   onClick={() => {
                     objects
                       .filter((o) => o.layerId === layer.id)

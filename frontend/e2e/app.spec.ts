@@ -1463,6 +1463,48 @@ test("LayerPanel: 複数レイヤーを追加できる", async ({ page }) => {
   await expect(page.getByText("レイヤーB")).toBeVisible();
 });
 
+test("LayerPanel: 追加したレイヤーの可視性を切り替えられる (Issue #89)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "レイヤー" }).click();
+  await page.getByPlaceholder("新しいレイヤー名").fill("テストレイヤー");
+  await page.getByRole("button", { name: "+" }).click();
+  // 追加直後は表示状態 (👁)
+  await expect(page.getByTitle("レイヤーを非表示").first()).toBeVisible();
+  // クリックで非表示に切り替え
+  await page.getByTitle("レイヤーを非表示").first().click();
+  // 非表示状態 (🙈) になる
+  await expect(page.getByTitle("レイヤーを表示").first()).toBeVisible();
+  // 再クリックで表示に戻る
+  await page.getByTitle("レイヤーを表示").first().click();
+  await expect(page.getByTitle("レイヤーを非表示").first()).toBeVisible();
+});
+
+test("LayerPanel: 追加したレイヤーを削除できる (Issue #89)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "レイヤー" }).click();
+  await page.getByPlaceholder("新しいレイヤー名").fill("削除テストレイヤー");
+  await page.getByRole("button", { name: "+" }).click();
+  await expect(page.getByText("削除テストレイヤー")).toBeVisible();
+  // 削除ボタンをクリック
+  await page.getByTitle("レイヤーを削除").first().click();
+  await expect(page.getByText("削除テストレイヤー")).not.toBeVisible();
+});
+
+test("LayerPanel: デフォルトレイヤーには削除ボタンがない (Issue #89)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "レイヤー" }).click();
+  // デフォルトレイヤーが表示されている
+  await expect(page.getByRole("button", { name: "デフォルト" })).toBeVisible();
+  // 削除ボタンは存在しない（デフォルトレイヤーのみの状態）
+  await expect(page.getByTitle("レイヤーを削除")).not.toBeVisible();
+});
+
 // ---- AIPanel advanced -------------------------------------------------------
 
 test("AIPanel: 複数のメッセージを送信できる", async ({ page }) => {
