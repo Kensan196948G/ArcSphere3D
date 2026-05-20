@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                                          | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0006)                                              | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                                                  | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (105 pass)                                    | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (114 pass)                                    | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)                         | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s)                    | ✅ Done    |
 | 22  | 👥 Multi-owner model + last-owner protection (Issue #66)                          | ✅ Done    |
@@ -54,9 +54,14 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 30  | 📂 FileLoader E2E — STL/GLB/STEP/IGES アップロードテスト (Issue #81)              | ✅ Done    |
 | 31  | 🔐 Files API RBAC — viewer/editor/non-member アクセス制御テスト (Issue #83)       | ✅ Done    |
 | 32  | 🔐 Alignments/Verticals RBAC — GET/DELETE/IP点置換テスト (Issue #85)              | ✅ Done    |
-| 33  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 34  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 35  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 33  | 🖱️ ログイン失敗フィードバック E2E テスト (Issue #87)                              | ✅ Done    |
+| 34  | 🗂️ LayerPanel 可視性切替・削除 E2E テスト (Issue #89)                             | ✅ Done    |
+| 35  | 🎯 Viewport ドラッグ&ドロップ + useFileProcessor フック (Issue #91)               | ✅ Done    |
+| 36  | 🎬 カメラプリセットビュー — 平面図/正面/側面/3D (Issue #93)                       | 🔄 CI中    |
+| 37  | ⌨️ Delete/Backspace キーで選択オブジェクト削除 (Issue #95)                        | 🔄 CI中    |
+| 38  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 39  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 40  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 ---
 
