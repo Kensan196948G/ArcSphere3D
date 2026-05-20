@@ -1838,3 +1838,104 @@ test("MembersPanel: editor は追加フォームが非表示になる (Issue #73
   // 削除ボタンも非表示
   await expect(page.getByTestId("member-remove-btn")).not.toBeVisible();
 });
+
+// ---- FileLoader: ファイルアップロード E2E (Issue #81) -----------------------
+
+function buildGlb(): Buffer {
+  const json = Buffer.from(
+    '{"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[]}],"nodes":[]}',
+  );
+  const padded = Buffer.concat([
+    json,
+    Buffer.alloc((4 - (json.length % 4)) % 4, 0x20),
+  ]);
+  const header = Buffer.alloc(12);
+  header.write("glTF", 0, "ascii");
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(12 + 8 + padded.length, 8);
+  const chunkHeader = Buffer.alloc(8);
+  chunkHeader.writeUInt32LE(padded.length, 0);
+  chunkHeader.writeUInt32LE(0x4e4f534a, 4); // JSON
+  return Buffer.concat([header, chunkHeader, padded]);
+}
+
+test("ModelPanel: STL ファイルアップロードで読み込みログがコンソールに出力される (Issue #81)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  const fileInput = page.getByTestId("file-input");
+  await fileInput.setInputFiles({
+    name: "test.stl",
+    mimeType: "model/stl",
+    buffer: Buffer.alloc(134, 0), // 134-byte zero buffer recognized as binary STL
+  });
+  await expect(page.getByTestId("bottom-console")).toContainText(
+    "test.stl を読み込み中",
+  );
+});
+
+test("ModelPanel: GLB ファイルアップロードで読み込みログがコンソールに出力される (Issue #81)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  const fileInput = page.getByTestId("file-input");
+  await fileInput.setInputFiles({
+    name: "test.glb",
+    mimeType: "model/gltf-binary",
+    buffer: buildGlb(),
+  });
+  await expect(page.getByTestId("bottom-console")).toContainText(
+    "test.glb を読み込み中",
+  );
+});
+
+test("ModelPanel: 非対応拡張子ファイルをアップロードするとエラーメッセージが表示される (Issue #81)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  const fileInput = page.getByTestId("file-input");
+  // setInputFiles bypasses the accept attribute filter at the DevTools protocol level
+  await fileInput.setInputFiles({
+    name: "document.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("hello world"),
+  });
+  await expect(page.getByTestId("bottom-console")).toContainText(
+    "非対応形式: document.txt",
+  );
+});
+
+test("ModelPanel: STEP ファイルをアップロードすると OCC.js プレースホルダメッセージが表示される (Issue #81)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  const fileInput = page.getByTestId("file-input");
+  await fileInput.setInputFiles({
+    name: "model.step",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from("ISO-10303-21;\nHEADER;\n"),
+  });
+  await expect(page.getByTestId("bottom-console")).toContainText(
+    "STEP/IGES 読み込みは OpenCascade.js WASM",
+  );
+});
+
+test("ModelPanel: IGES ファイルをアップロードすると OCC.js プレースホルダメッセージが表示される (Issue #81)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  const fileInput = page.getByTestId("file-input");
+  await fileInput.setInputFiles({
+    name: "model.iges",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from("                                                        S      1\n"),
+  });
+  await expect(page.getByTestId("bottom-console")).toContainText(
+    "STEP/IGES 読み込みは OpenCascade.js WASM",
+  );
+});
