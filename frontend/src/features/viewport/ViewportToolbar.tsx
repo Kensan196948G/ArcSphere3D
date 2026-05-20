@@ -1,5 +1,6 @@
 import { useViewportStore } from "@/state/viewportStore";
 import type { CameraPreset } from "@/state/viewportStore";
+import { getRendererDomElement } from "@/lib/threeContext";
 
 interface ToolBtnProps {
   label: string;
@@ -85,6 +86,22 @@ export default function ViewportToolbar() {
           onClick={() => setCameraPreset(preset)}
         />
       ))}
+
+      <div className="mx-1 h-4 w-px bg-slate-600" />
+
+      <ToolBtn
+        label="📷"
+        title="スクリーンショットを保存 (PNG)"
+        onClick={() => {
+          const canvas = getRendererDomElement() as HTMLCanvasElement | null;
+          if (!canvas || typeof canvas.toDataURL !== "function") return;
+          const url = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `arcsphere3d-${Date.now()}.png`;
+          a.click();
+        }}
+      />
 
       <div className="mx-1 h-4 w-px bg-slate-600" />
 

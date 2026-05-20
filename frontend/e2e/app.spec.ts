@@ -2233,6 +2233,29 @@ test("ViewportToolbar: カメラプリセットボタンクリックでエラー
   expect(errors).toHaveLength(0);
 });
 
+// ---- ViewportToolbar: スクリーンショット (Issue #103) -----------------------
+
+test("ViewportToolbar: スクリーンショットボタンが表示される (Issue #103)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByTitle("スクリーンショットを保存 (PNG)")).toBeVisible();
+});
+
+test("ViewportToolbar: スクリーンショットボタンクリックでエラーが発生しない (Issue #103)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const errors: string[] = [];
+  page.on("pageerror", (err) => {
+    const msg = err.message;
+    if (msg.includes("WebGL") || msg.includes("THREE")) return;
+    errors.push(msg);
+  });
+  await page.getByTitle("スクリーンショットを保存 (PNG)").click();
+  expect(errors).toHaveLength(0);
+});
+
 // ---- ログイン失敗・API エラーフィードバック (Issue #87) ----------------------
 
 test("LoginModal: 誤認証情報でログイン失敗するとエラーメッセージが表示される (Issue #87)", async ({

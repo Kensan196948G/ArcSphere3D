@@ -91,7 +91,11 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     // --- Renderer ---
     let renderer: WebGLRenderer;
     try {
-      renderer = new WebGLRenderer({ antialias: true, alpha: false });
+      renderer = new WebGLRenderer({
+        antialias: true,
+        alpha: false,
+        preserveDrawingBuffer: true,
+      });
     } catch {
       // WebGL not available (headless browsers, old GPU drivers)
       useSceneStore
