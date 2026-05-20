@@ -289,6 +289,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       else if (e.key === "e" || e.key === "E") store.setTransformMode("rotate");
       else if (e.key === "r" || e.key === "R") store.setTransformMode("scale");
       else if (e.key === "Escape") store.select(null);
+      else if (e.key === "Delete" || e.key === "Backspace") {
+        if (store.selectedId) store.removeObject(store.selectedId);
+      }
     };
     window.addEventListener("keydown", onKey);
 
