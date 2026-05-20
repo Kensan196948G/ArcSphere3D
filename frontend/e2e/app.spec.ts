@@ -1726,3 +1726,105 @@ test("ProjectPanel: プロジェクト名変更時にPUT APIが呼ばれる", as
   await page.getByTestId("project-rename-save").click();
   await renameReq;
 });
+
+// ---- MembersPanel: editor/viewer 読み取り専用 (Issue #73) --------------------
+
+// Editor JWT: sub="cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa"
+const MOCK_EDITOR_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjY2NjY2NjYy1kZGRkLWVlZWUtZmZmZi1hYWFhYWFhYWFhYWEiLCJlbWFpbCI6ImVkaXRvckBhcmNzcGhlcmUzZC5kZXYiLCJyb2xlIjoiZWRpdG9yIiwiZXhwIjo5OTk5OTk5OTk5fQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+
+const MOCK_MEMBERS_WITH_EDITOR = [
+  {
+    project_id: MOCK_PROJECT.id,
+    user_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    email: "owner@arcsphere3d.dev",
+    role: "owner",
+    created_at: "2026-05-20T00:00:00Z",
+  },
+  {
+    project_id: MOCK_PROJECT.id,
+    user_id: "cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa",
+    email: "editor@arcsphere3d.dev",
+    role: "editor",
+    created_at: "2026-05-20T00:00:00Z",
+  },
+];
+
+async function setupEditorMembersApiMocks(page: Page) {
+  // Set up all standard mocks but override login to return editor token
+  await page.route("**/api/auth/login", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: MOCK_EDITOR_TOKEN,
+        token_type: "bearer",
+        expires_in: 3600,
+      }),
+    });
+  });
+  await page.route("**/api/projects*", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([MOCK_PROJECT]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.route(
+    `**/api/projects/${MOCK_PROJECT.id}/members**`,
+    async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(MOCK_MEMBERS_WITH_EDITOR),
+        });
+      } else {
+        await route.continue();
+      }
+    },
+  );
+}
+
+test("MembersPanel: editor はメンバー一覧を閲覧できる (Issue #73)", async ({
+  page,
+}) => {
+  await setupEditorMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("editor@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  // メンバー一覧が表示される
+  await expect(page.getByTestId("members-list")).toBeVisible();
+  await expect(
+    page.getByTestId("members-list").getByText("editor@arcsphere3d.dev"),
+  ).toBeVisible();
+});
+
+test("MembersPanel: editor は追加フォームが非表示になる (Issue #73)", async ({
+  page,
+}) => {
+  await setupEditorMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("editor@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  // メンバー一覧は表示される
+  await expect(page.getByTestId("members-list")).toBeVisible();
+  // 追加フォームは非表示（owner のみ）
+  await expect(page.getByTestId("member-add-btn")).not.toBeVisible();
+  // 削除ボタンも非表示
+  await expect(page.getByTestId("member-remove-btn")).not.toBeVisible();
+});
