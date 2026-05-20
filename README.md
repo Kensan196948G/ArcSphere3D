@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                                          | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0006)                                              | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                                                  | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (96 pass)                                     | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (102 pass)                                    | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)                         | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s)                    | ✅ Done    |
 | 22  | 👥 Multi-owner model + last-owner protection (Issue #66)                          | ✅ Done    |
@@ -50,10 +50,12 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 26  | ✏️ Project rename UI — owner/editor がプロジェクト名変更                          | ✅ Done    |
 | 27  | 🔍 User lookup API — `GET /api/users/lookup?email=`                               | ✅ Done    |
 | 28  | 📧 MembersPanel UX — email 表示 + バリデーション + editor/viewer 閲覧 (Issue #73) | ✅ Done    |
-| 29  | 📐 Alignment 3D renderer — IP点クリック選択・3Dビュー連携 (Issue #76)             | ✅ Done    |
-| 30  | 📐 OpenCascade.js STEP/IGES CAD kernel integration                                | 🔮 Planned |
-| 31  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 32  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 29  | 📐 Alignment 3D renderer — IP点クリック選択・3Dビュー連携 (Issue #76, PR #78)     | 🔄 Review  |
+| 30  | 📂 FileLoader E2E — STL/GLB/STEP/IGES アップロードテスト (Issue #81)              | ✅ Done    |
+| 31  | 🔐 Files API RBAC — viewer/editor/non-member アクセス制御テスト (Issue #83)       | 🔄 Review  |
+| 32  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 33  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 34  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 ---
 
