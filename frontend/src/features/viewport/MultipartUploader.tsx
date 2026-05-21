@@ -9,7 +9,7 @@ import {
   completeMultipartUpload,
   initMultipartUpload,
 } from "../../lib/api";
-import { useAuthStore } from "../../state/uiStore";
+import { useAuthStore } from "../../state/authStore";
 
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB
 const MULTIPART_THRESHOLD = 200 * 1024 * 1024; // 200 MB

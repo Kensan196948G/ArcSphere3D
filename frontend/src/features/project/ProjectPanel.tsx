@@ -3,7 +3,8 @@ import { useAuthStore } from "@/state/authStore";
 import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
-import { getProjectStats, type ProjectStats } from "@/lib/api";
+import { getProjectStats, type FileMetadata, type ProjectStats } from "@/lib/api";
+import MultipartUploader, { MULTIPART_THRESHOLD } from "@/features/viewport/MultipartUploader";
 
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
@@ -65,10 +66,24 @@ export default function ProjectPanel() {
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size >= MULTIPART_THRESHOLD) {
+      log(`[project] ${file.name} は 200 MB を超えています — 大容量アップロードをご利用ください`);
+      e.target.value = "";
+      return;
+    }
     log(`[project] ${file.name} をアップロード中…`);
     const meta = await uploadFile(token, file);
     if (meta) log(`[project] ${meta.filename} のアップロード完了`);
     e.target.value = "";
+  }
+
+  function handleMultipartComplete(fileMeta: FileMetadata) {
+    log(`[project] ${fileMeta.filename} のアップロード完了 (multipart)`);
+    if (selectedProjectId) selectProject(token, selectedProjectId);
+  }
+
+  function handleMultipartError(msg: string) {
+    log(`[project] アップロードエラー: ${msg}`);
   }
 
   async function handleOpen(fileId: string, filename: string) {
@@ -242,6 +257,14 @@ export default function ProjectPanel() {
               accept=".stl,.obj,.gltf,.glb,.ifc,.step"
               onChange={handleUpload}
               className="hidden"
+            />
+          </div>
+
+          <div className="mb-2 mt-1">
+            <MultipartUploader
+              projectId={selectedProjectId}
+              onComplete={handleMultipartComplete}
+              onError={handleMultipartError}
             />
           </div>
 
