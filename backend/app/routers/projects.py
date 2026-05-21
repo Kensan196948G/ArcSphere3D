@@ -43,7 +43,15 @@ async def create_project(
     user: CurrentUser = CurrentUserDep,
 ) -> ProjectOut:
     db_user = await crud.upsert_user(session, user)
-    return await crud.create_project(session, db_user.id, body)
+    project = await crud.create_project(session, db_user.id, body)
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="project_create",
+        resource_type="project",
+        resource_id=str(project.id),
+    )
+    return project
 
 
 @router.get("/{project_id}", response_model=ProjectOut, responses={**_401, **_403, **_404})
@@ -111,6 +119,13 @@ async def delete_project(
     if role != "owner":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
     await crud.delete_project(session, project_id, db_user.id)
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="project_delete",
+        resource_type="project",
+        resource_id=str(project_id),
+    )
 
 
 @router.get(

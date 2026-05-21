@@ -75,10 +75,19 @@ async def add_member(
     user: CurrentUser = CurrentUserDep,
 ) -> MemberOut:
     """Add or update a member's role. Only the project owner may call this."""
+    db_user = await crud.upsert_user(session, user)
     await _require_owner(project_id, session, user)
     member = await crud.add_member(session, project_id, body.user_id, body.role)
     if member is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="member_add",
+        resource_type="project_member",
+        resource_id=str(project_id),
+        detail=f"user_id={body.user_id} role={body.role}",
+    )
     return member
 
 
@@ -94,6 +103,7 @@ async def remove_member(
     user: CurrentUser = CurrentUserDep,
 ) -> None:
     """Remove a member from a project. Only the project owner may call this."""
+    db_user = await crud.upsert_user(session, user)
     await _require_owner(project_id, session, user)
     result = await crud.remove_member(session, project_id, user_id)
     if result is None:
@@ -103,3 +113,11 @@ async def remove_member(
         )
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="member not found")
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="member_remove",
+        resource_type="project_member",
+        resource_id=str(project_id),
+        detail=f"removed_user_id={user_id}",
+    )
