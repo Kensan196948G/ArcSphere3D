@@ -463,6 +463,38 @@ export async function lookupUserByEmail(
   return handleResponse<UserLookupOut>(res);
 }
 
+// ---- Admin: Users ---------------------------------------------------------
+
+export interface UserOut {
+  id: string;
+  email: string;
+  role: "admin" | "editor" | "viewer";
+  created_at: string;
+}
+
+export async function listAdminUsers(
+  token: string,
+  skip = 0,
+  limit = 50,
+): Promise<UserOut[]> {
+  const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+  const res = await fetch(`${BASE}/admin/users?${params}`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<UserOut[]>(res);
+}
+
+export async function deleteAdminUser(token: string, userId: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
 // ---- Admin: Audit Logs ----------------------------------------------------
 
 export interface AuditLogOut {
