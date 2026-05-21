@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import AuditLogOut, CurrentUser, UserCreate, UserOut
+from app.schemas import AuditLogOut, CurrentUser, UserCreate, UserOut, UserRoleUpdate
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -135,3 +135,41 @@ async def delete_user(
         resource_id=str(user_id),
     )
     await db.commit()
+
+
+@router.patch(
+    "/users/{user_id}/role",
+    response_model=UserOut,
+    responses={
+        401: {"description": "missing bearer token"},
+        403: {"description": "admin role required or attempting self-demotion"},
+        404: {"description": "user not found"},
+    },
+)
+async def update_user_role(
+    user_id: UUID,
+    body: UserRoleUpdate,
+    db: DbDep,
+    current: Annotated[CurrentUser, AdminDep],
+) -> UserOut:
+    """Change a user's role. Admin cannot demote themselves."""
+    target = await crud.get_user_by_id(db, user_id)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    if target.email == current.sub and body.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="cannot demote your own admin role",
+        )
+    result = await crud.update_user_role(db, user_id=user_id, new_role=body.role)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    await crud.log_audit_event(
+        db,
+        action="user_role_changed",
+        resource_type="user",
+        resource_id=str(user_id),
+        detail=f"role changed to {body.role}",
+    )
+    await db.commit()
+    return result
