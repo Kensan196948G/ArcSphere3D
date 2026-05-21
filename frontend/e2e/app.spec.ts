@@ -367,6 +367,20 @@ test("LeftMenu: モデルパネルに切り替わる", async ({ page }) => {
   await expect(page.getByRole("button", { name: "拡縮" })).toBeVisible();
 });
 
+test("ModelPanel: 未選択時はフォーカスボタンが非表示で F キーが no-op", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "モデル" }).click();
+  // 選択中オブジェクトなし → focus-btn は描画されない (条件レンダリング)
+  await expect(page.getByTestId("focus-btn")).toHaveCount(0);
+  // F キーを押しても落ちない (selectedId === null の no-op パス)
+  await page.keyboard.press("f");
+  await expect(
+    page.getByRole("heading", { name: "モデル", exact: true }),
+  ).toBeVisible();
+});
+
 test("LeftMenu: 設定パネルに切り替わる", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "設定" }).click();

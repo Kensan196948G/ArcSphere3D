@@ -20,8 +20,10 @@ interface ViewportState {
   setGridSize: (n: number) => void;
   resetCamera: () => void;
   setCameraPreset: (preset: CameraPreset) => void;
+  focusObject: () => void;
   _cameraResetCount: number;
   _cameraPreset: CameraPreset;
+  _focusCount: number;
 }
 
 export const useViewportStore = create<ViewportState>()(
@@ -36,6 +38,7 @@ export const useViewportStore = create<ViewportState>()(
       gridSize: 20,
       _cameraResetCount: 0,
       _cameraPreset: "perspective",
+      _focusCount: 0,
       toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
       toggleAxes: () => set((s) => ({ showAxes: !s.showAxes })),
       toggleWireframe: () => set((s) => ({ wireframe: !s.wireframe })),
@@ -53,6 +56,7 @@ export const useViewportStore = create<ViewportState>()(
           _cameraResetCount: s._cameraResetCount + 1,
           _cameraPreset: preset,
         })),
+      focusObject: () => set((s) => ({ _focusCount: s._focusCount + 1 })),
     }),
     {
       name: "arcsphere-viewport",
