@@ -26,7 +26,11 @@ def _auth(token: str) -> dict[str, str]:
 def _create_target_user(admin_token: str) -> str:
     res = client.post(
         "/api/admin/users",
-        json={"email": "reset-target@arcsphere3d.dev", "password": "original-pw-1", "role": "viewer"},  # noqa: E501
+        json={
+            "email": "reset-target@arcsphere3d.dev",
+            "password": "original-pw-1",
+            "role": "viewer",
+        },  # noqa: E501
         headers=_auth(admin_token),
     )
     assert res.status_code == 201, res.text
