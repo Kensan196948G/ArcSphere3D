@@ -1,0 +1,102 @@
+name: E2E Integration (Docker Compose + Playwright)
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-integration:
+    name: e2e-integration (real API + DB + MinIO)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build + start test stack (DB + MinIO + backend)
+        run: docker compose -f docker/docker-compose.test.yml up -d --build --wait
+        timeout-minutes: 15
+
+      - name: Wait for backend healthz
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/healthz)
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend healthy after $i attempts"
+              break
+            fi
+            echo "Attempt $i: got $STATUS, retrying..."
+            sleep 3
+          done
+          curl -f http://localhost:8001/healthz
+
+      - name: Verify readyz (DB + S3)
+        run: |
+          BODY=$(curl -sf http://localhost:8001/readyz)
+          echo "$BODY"
+          echo "$BODY" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          assert d['status'] == 'ready', f'status not ready: {d}'
+          assert d['db'] == 'ok', f'db not ok: {d}'
+          print('readyz OK')
+          "
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Build frontend (production dist)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps firefox
+
+      - name: Run integration E2E tests
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:4173
+          E2E_API_URL: http://localhost:8001
+        run: |
+          npx serve -l 4173 dist &
+          SERVE_PID=$!
+          sleep 3
+          npx playwright test --config=playwright.config.integration.ts
+          kill $SERVE_PID || true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-integration-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright traces
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-integration-traces
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker/docker-compose.test.yml down -v

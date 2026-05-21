@@ -81,3 +81,4 @@ frontend/public/web-ifc/
 .LSOverride
 ehthumbs.db
 Desktop.ini
+.github/workflows/e2e-integration.yml
