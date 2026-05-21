@@ -10,8 +10,8 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Session 2026-05-21 終了 (21:25 JST): 10 PR Ready+green、人間 merge 承認待ち。merge_train=#112/#114/#116/#118/#120/#122/#123/#124, bookkeeping=#125 (state) + #126 (README docs)。GitHub Projects 未作成。",
-  "phase": "Build",
+  "goal": "Session 2026-05-21 完了 (post-merge): 承認済み 10 PR squash merge 完遂 (#127→#126→#123→#124→#112→#122→#114→#116→#118→#120)。app.spec.ts hot-spot で 4 段 rebase cascade を解消、main に全 feature 取り込み。merge_train キュー空、次は Quality phase (Issues #128-#131)。",
+  "phase": "Verify",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -56,13 +56,13 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Verify",
-    "last_session_summary": "Session 2026-05-21 完了: PR #102/#104/#106/#109 merged。新規 Ready 8 PR (#112/#114/#116/#118/#120/#122/#123/#124) 全 CI green + Codex/CodeRabbit pass、人間 merge 承認待ち。docs/state 分離で PR #125 (chore/state-2026-05-21) + PR #126 (docs/readme-2026-05-21) 作成。E2E 116→120、backend pytest 130→145。GitHub Projects は ArcSphere3D 用未作成 (27 project 検索済み、none match)。Memory 3 件追加: codex review scope leakage / PR scope separation / merge train queue。",
+    "last_session_summary": "Session 2026-05-21 (post-merge) 完了: 承認済み 10 PR を squash merge 完遂 (#127→#126→#123→#124→#112→#122→#114→#116→#118→#120)。merge_train cascade 4 段 (#116/#118/#120/#114) で frontend/e2e/app.spec.ts の test 末尾 hot-spot で同一パターン conflict が発生、いずれも単一 Edit で full-region 置換して解消。最終 main は 9 feature + 1 docs を取り込み。backend CI 各 ~16min、frontend/e2e ~2min。GitHub Projects 未作成 (user 領域)。merge_train キュー空、次は Quality phase (Issues #128-#131)。Memory 追加候補: app.spec.ts append hot-spot / test.describe() グルーピング推奨。",
     "current_session_start_at": "2026-05-21T12:16:44.815Z",
     "session_soft_deadline": "2026-05-22T00:00:00+09:00",
     "session_hard_deadline": "2026-05-22T00:30:00+09:00",
     "last_trigger": "manual",
     "last_cron_session_id": "20260521-020011-ArcSphere3D",
-    "last_stop_at": "2026-05-21T11:37:30.969Z"
+    "last_stop_at": "2026-05-21T14:41:36.000Z"
   },
   "automation": {
     "auto_issue_generation": true,
