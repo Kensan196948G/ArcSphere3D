@@ -15,7 +15,8 @@ export type PanelId =
   | "earthwork"
   | "alignment"
   | "cad"
-  | "members";
+  | "members"
+  | "admin";
 
 interface UiState {
   activePanel: PanelId;

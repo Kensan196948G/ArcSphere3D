@@ -387,6 +387,36 @@ export async function lookupUserByEmail(
   return handleResponse<UserLookupOut>(res);
 }
 
+// ---- Admin: Audit Logs ----------------------------------------------------
+
+export interface AuditLogOut {
+  id: string;
+  user_id: string | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  ip_address: string | null;
+  detail: string | null;
+  created_at: string;
+}
+
+export async function listAuditLogs(
+  token: string,
+  skip = 0,
+  limit = 20,
+  action?: string,
+): Promise<AuditLogOut[]> {
+  const params = new URLSearchParams({
+    skip: String(skip),
+    limit: String(limit),
+  });
+  if (action) params.set("action", action);
+  const res = await fetch(`${BASE}/admin/audit-logs?${params}`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<AuditLogOut[]>(res);
+}
+
 // ---- Project stats --------------------------------------------------------
 
 export interface ProjectStats {
