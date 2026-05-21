@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuthStore } from "@/state/authStore";
 import { useUiStore } from "@/state/uiStore";
+import { notifySuccess } from "@/state/notificationStore";
 
 interface Props {
   onClose: () => void;
@@ -20,6 +21,7 @@ export default function LoginModal({ onClose }: Props) {
     setLoading(true);
     try {
       await login(email, password);
+      notifySuccess("ログインしました");
       setActivePanel("project");
       onClose();
     } catch (err) {

@@ -2597,3 +2597,14 @@ test.describe("SettingsPanel: パスワード変更", () => {
     await expect(page.getByText("パフォーマンス")).toBeVisible();
   });
 });
+
+// ---- Toaster — グローバル Toast 通知 (Issue #154) ----------------------------
+
+test.describe("Toaster", () => {
+  test("toast-container は初期状態で DOM に存在しない (Issue #154)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.locator('[data-testid="toast-container"]')).not.toBeVisible();
+  });
+});

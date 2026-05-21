@@ -5,6 +5,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { useUiStore } from "@/state/uiStore";
 import LoginModal from "@/features/auth/LoginModal";
 import { parseJwtPayload } from "@/lib/api";
+import { notifyInfo } from "@/state/notificationStore";
 
 export default function Header() {
   const objectCount = useSceneStore((s) => s.objects.length);
@@ -18,6 +19,7 @@ export default function Header() {
 
   function handleLogout() {
     logout();
+    notifyInfo("ログアウトしました");
     setActivePanel("model");
   }
 
