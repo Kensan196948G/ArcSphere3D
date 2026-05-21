@@ -724,3 +724,17 @@ async def delete_user(session: AsyncSession, user_id: UUID) -> bool:
         return False
     await session.delete(user)
     return True
+
+
+async def update_user_role(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    new_role: str,
+) -> UserOut | None:
+    """Update the role for *user_id*. Returns None if user not found. Caller commits."""
+    user = await get_user_by_id(session, user_id)
+    if user is None:
+        return None
+    await session.execute(update(User).where(User.id == user_id).values(role=new_role))
+    return UserOut(id=user.id, email=user.email, role=new_role, created_at=user.created_at)

@@ -44,6 +44,10 @@ class UserOut(BaseModel):
     created_at: datetime
 
 
+class UserRoleUpdate(BaseModel):
+    role: str = Field(pattern="^(admin|editor|viewer)$")
+
+
 # NUL bytes (\x00) cannot be stored in PostgreSQL text columns.
 # Excluding them at the schema layer prevents psycopg.DataError at the DB layer
 # and keeps schemathesis-generated examples within the valid input domain.
