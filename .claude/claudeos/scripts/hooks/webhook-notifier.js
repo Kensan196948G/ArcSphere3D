@@ -207,10 +207,10 @@ async function notify(event, data = {}) {
     ...data,
   };
 
-  const teamsUrl   = process.env.TEAMS_WEBHOOK_URL   || "";
-  const httpsUrl   = process.env.HTTPS_WEBHOOK_URL   || "";
+  const teamsUrl    = process.env.TEAMS_WEBHOOK_URL   || "";
+  const httpsUrl    = process.env.HTTPS_WEBHOOK_URL   || "";
   const httpsSecret = process.env.HTTPS_WEBHOOK_SECRET || "";
-  const slackUrl   = process.env.SLACK_WEBHOOK_URL   || "";
+  const slackUrl    = process.env.SLACK_WEBHOOK_URL   || "";
 
   const errors = [];
 
@@ -238,7 +238,7 @@ async function notify(event, data = {}) {
 module.exports = { notify };
 
 // ---------- CLI テスト実行 ----------
-// node webhook-notifier.js stable_achieved '{"version":"v3.2.110","pr":265}'
+// node webhook-notifier.js stable_achieved '{"version":"v3.2.111","pr":265}'
 
 if (require.main === module) {
   const event = process.argv[2] || "stable_achieved";

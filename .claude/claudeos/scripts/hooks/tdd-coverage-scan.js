@@ -1,8 +1,23 @@
 #!/usr/bin/env node
 /**
  * tdd-coverage-scan.js (ClaudeOS v8.2.3+)
- * 「変更されたソースに対応するテストファイルが存在するか」を粗く検査し、
- * 未テスト変更が見つかれば state.warnings へ kind="tdd_required" を追記する。
+ *
+ * 「変更されたソースに対応するテストファイルが存在するか」を粗く検査する。
+ * AST 解析ではなく、ファイル名規約ベース（軽量・言語非依存）。
+ *
+ * 検出した未テスト変更は state.warnings へ kind="tdd_required" として追記する。
+ * 次セッションのメイン Claude が warning を読んで /tdd または tdd-guide agent を起動する想定。
+ *
+ * 検査対象（cwd 配下の git diff --name-only HEAD~1..HEAD で取得）:
+ *   - .js / .ts / .tsx / .py / .go / .rb / .rs / .java / .cs / .php
+ *
+ * 対応テスト命名規約（いずれかが見つかれば「テスト有り」と判定）:
+ *   foo.js        → foo.test.js / foo.spec.js / __tests__/foo.js / tests/foo.test.js
+ *   foo.py        → test_foo.py / tests/test_foo.py / foo_test.py
+ *   foo.go        → foo_test.go
+ *   foo.rs        → tests/<basename>.rs
+ *
+ * fail-soft: git が無い・diff が空・除外設定された場合は黙って 0 件で終了する。
  */
 
 "use strict";

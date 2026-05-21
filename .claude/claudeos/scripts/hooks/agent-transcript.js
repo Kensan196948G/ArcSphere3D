@@ -1,28 +1,69 @@
 #!/usr/bin/env node
 /**
  * agent-transcript.js (ClaudeOS v8.2.5+) — PostToolUse(Agent) hook
+ *
  * SubAgent 起動時の prompt と結果を Markdown ファイルに時系列記録する。
+ * メインの Claude と各 SubAgent の会話を可視化するための「議事録」。
+ *
  * 出力先: reports/agent-transcripts/<session-date>.md
+ * 形式  : Markdown（GitHub / VSCode preview で読める）
+ *
+ * 環境変数:
+ *   CLAUDEOS_DISABLE_TRANSCRIPT=1 で停止
+ *   CLAUDEOS_TRANSCRIPT_MAX_BYTES=200000 で 1 entry 最大 byte 数（既定 200KB）
+ *
+ * 設計判断:
+ *   - usage-tracker と並列で動く。集計と全文保存は責務分離
+ *   - 1 セッション = 1 ファイルにまとめる。日付＋セッション開始時刻でファイル名
+ *   - prompt / result は両方を保存。長文は MAX_BYTES で切り詰める
+ *   - fail-soft: hook 失敗時もメイン処理を止めない
  */
+
 "use strict";
+
 const fs = require("fs");
 const path = require("path");
+
 if (process.env.CLAUDEOS_DISABLE_TRANSCRIPT === "1") process.exit(0);
+
 const MAX_BYTES = Number(process.env.CLAUDEOS_TRANSCRIPT_MAX_BYTES || 200000);
 
 const AGENT_ICONS = {
-  cto: "👔", architect: "🏛️", developer: "💻", qa: "🧪",
-  security: "🔒", "security-reviewer": "🔒",
-  reviewer: "🔍", "code-reviewer": "🔍",
-  debugger: "🐛", devops: "⚙️", ops: "⚙️",
-  analyst: "📊", productmanager: "📋", "product-manager": "📋",
-  evolutionmanager: "🧬", releasemanager: "🚀", "release-manager": "🚀",
-  "performance-reviewer": "⚡", "e2e-runner": "🎭", "tdd-guide": "🧪",
-  explore: "🔭", "general-purpose": "🤖", "claude-code-guide": "📘", plan: "🗺️",
+  cto: "👔",
+  architect: "🏛️",
+  developer: "💻",
+  qa: "🧪",
+  security: "🔒",
+  "security-reviewer": "🔒",
+  reviewer: "🔍",
+  "code-reviewer": "🔍",
+  debugger: "🐛",
+  devops: "⚙️",
+  ops: "⚙️",
+  analyst: "📊",
+  productmanager: "📋",
+  "product-manager": "📋",
+  evolutionmanager: "🧬",
+  releasemanager: "🚀",
+  "release-manager": "🚀",
+  "performance-reviewer": "⚡",
+  "e2e-runner": "🎭",
+  "tdd-guide": "🧪",
+  explore: "🔭",
+  "general-purpose": "🤖",
+  "claude-code-guide": "📘",
+  plan: "🗺️",
 };
 
-function readJson(f) { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return null; } }
-function iconOf(n) { return AGENT_ICONS[String(n || "").toLowerCase()] || "🤖"; }
+function readJson(file) {
+  try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; }
+}
+
+function iconOf(name) {
+  const k = String(name || "").toLowerCase();
+  return AGENT_ICONS[k] || "🤖";
+}
+
 function truncate(s, max) {
   if (typeof s !== "string") s = JSON.stringify(s ?? "");
   if (Buffer.byteLength(s, "utf8") <= max) return s;
@@ -33,7 +74,7 @@ function sessionFile() {
   const cwd = process.cwd();
   const state = readJson(path.join(cwd, "state.json")) || {};
   const start = (state.execution || {}).current_session_start_at || new Date().toISOString();
-  const safe = start.replace(/[:.]/g, "-").slice(0, 19);
+  const safe = start.replace(/[:.]/g, "-").slice(0, 19); // YYYY-MM-DDTHH-MM-SS
   const dir = path.join(cwd, "reports", "agent-transcripts");
   fs.mkdirSync(dir, { recursive: true });
   return path.join(dir, `${safe}.md`);
@@ -66,13 +107,24 @@ function ensureHeader(file) {
 function appendEntry(file, entry) {
   ensureHeader(file);
   const block = [
-    `## ${entry.icon} ${entry.agent} — ${entry.timestamp}`, "",
-    `**📌 説明**: ${entry.description || "(no description)"}`, "",
-    "### 📥 Prompt", "",
-    "```", truncate(entry.prompt || "(empty)", MAX_BYTES), "```", "",
-    "### 📤 Result", "",
-    "```", truncate(entry.result || "(empty)", MAX_BYTES), "```", "",
-    "---", "",
+    `## ${entry.icon} ${entry.agent} — ${entry.timestamp}`,
+    "",
+    `**📌 説明**: ${entry.description || "(no description)"}`,
+    "",
+    "### 📥 Prompt",
+    "",
+    "```",
+    truncate(entry.prompt || "(empty)", MAX_BYTES),
+    "```",
+    "",
+    "### 📤 Result",
+    "",
+    "```",
+    truncate(entry.result || "(empty)", MAX_BYTES),
+    "```",
+    "",
+    "---",
+    "",
   ].join("\n");
   fs.appendFileSync(file, block, "utf8");
 }
@@ -84,16 +136,20 @@ process.stdin.on("end", () => {
     const hookData = JSON.parse(input || "{}");
     const toolName = (hookData.tool_name || hookData.tool || "").toLowerCase();
     if (!toolName.includes("agent")) process.exit(0);
+
     const toolInput  = hookData.tool_input  || hookData.input  || {};
     const toolResult = hookData.tool_response || hookData.tool_result || hookData.response || "";
+
     const agent = toolInput.subagent_type || "general-purpose";
     const entry = {
       timestamp: new Date().toISOString(),
-      agent, icon: iconOf(agent),
+      agent,
+      icon: iconOf(agent),
       description: toolInput.description || "",
       prompt: toolInput.prompt || "",
       result: typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult ?? "", null, 2),
     };
+
     const file = sessionFile();
     appendEntry(file, entry);
     console.log(`[AgentTranscript] ${entry.icon} ${entry.agent} → ${path.basename(file)}`);
@@ -102,4 +158,5 @@ process.stdin.on("end", () => {
   }
   process.exit(0);
 });
+
 if (process.stdin.isTTY) process.exit(0);

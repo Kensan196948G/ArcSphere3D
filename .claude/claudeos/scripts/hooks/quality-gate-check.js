@@ -10,6 +10,10 @@
 // state.json:
 //   - state.quality_gates で閾値を上書き可
 //   - 未定義時は既定値（warning 10 / error 0 / coverage 70 / changed 80）
+//
+// 設計判断: 言語ごとの lint / coverage 実行コマンドは多様すぎるので、本 hook は
+// 「集計済み JSON を読むだけ」に徹し、生成は Verify ループ側の責務とする。
+// 集計 JSON が無い場合は黙ってスキップする（noisy false positive を避ける）。
 
 "use strict";
 
@@ -43,10 +47,18 @@ function evaluate(cwd, state) {
   const lint = readJson(lintFile);
   if (lint) {
     if (Number(lint.errors || 0) > t.lint.error_threshold) {
-      breaches.push({ gate: "lint_error", observed: Number(lint.errors), threshold: t.lint.error_threshold });
+      breaches.push({
+        gate: "lint_error",
+        observed: Number(lint.errors),
+        threshold: t.lint.error_threshold,
+      });
     }
     if (Number(lint.warnings || 0) > t.lint.warning_threshold) {
-      breaches.push({ gate: "lint_warning", observed: Number(lint.warnings), threshold: t.lint.warning_threshold });
+      breaches.push({
+        gate: "lint_warning",
+        observed: Number(lint.warnings),
+        threshold: t.lint.warning_threshold,
+      });
     }
   }
 
@@ -54,11 +66,19 @@ function evaluate(cwd, state) {
   if (cov) {
     const line = Number(cov.line);
     if (!Number.isNaN(line) && line < t.coverage.line_min) {
-      breaches.push({ gate: "coverage_line", observed: line, threshold: t.coverage.line_min });
+      breaches.push({
+        gate: "coverage_line",
+        observed: line,
+        threshold: t.coverage.line_min,
+      });
     }
     const changed = Number(cov.changed_files);
     if (!Number.isNaN(changed) && changed < t.coverage.changed_files_min) {
-      breaches.push({ gate: "coverage_changed_files", observed: changed, threshold: t.coverage.changed_files_min });
+      breaches.push({
+        gate: "coverage_changed_files",
+        observed: changed,
+        threshold: t.coverage.changed_files_min,
+      });
     }
   }
 
@@ -79,6 +99,7 @@ function appendWarnings(state, breaches) {
 
 module.exports = { evaluate, appendWarnings, getThresholds, DEFAULTS };
 
+// 単独実行（手動テスト用）
 if (require.main === module) {
   const cwd = process.cwd();
   const stateFile = path.join(cwd, "state.json");

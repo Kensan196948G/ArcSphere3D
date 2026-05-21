@@ -10,8 +10,8 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Issue #87-#108 実装完了 — E2E 116+、PR #88-#100 merged。PR #102/#104/#106/#109 CI 通過後マージ予定",
-  "phase": "Verify",
+  "goal": "Issue #101-#116 実装完了 — E2E 122+、PR #102/#104/#106/#109 merged。PR #112/#114/#116/#118 CI 中",
+  "phase": "Build",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -38,7 +38,13 @@
     "blocker_count": 0
   },
   "schedule": {
-    "days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ],
     "start_time": "02:00",
     "duration_minutes": 240,
     "timezone": "Asia/Tokyo",
@@ -50,13 +56,13 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Verify",
-    "last_session_summary": "Build session 2026-05-21 final: PR #88/#90/#92/#94/#96/#98/#100 merged. E2E 105→116 (+11). Backend 135→140 (PR #98). Created: PR #102 (file rename), #104 (screenshot), #106 (console export+measure clipboard), #109 (scene clearAll). Next session: PR #102/#104/#106/#109 CI 完了後マージ。",
-    "current_session_start_at": "2026-05-20T17:00:11.000Z",
-    "session_soft_deadline": "2026-05-20T20:30:00+09:00",
-    "session_hard_deadline": "2026-05-20T21:00:00+09:00",
-    "last_trigger": "cron",
+    "last_session_summary": "Build session 2026-05-21: PR #102 (file rename schemathesis 400 fix), #104 (screenshot), #106 (clipboard+console), #109 (scene clear) merged. New: PR #112 (grid/axes testid+color picker), #114 (shortcuts), #116 (scene filter), #118 (header user email). E2E 120→122+.",
+    "current_session_start_at": "2026-05-21T11:46:01.834Z",
+    "session_soft_deadline": "2026-05-22T00:00:00+09:00",
+    "session_hard_deadline": "2026-05-22T00:30:00+09:00",
+    "last_trigger": "manual",
     "last_cron_session_id": "20260521-020011-ArcSphere3D",
-    "last_stop_at": ""
+    "last_stop_at": "2026-05-21T11:37:30.969Z"
   },
   "automation": {
     "auto_issue_generation": true,
@@ -185,6 +191,14 @@
     ],
     "success_patterns": [
       {
+        "at": "2026-05-21T11:37:30.978Z",
+        "summary": "Build session 2026-05-21: PR #102 (file rename schemathesis 400 fix), #104 (screenshot), #106 (clipboard+console), #109 (scene clear) merged. New: PR #112 (grid/axes testid+color picker), #114 (shortc"
+      },
+      {
+        "at": "2026-05-20T20:47:46.959Z",
+        "summary": "Build session 2026-05-21: PR #102 (file rename schemathesis 400 fix), #104 (screenshot), #106 (clipboard+console), #109 (scene clear) merged. New: PR #112 (grid/axes testid+color picker), #114 (shortc"
+      },
+      {
         "at": "2026-05-19T17:52:11.583Z",
         "summary": "Build session 2026-05-19: Issue #66 (multi-owner model + last-owner protection) — create_project now auto-adds owner to project_members; count_owners(); remove_member returns None→409 for last owner; "
       },
@@ -275,12 +289,19 @@
       "Uvicorn",
       "bcrypt 4.x direct"
     ],
-    "storage": ["PostgreSQL 16", "MinIO", "Redis 7"],
+    "storage": [
+      "PostgreSQL 16",
+      "MinIO",
+      "Redis 7"
+    ],
     "auth": [
       "JWT RS256 (asymmetric keypair, ADR-0003)",
       "OAuth2 / Microsoft Entra ID SSO (post-MVP)"
     ],
-    "infra": ["Docker Compose (MVP)", "Kubernetes (future ADR-0003)"],
+    "infra": [
+      "Docker Compose (MVP)",
+      "Kubernetes (future ADR-0003)"
+    ],
     "ci": [
       "GitHub Actions",
       "CodeQL",
@@ -309,7 +330,7 @@
     "resume_note": "Session 2026-05-21: E2E 90→107+, backend 177→197, PR #78/#79/#80/#82/#84/#86 merged. PR #88/#90 in review. Issues #87/#89 in progress."
   },
   "compact": {
-    "last_pre_compact_at": "2026-05-18T06:45:30.588Z"
+    "last_pre_compact_at": "2026-05-21T11:44:18.347Z"
   },
   "dreaming": {
     "patterns": [],
@@ -324,7 +345,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T09:16:43.784Z",
@@ -348,7 +373,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T09:19:11.108Z",
@@ -372,7 +401,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T09:28:56.693Z",
@@ -397,7 +430,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T10:04:29.686Z",
@@ -431,7 +468,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T12:22:15.390Z",
@@ -465,7 +506,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T12:24:24.686Z",
@@ -499,7 +544,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T12:27:00.686Z",
@@ -601,6 +650,63 @@
         "frontend/src/lib/api.ts",
         "frontend/src/state/projectStore.ts",
         "frontend/src/state/uiStore.ts"
+      ],
+      "truncated": false
+    },
+    {
+      "at": "2026-05-20T20:47:46.947Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
+    },
+    {
+      "at": "2026-05-20T20:47:46.958Z",
+      "kind": "tdd_required",
+      "message": "テスト未整備の変更が 9 件あります。/tdd または tdd-guide agent で対応してください。",
+      "files": [
+        "backend/app/routers/files.py",
+        "backend/app/schemas.py",
+        "backend/tests/test_files.py",
+        "frontend/src/app/layout/BottomConsole.tsx",
+        "frontend/src/features/measure/MeasurePanel.tsx",
+        "frontend/src/features/model/ModelPanel.tsx",
+        "frontend/src/features/viewport/ViewportToolbar.tsx",
+        "frontend/src/features/viewport/useThreeScene.ts",
+        "frontend/src/state/sceneStore.ts"
+      ],
+      "truncated": false
+    },
+    {
+      "at": "2026-05-21T11:37:30.969Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
+    },
+    {
+      "at": "2026-05-21T11:37:30.978Z",
+      "kind": "tdd_required",
+      "message": "テスト未整備の変更が 10 件あります。/tdd または tdd-guide agent で対応してください。",
+      "files": [
+        "backend/app/routers/files.py",
+        "backend/app/schemas.py",
+        "backend/tests/test_files.py",
+        "frontend/src/app/layout/BottomConsole.tsx",
+        "frontend/src/features/measure/MeasurePanel.tsx",
+        "frontend/src/features/model/ModelPanel.tsx",
+        "frontend/src/features/viewport/ViewportToolbar.tsx",
+        "frontend/src/features/viewport/useThreeScene.ts",
+        "frontend/src/state/sceneStore.ts",
+        "frontend/src/state/viewportStore.ts"
       ],
       "truncated": false
     }
