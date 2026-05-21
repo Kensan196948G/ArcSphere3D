@@ -493,6 +493,20 @@ export async function listAuditLogs(
   return handleResponse<AuditLogOut[]>(res);
 }
 
+// ---- Admin: Dashboard Stats -----------------------------------------------
+
+export interface AdminStats {
+  total_users: number;
+  total_projects: number;
+  total_files: number;
+  total_audit_events: number;
+}
+
+export async function getAdminStats(token: string): Promise<AdminStats> {
+  const res = await fetch(`${BASE}/admin/stats`, { headers: authHeaders(token) });
+  return handleResponse<AdminStats>(res);
+}
+
 // ---- Project stats --------------------------------------------------------
 
 export interface ProjectStats {
