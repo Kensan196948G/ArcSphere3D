@@ -14,6 +14,7 @@ from app.models.alignment import (
     VerticalAlignment,
     VerticalAlignmentVip,
 )
+from app.models.audit_log import AuditLog
 from app.models.file import File
 from app.models.project import Project
 from app.models.project_member import ProjectMember
@@ -21,6 +22,7 @@ from app.models.user import User
 from app.schemas import (
     AlignmentCreate,
     AlignmentOut,
+    AuditLogOut,
     CurrentUser,
     FileMetadata,
     IpPointCreate,
@@ -581,3 +583,58 @@ async def get_project_stats(session: AsyncSession, project_id: UUID) -> ProjectS
         vertical_count=vertical_count,
         member_count=member_count,
     )
+
+
+# ---- Audit Logs ----
+
+
+async def log_audit_event(
+    session: AsyncSession,
+    *,
+    action: str,
+    user_id: UUID | None = None,
+    resource_type: str | None = None,
+    resource_id: str | None = None,
+    ip_address: str | None = None,
+    detail: str | None = None,
+) -> None:
+    """Append a single audit event row (fire-and-forget; caller commits)."""
+    entry = AuditLog(
+        user_id=user_id,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        ip_address=ip_address,
+        detail=detail,
+    )
+    session.add(entry)
+
+
+async def list_audit_logs(
+    session: AsyncSession,
+    *,
+    skip: int = 0,
+    limit: int = 100,
+    user_id: UUID | None = None,
+    action: str | None = None,
+) -> list[AuditLogOut]:
+    """Return audit log entries, newest first. Owner/admin only — callers must check RBAC."""
+    stmt = select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit)
+    if user_id is not None:
+        stmt = stmt.where(AuditLog.user_id == user_id)
+    if action is not None:
+        stmt = stmt.where(AuditLog.action == action)
+    result = await session.execute(stmt)
+    return [
+        AuditLogOut(
+            id=r.id,
+            user_id=r.user_id,
+            action=r.action,
+            resource_type=r.resource_type,
+            resource_id=r.resource_id,
+            ip_address=r.ip_address,
+            detail=r.detail,
+            created_at=r.created_at,
+        )
+        for r in result.scalars().all()
+    ]

@@ -155,6 +155,18 @@ class MemberOut(BaseModel):
     created_at: datetime
 
 
+# ---- Audit Logs ----
+class AuditLogOut(BaseModel):
+    id: UUID
+    user_id: UUID | None
+    action: str
+    resource_type: str | None
+    resource_id: str | None
+    ip_address: str | None
+    detail: str | None
+    created_at: datetime
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str

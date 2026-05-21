@@ -11,6 +11,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import get_settings
+from app.db import crud
+from app.deps import CurrentUserDep, DbDep
 from app.ratelimit import SimpleRateLimiter
 from app.schemas import CurrentUser, LoginRequest, TokenResponse
 from app.security import create_access_token, get_public_key_jwk, hash_password, verify_password
@@ -48,7 +50,7 @@ def jwks() -> dict[str, Any]:
         429: {"description": "too many requests — rate limit exceeded"},
     },
 )
-def login(request: Request, payload: LoginRequest) -> TokenResponse:
+async def login(request: Request, payload: LoginRequest, db: DbDep) -> TokenResponse:
     client_ip = request.client.host if request.client else "unknown"
     if not _login_limiter.is_allowed(client_ip):
         raise HTTPException(
@@ -58,6 +60,14 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
         )
     user = _DEMO_USERS.get(payload.email)
     if not user or not verify_password(payload.password, user["password_hash"]):
+        await crud.log_audit_event(
+            db,
+            action="login_failed",
+            resource_type="user",
+            resource_id=payload.email,
+            ip_address=client_ip,
+        )
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid credentials",
@@ -66,6 +76,14 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
         subject=payload.email,
         extra={"email": payload.email, "role": user["role"]},
     )
+    await crud.log_audit_event(
+        db,
+        action="login_success",
+        resource_type="user",
+        resource_id=payload.email,
+        ip_address=client_ip,
+    )
+    await db.commit()
     s = get_settings()
     return TokenResponse(
         access_token=token,
@@ -81,12 +99,18 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
         401: {"description": "invalid or missing token"},
     },
 )
-def refresh(current: CurrentUser) -> TokenResponse:  # pragma: no cover - scaffold
-    # TODO(post-MVP): rotate refresh tokens via httpOnly cookie.
+async def refresh(db: DbDep, current: CurrentUser = CurrentUserDep) -> TokenResponse:
     token = create_access_token(
         subject=current.sub,
         extra={"email": current.email, "role": current.role},
     )
+    await crud.log_audit_event(
+        db,
+        action="token_refreshed",
+        resource_type="user",
+        resource_id=current.sub,
+    )
+    await db.commit()
     s = get_settings()
     return TokenResponse(
         access_token=token,
