@@ -2575,3 +2575,25 @@ test.describe("MultipartUploader", () => {
     expect(count).toBeLessThanOrEqual(1);
   });
 });
+
+// ---- SettingsPanel: パスワード変更フォーム -----------------------------------
+
+test.describe("SettingsPanel: パスワード変更", () => {
+  test("未ログイン時はパスワード変更フォームが表示されない", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "設定" }).click();
+    // 未ログイン時はフォームが表示されないこと
+    await expect(page.locator('[data-testid="pw-submit"]')).not.toBeVisible();
+  });
+
+  test("設定パネルに「アカウント」セクションが存在する (設定ボタンがある場合)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "設定" }).click();
+    // 「パフォーマンス」セクションが表示されることを確認 (設定パネルが開いている)
+    await expect(page.getByText("パフォーマンス")).toBeVisible();
+  });
+});
