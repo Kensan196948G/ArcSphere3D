@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                                          | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0006)                                              | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                                                  | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (116 pass)                                    | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (120+ pass)                                   | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)                         | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s)                    | ✅ Done    |
 | 22  | 👥 Multi-owner model + last-owner protection (Issue #66)                          | ✅ Done    |
@@ -61,13 +61,23 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 37  | ⌨️ Delete/Backspace キーで選択オブジェクト削除 (Issue #95)                        | ✅ Done    |
 | 38  | 📊 GET /api/projects/{id}/stats — 統計 API (Issue #97)                            | ✅ Done    |
 | 39  | 📊 ProjectPanel 統計バッジ表示 (Issue #99)                                        | ✅ Done    |
-| 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API (Issue #101)                        | 🔄 CI中    |
-| 41  | 📷 Viewport スクリーンショット保存 (Issue #103)                                   | 🔄 CI中    |
-| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー (Issue #105/#107)                | 🔄 CI中    |
-| 43  | 🗑️ シーン全削除ボタン + clearScene (Issue #108)                                   | 🔄 CI中    |
-| 44  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 45  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 46  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API (Issue #101)                        | ✅ Done    |
+| 41  | 📷 Viewport スクリーンショット保存 (Issue #103)                                   | ✅ Done    |
+| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー (Issue #105/#107)                | ✅ Done    |
+| 43  | 🗑️ シーン全削除ボタン + clearScene (Issue #108)                                   | ✅ Done    |
+| 44  | 🗺️ Grid/Axes トグル + Grid color picker (Issue #111, PR #112)                     | 🟡 Ready   |
+| 45  | ⌨️ ショートカットヘルプ Overlay (Issue #113, PR #114)                             | 🟡 Ready   |
+| 46  | 🔎 Scene Tree フィルタ検索 (Issue #114, PR #116)                                  | 🟡 Ready   |
+| 47  | 👤 Header にログインユーザー email 表示 (Issue #116, PR #118)                     | 🟡 Ready   |
+| 48  | 🎛️ Object opacity スライダー (Issue #117, PR #120)                                | 🟡 Ready   |
+| 49  | 🎬 ダブルクリックで選択オブジェクトにカメラフォーカス (Issue #118, PR #122)       | 🟡 Ready   |
+| 50  | 💾 コンソールログを `.log` ファイルとして export (Issue #107, PR #123)            | 🟡 Ready   |
+| 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3, PR #124)                            | 🟡 Ready   |
+| 52  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 53  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 54  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+
+> 🟡 **Ready** = CI green + CodeRabbit pass、human merge 承認待ち (8 PR merge train queued)
 
 ---
 
