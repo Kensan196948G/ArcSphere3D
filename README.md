@@ -73,9 +73,13 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 49  | 🎬 ダブルクリックで選択オブジェクトにカメラフォーカス (Issue #118, PR #122)       | 🟡 Ready   |
 | 50  | 💾 コンソールログを `.log` ファイルとして export (Issue #107, PR #123)            | 🟡 Ready   |
 | 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3, PR #124)                            | 🟡 Ready   |
-| 52  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 53  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 54  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 52  | 🔐 DB-backed auth + refresh token rotation (Issue #128)                           | ✅ Done    |
+| 53  | 📋 Audit log — login / project / member / file events (Issue #129)               | ✅ Done    |
+| 54  | ☁️ Multipart upload for large BIM/CAD files ≥200 MB (Issue #131)                 | ✅ Done    |
+| 55  | 🧪 Docker Compose E2E — real API + DB + MinIO (Issue #130)                        | ✅ Done    |
+| 56  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 57  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 58  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 > 🟡 **Ready** = CI green + CodeRabbit pass、human merge 承認待ち (8 PR merge train queued)
 
@@ -89,27 +93,37 @@ graph LR
         UI[UI Panels]
         VP[Three.js Viewport]
         IFC[web-ifc IFC Parser]
+        MP[MultipartUploader]
         UI --> VP
         VP --> IFC
+        UI --> MP
     end
 
     subgraph API["Backend (FastAPI)"]
-        AUTH[JWT Auth RS256]
+        AUTH[JWT Auth RS256\n+ Refresh Tokens]
         PROJ[Projects API]
         FILES[Files API]
+        MULTI[Multipart API]
+        AUDIT[Audit Log]
         AUTH --> PROJ
         AUTH --> FILES
+        AUTH --> MULTI
+        FILES --> AUDIT
+        PROJ --> AUDIT
     end
 
     subgraph Data["Data Layer"]
-        PG[(PostgreSQL 16)]
+        PG[(PostgreSQL 16\nusers / projects / files\nrefresh_tokens\naudit_logs\nmultipart_uploads)]
         S3[(MinIO / S3)]
     end
 
     Browser <-->|"HTTPS REST"| API
     PROJ --> PG
     FILES --> PG
+    MULTI --> PG
+    AUDIT --> PG
     FILES <-->|"presigned URL"| S3
+    MP <-->|"presigned part PUT"| S3
 ```
 
 ---
@@ -144,8 +158,12 @@ graph LR
 | -------- | ---------------------------------------------------------- | ------------------------------------------------------- |
 | `POST`   | `/api/auth/login`                                          | Obtain JWT access token (RS256)                         |
 | `GET`    | `/api/auth/.well-known/jwks.json`                          | JWKS — RSA public key for token verification (RFC 7517) |
+| `POST`   | `/api/auth/refresh`                                        | Rotate refresh token — returns new access + refresh     |
+| `POST`   | `/api/auth/logout`                                         | Revoke refresh token                                    |
+| `GET`    | `/api/auth/oidc/callback`                                  | OIDC callback stub (501 — planned)                      |
 | `GET`    | `/api/users/me`                                            | Current authenticated user (DB UUID)                    |
 | `GET`    | `/api/users/lookup?email=`                                 | Look up user ID by email address (authenticated)        |
+| `GET`    | `/api/admin/audit-logs`                                    | List audit log entries (admin role required)            |
 | `GET`    | `/api/projects`                                            | List projects (paginated)                               |
 | `POST`   | `/api/projects`                                            | Create a project                                        |
 | `GET`    | `/api/projects/{id}`                                       | Get project detail                                      |
@@ -168,6 +186,9 @@ graph LR
 | `GET`    | `/api/projects/{id}/members`                               | List project members (any member — Issue #73)           |
 | `POST`   | `/api/projects/{id}/members`                               | Add / update member role (owner only)                   |
 | `DELETE` | `/api/projects/{id}/members/{uid}`                         | Remove member (owner only)                              |
+| `POST`   | `/api/files/multipart/init`                                | Initiate multipart upload (presigned part URLs)         |
+| `POST`   | `/api/files/multipart/complete`                            | Complete multipart upload                               |
+| `DELETE` | `/api/files/multipart/abort`                               | Abort multipart upload                                  |
 | `GET`    | `/healthz`                                                 | Liveness probe (always 200)                             |
 | `GET`    | `/readyz`                                                  | Readiness probe (checks DB connectivity)                |
 
@@ -208,9 +229,18 @@ flowchart LR
         I2 --> I3[API smoke tests]
     end
 
+    subgraph EI["e2e-integration job"]
+        EI1[docker compose up\nDB + MinIO + backend] --> EI2[vite build]
+        EI2 --> EI3[npx serve dist]
+        EI3 --> EI4[playwright --config integration]
+        EI4 --> EI5[docker compose down -v]
+    end
+
     F --> E
     F --> B
     B --> I
+    F --> EI
+    I --> EI
 ```
 
 ---
@@ -250,12 +280,26 @@ pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 8001
 ```
 
-**Run E2E tests**
+**Run E2E tests (MSW-mocked)**
 
 ```bash
 cd frontend
 npx playwright install --with-deps firefox
 npx playwright test
+```
+
+**Run E2E integration tests (real API + DB + MinIO)**
+
+```bash
+# Start isolated test stack
+docker compose -f docker/docker-compose.test.yml up -d --build --wait
+# Build frontend and serve
+cd frontend && npm run build
+npx serve -l 4173 dist &
+# Run integration suite
+E2E_API_URL=http://localhost:8001 npx playwright test --config=playwright.config.integration.ts
+# Tear down
+docker compose -f docker/docker-compose.test.yml down -v
 ```
 
 **Run backend tests**
