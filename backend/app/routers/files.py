@@ -7,7 +7,7 @@ from pathlib import PurePosixPath
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from app.db import crud
@@ -70,6 +70,7 @@ def _safe_filename(raw: str | None) -> str:
     },
 )
 async def upload(
+    request: Request,
     project_id: UUID,
     session: DbDep,
     upload_file: UploadFile = File(...),
@@ -129,6 +130,15 @@ async def upload(
         s3_key=s3_key,
         sha256=sha256_bytes,
     )
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="file_upload",
+        resource_type="file",
+        resource_id=str(db_file.id),
+        ip_address=request.client.host if request.client else None,
+        detail=safe_name,
+    )
     return FileMetadata(
         id=db_file.id,
         project_id=db_file.project_id,
@@ -148,6 +158,7 @@ async def upload(
     responses={**_401, **_403, **_404},
 )
 async def download_url(
+    request: Request,
     project_id: UUID,
     file_id: UUID,
     session: DbDep,
@@ -163,6 +174,15 @@ async def download_url(
         )
     expires = 3600
     url = await generate_presigned_url(db_file.s3_key, expires)
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="file_download",
+        resource_type="file",
+        resource_id=str(db_file.id),
+        ip_address=request.client.host if request.client else None,
+        detail=db_file.filename,
+    )
     return DownloadUrl(url=url, expires_in=expires)
 
 
@@ -170,6 +190,7 @@ async def download_url(
     "/{file_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**_401, **_403, **_404}
 )
 async def delete_file(
+    request: Request,
     file_id: UUID,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
@@ -180,8 +201,18 @@ async def delete_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
     await _require_project(db_file.project_id, session, db_user.id, min_role="editor")
     s3_key = db_file.s3_key
+    filename = db_file.filename
     # DB deletion is transactional; S3 deletion is best-effort.
     await crud.delete_file(session, file_id)
+    await crud.log_audit(
+        session,
+        user_id=db_user.id,
+        action="file_delete",
+        resource_type="file",
+        resource_id=str(file_id),
+        ip_address=request.client.host if request.client else None,
+        detail=filename,
+    )
     try:
         await delete_object(s3_key)
     except Exception as exc:
