@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import {
   AmbientLight,
   AxesHelper,
+  Box3,
   BoxGeometry,
   Color,
   DirectionalLight,
@@ -13,6 +14,7 @@ import {
   Raycaster,
   Scene,
   Vector2,
+  Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -273,6 +275,26 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
         controls.target.set(...target);
         controls.update();
       }
+      if (state._focusCount !== prev._focusCount) {
+        const selectedId = useSceneStore.getState().selectedId;
+        const target = selectedId
+          ? useSceneStore.getState().objects.find((o) => o.id === selectedId)
+              ?.object
+          : null;
+        if (target) {
+          const box = new Box3().setFromObject(target);
+          const center = new Vector3();
+          box.getCenter(center);
+          const size = new Vector3();
+          box.getSize(size);
+          const distance = Math.max(size.length() * 1.5, 1);
+          const dir = camera.position.clone().sub(center).normalize();
+          camera.position.copy(center).addScaledVector(dir, distance);
+          camera.lookAt(center);
+          controls.target.copy(center);
+          controls.update();
+        }
+      }
     });
 
     // --- themeStore subscription: sync 3D background + grid with UI theme ---
@@ -293,7 +315,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       else if (e.key === "e" || e.key === "E") store.setTransformMode("rotate");
       else if (e.key === "r" || e.key === "R") store.setTransformMode("scale");
       else if (e.key === "Escape") store.select(null);
-      else if (e.key === "Delete" || e.key === "Backspace") {
+      else if (e.key === "f" || e.key === "F") {
+        if (store.selectedId) useViewportStore.getState().focusObject();
+      } else if (e.key === "Delete" || e.key === "Backspace") {
         if (store.selectedId) store.removeObject(store.selectedId);
       }
     };

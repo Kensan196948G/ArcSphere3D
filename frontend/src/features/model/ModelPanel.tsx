@@ -1,5 +1,6 @@
 import { useSceneStore, type TransformMode } from "@/state/sceneStore";
 import { useLayerStore } from "@/state/layerStore";
+import { useViewportStore } from "@/state/viewportStore";
 import FileLoader from "@/features/viewport/FileLoader";
 import { useState } from "react";
 import { Color, Mesh, MeshStandardMaterial, MeshPhongMaterial, MeshBasicMaterial } from "three";
@@ -231,6 +232,15 @@ export default function ModelPanel() {
               className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
             >
               中心へ
+            </button>
+            <button
+              type="button"
+              data-testid="focus-btn"
+              onClick={() => useViewportStore.getState().focusObject()}
+              className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
+              title="選択オブジェクトにカメラをフォーカス (F)"
+            >
+              フォーカス
             </button>
             <button
               type="button"
