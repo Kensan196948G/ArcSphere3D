@@ -57,7 +57,7 @@
     "same_error_limit": 2,
     "phase": "Verify",
     "last_session_summary": "Build session 2026-05-21: PR #102 (file rename schemathesis 400 fix), #104 (screenshot), #106 (clipboard+console), #109 (scene clear) merged. New: PR #112 (grid/axes testid+color picker), #114 (shortcuts), #116 (scene filter), #118 (header user email). E2E 120→122+.",
-    "current_session_start_at": "2026-05-21T11:46:01.834Z",
+    "current_session_start_at": "2026-05-21T12:00:50.387Z",
     "session_soft_deadline": "2026-05-22T00:00:00+09:00",
     "session_hard_deadline": "2026-05-22T00:30:00+09:00",
     "last_trigger": "manual",
@@ -330,7 +330,7 @@
     "resume_note": "Session 2026-05-21: E2E 90→107+, backend 177→197, PR #78/#79/#80/#82/#84/#86 merged. PR #88/#90 in review. Issues #87/#89 in progress."
   },
   "compact": {
-    "last_pre_compact_at": "2026-05-21T11:44:18.347Z"
+    "last_pre_compact_at": "2026-05-21T11:59:19.984Z"
   },
   "dreaming": {
     "patterns": [],

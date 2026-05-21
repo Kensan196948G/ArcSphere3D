@@ -40,7 +40,7 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 16  | 🐳 Docker Compose integration test stack                                          | ✅ Done    |
 | 17  | 📋 Alembic DB migrations (0001→0006)                                              | ✅ Done    |
 | 18  | 🏥 /readyz DB connectivity probe                                                  | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (116 pass)                                    | ✅ Done    |
+| 19  | 🧪 E2E tests — Playwright / Firefox (120 pass)                                    | ✅ Done    |
 | 20  | 👥 RBAC — member access (owner/editor/viewer per project)                         | ✅ Done    |
 | 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s)                    | ✅ Done    |
 | 22  | 👥 Multi-owner model + last-owner protection (Issue #66)                          | ✅ Done    |
@@ -61,13 +61,21 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 37  | ⌨️ Delete/Backspace キーで選択オブジェクト削除 (Issue #95)                        | ✅ Done    |
 | 38  | 📊 GET /api/projects/{id}/stats — 統計 API (Issue #97)                            | ✅ Done    |
 | 39  | 📊 ProjectPanel 統計バッジ表示 (Issue #99)                                        | ✅ Done    |
-| 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API (Issue #101)                        | 🔄 CI中    |
-| 41  | 📷 Viewport スクリーンショット保存 (Issue #103)                                   | 🔄 CI中    |
-| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー (Issue #105/#107)                | 🔄 CI中    |
-| 43  | 🗑️ シーン全削除ボタン + clearScene (Issue #108)                                   | 🔄 CI中    |
-| 44  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 45  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 46  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API (Issue #101)                        | ✅ Done    |
+| 41  | 📷 Viewport スクリーンショット保存 (Issue #103)                                   | ✅ Done    |
+| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー (Issue #105/#107)                | ✅ Done    |
+| 43  | 🗑️ シーン全削除ボタン + clearScene (Issue #108)                                   | ✅ Done    |
+| 44  | 🎨 グリッド/軸 data-testid + オブジェクトカラーピッカー (Issue #110/#111)         | 🔄 In PR   |
+| 45  | ⌨️ キーボードショートカット help ダイアログ (Issue #113)                          | 🔄 In PR   |
+| 46  | 🔍 ModelPanel シーンオブジェクト検索フィルター (Issue #114)                       | 🔄 In PR   |
+| 47  | 📧 Header にログインユーザーのメールアドレス表示 (Issue #116)                     | 🔄 In PR   |
+| 48  | 🎚️ ModelPanel オブジェクト不透明度スライダー (Issue #117)                         | 🔄 In PR   |
+| 49  | 🎬 カメラフォーカスアクション + F キーショートカット (Issue #121)                 | 🔄 In PR   |
+| 50  | 🧪 backend: SimpleRateLimiter + S3 wrapper TDD coverage                           | 🔄 In PR   |
+| 51  | 🧪 E2E: BottomConsole 保存ボタンの実機能を検証 (Issue #107)                       | 🔄 In PR   |
+| 52  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 53  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 54  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 ---
 
@@ -188,7 +196,7 @@ flowchart LR
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 130/130]
+        B4 --> B5[pytest --cov 145/145]
         B5 --> B6[schemathesis 27/27 + auth]
         B6 --> B7[Upload coverage 98%]
     end
