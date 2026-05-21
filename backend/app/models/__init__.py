@@ -12,6 +12,7 @@ from app.models.alignment import (
 from app.models.alignment import (
     VerticalAlignmentVip as VerticalAlignmentVip,
 )
+from app.models.audit_log import AuditLog as AuditLog
 from app.models.file import File as File
 from app.models.project import Project as Project
 from app.models.project_member import ProjectMember as ProjectMember
