@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -98,6 +98,18 @@ async def get_or_create_db_user(
     user = result.scalar_one()
     await session.commit()
     return user
+
+
+async def update_user_password(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    new_password_hash: str,
+) -> None:
+    """Update the bcrypt password hash for *user_id*. Caller commits."""
+    await session.execute(
+        update(User).where(User.id == user_id).values(password_hash=new_password_hash)
+    )
 
 
 async def list_projects(

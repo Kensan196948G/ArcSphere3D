@@ -15,7 +15,7 @@ from app.config import get_settings
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
 from app.ratelimit import SimpleRateLimiter
-from app.schemas import CurrentUser, LoginRequest, TokenResponse
+from app.schemas import CurrentUser, LoginRequest, PasswordChangeRequest, TokenResponse
 from app.security import create_access_token, get_public_key_jwk, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -145,6 +145,44 @@ async def refresh(db: DbDep, current: CurrentUser = CurrentUserDep) -> TokenResp
 def logout() -> None:
     # Stateless JWT — client just discards the token.
     return None
+
+
+@router.post(
+    "/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        400: {"description": "new password too short or malformed"},
+        401: {"description": "missing or invalid token, or wrong current password"},
+        404: {"description": "user not found in DB (demo-only user)"},
+    },
+)
+async def change_password(
+    payload: PasswordChangeRequest,
+    db: DbDep,
+    current: CurrentUser = CurrentUserDep,
+) -> None:
+    """Change the authenticated user's password after verifying the current one."""
+    db_user = await crud.get_user_by_email(db, current.sub)
+    if db_user is None or not db_user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="user has no DB password — cannot change password for SSO-only accounts",
+        )
+    if not verify_password(payload.current_password, db_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="current password is incorrect",
+        )
+    new_hash = hash_password(payload.new_password)
+    await crud.update_user_password(db, user_id=db_user.id, new_password_hash=new_hash)
+    await crud.log_audit_event(
+        db,
+        action="password_changed",
+        user_id=db_user.id,
+        resource_type="user",
+        resource_id=str(db_user.id),
+    )
+    await db.commit()
 
 
 # ---- Entra ID / OIDC scaffold ----
