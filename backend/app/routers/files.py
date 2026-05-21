@@ -13,8 +13,25 @@ from fastapi.responses import JSONResponse
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
 from app.logging import logger
-from app.s3 import delete_object, generate_presigned_url, put_object
-from app.schemas import CurrentUser, DownloadUrl, FileMetadata, FilePatch
+from app.s3 import (
+    abort_multipart_upload,
+    complete_multipart_upload,
+    create_multipart_upload,
+    delete_object,
+    generate_presigned_part_url,
+    generate_presigned_url,
+    put_object,
+)
+from app.schemas import (
+    CurrentUser,
+    DownloadUrl,
+    FileMetadata,
+    FilePatch,
+    MultipartAbortRequest,
+    MultipartCompleteRequest,
+    MultipartInitRequest,
+    MultipartInitResponse,
+)
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -137,6 +154,122 @@ async def upload(
         content_type=db_file.content_type,
         uploaded_at=db_file.uploaded_at,
     )
+
+
+# ---- Multipart upload ----
+
+_MULTIPART_PRESIGN_TTL = 3600  # 1 hour per part URL
+
+
+@router.post(
+    "/multipart/init",
+    response_model=MultipartInitResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        **_400,
+        **_401,
+        **_403,
+        **_404,
+    },
+)
+async def multipart_init(
+    project_id: UUID,
+    body: MultipartInitRequest,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> MultipartInitResponse:
+    """Initiate a multipart upload. Returns upload_id and presigned PUT URLs for each part."""
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id, min_role="editor")
+
+    safe_name = _safe_filename(body.filename)
+    if PurePosixPath(safe_name).suffix.lower() not in ALLOWED_EXTS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"extension not allowed; expected one of {sorted(ALLOWED_EXTS)}",
+        )
+
+    file_id = uuid4()
+    s3_key = f"{project_id}/{file_id}/{safe_name}"
+
+    upload_id = await create_multipart_upload(s3_key, body.content_type)
+
+    part_urls = []
+    for part_num in range(1, body.part_count + 1):
+        url = await generate_presigned_part_url(s3_key, upload_id, part_num, _MULTIPART_PRESIGN_TTL)
+        part_urls.append(url)
+
+    return MultipartInitResponse(
+        upload_id=upload_id,
+        s3_key=s3_key,
+        part_urls=part_urls,
+        expires_in=_MULTIPART_PRESIGN_TTL,
+    )
+
+
+@router.post(
+    "/multipart/complete",
+    response_model=FileMetadata,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        **_400,
+        **_401,
+        **_403,
+        **_404,
+    },
+)
+async def multipart_complete(
+    project_id: UUID,
+    body: MultipartCompleteRequest,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> FileMetadata:
+    """Complete a multipart upload and register the file metadata in the DB."""
+    db_user = await crud.upsert_user(session, user)
+    await _require_project(project_id, session, db_user.id, min_role="editor")
+
+    parts = [{"PartNumber": p.part_number, "ETag": p.etag} for p in body.parts]
+    await complete_multipart_upload(body.s3_key, body.upload_id, parts)
+
+    db_file = await crud.create_file(
+        session,
+        project_id=project_id,
+        filename=_safe_filename(body.filename),
+        size_bytes=body.total_size_bytes,
+        content_type=body.content_type,
+        s3_key=body.s3_key,
+        sha256=b"",
+    )
+    return FileMetadata(
+        id=db_file.id,
+        project_id=db_file.project_id,
+        filename=db_file.filename,
+        size_bytes=db_file.size_bytes,
+        content_type=db_file.content_type,
+        uploaded_at=db_file.uploaded_at,
+    )
+
+
+@router.post(
+    "/multipart/abort",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        **_400,
+        **_401,
+        **_403,
+    },
+)
+async def multipart_abort(
+    body: MultipartAbortRequest,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> None:
+    """Abort a multipart upload and clean up incomplete parts from MinIO."""
+    await crud.upsert_user(session, user)
+    try:
+        await abort_multipart_upload(body.s3_key, body.upload_id)
+    except Exception as exc:
+        logger.warning("multipart_abort_failed", key=body.s3_key, error=str(exc))
 
 
 # IMPORTANT: /{project_id}/{file_id}/download MUST be registered BEFORE

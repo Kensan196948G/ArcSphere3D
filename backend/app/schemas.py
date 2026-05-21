@@ -81,6 +81,42 @@ class DownloadUrl(BaseModel):
     expires_in: int
 
 
+# ---- Multipart upload ----
+
+
+class MultipartInitRequest(BaseModel):
+    filename: str = Field(min_length=1, max_length=255, pattern=_NO_NUL_PATTERN)
+    content_type: str = Field(min_length=1, max_length=128)
+    total_size_bytes: int = Field(ge=1)
+    part_count: int = Field(ge=1, le=10000)
+
+
+class MultipartInitResponse(BaseModel):
+    upload_id: str
+    s3_key: str
+    part_urls: list[str]
+    expires_in: int
+
+
+class MultipartPart(BaseModel):
+    part_number: int = Field(ge=1, le=10000)
+    etag: str
+
+
+class MultipartCompleteRequest(BaseModel):
+    upload_id: str
+    s3_key: str
+    filename: str = Field(min_length=1, max_length=255)
+    total_size_bytes: int = Field(ge=1)
+    content_type: str = Field(min_length=1, max_length=128)
+    parts: list[MultipartPart] = Field(min_length=1)
+
+
+class MultipartAbortRequest(BaseModel):
+    upload_id: str
+    s3_key: str
+
+
 # ---- Alignments ----
 class IpPointCreate(BaseModel):
     seq: int = Field(ge=0)
