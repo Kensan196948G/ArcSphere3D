@@ -74,12 +74,16 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 50  | 💾 コンソールログを `.log` ファイルとして export (Issue #107, PR #123)            | ✅ Done    |
 | 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3, PR #124)                            | ✅ Done    |
 | 52  | 📋 監査ログ — audit_logs テーブル + append-only 記録 (Issue #129, PR #132)        | ✅ Done    |
-| 53  | 🔐 本番認証基盤 — DB ユーザー管理 + Entra ID OIDC scaffold (Issue #128, PR #133)  | 🟡 CI中    |
-| 54  | 📤 マルチパート / resumable アップロード — 大容量 BIM/CAD (Issue #131, PR #134)   | 🟡 CI中    |
+| 53  | 🔐 本番認証基盤 — DB ユーザー管理 + Entra ID OIDC scaffold (Issue #128, PR #133)  | ✅ Done    |
+| 54  | 📤 マルチパート / resumable アップロード — 大容量 BIM/CAD (Issue #131, PR #134)   | ✅ Done    |
 | 55  | 🐳 Docker Compose 実環境 E2E — API 結合 + Playwright (Issue #130, PR #135)        | 🟡 CI中    |
-| 56  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 57  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 58  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 56  | 🎨 マルチパート UI — 10 MiB チャンク進捗バー + キャンセル (Issue #131, PR #136)   | 🟡 CI中    |
+| 57  | 🛡️ 監査ログ閲覧パネル — 管理者向け UI (Issue #139, PR #140)                      | 🟡 CI中    |
+| 58  | 🔑 パスワード変更 API — POST /api/auth/password (Issue #137, PR #141)             | 🟡 CI中    |
+| 59  | 👤 管理者ユーザー管理 API — GET/DELETE /api/admin/users (Issue #138, PR #142)     | 🟡 CI中    |
+| 60  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 61  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 62  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 > 🟡 **CI中** = CI green 確認後に merge (2026-05-22 セッション作成)
 
@@ -175,7 +179,10 @@ graph LR
 | `GET`    | `/healthz`                                                 | Liveness probe (always 200)                             |
 | `GET`    | `/readyz`                                                  | Readiness probe (checks DB connectivity)                |
 | `GET`    | `/api/admin/audit-logs`                                    | 監査ログ一覧 (admin ロール限定)                         |
+| `GET`    | `/api/admin/users`                                         | ユーザー一覧 (admin ロール限定)                         |
+| `DELETE` | `/api/admin/users/{user_id}`                               | ユーザー削除 (admin, 自己削除禁止)                      |
 | `POST`   | `/api/auth/refresh`                                        | アクセストークン更新 (refresh)                          |
+| `POST`   | `/api/auth/password`                                       | パスワード変更 (認証済みユーザー)                       |
 | `GET`    | `/api/auth/oidc/callback`                                  | Entra ID OIDC callback scaffold (post-MVP placeholder)  |
 | `POST`   | `/api/files/multipart/init`                                | マルチパートアップロード開始・presigned URLs 発行       |
 | `POST`   | `/api/files/multipart/complete`                            | マルチパートアップロード完了・DB メタデータ登録         |
