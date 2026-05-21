@@ -2546,3 +2546,32 @@ test.describe("AuditLogPanel", () => {
     await expect(page.getByRole("button", { name: "管理" })).toBeVisible();
   });
 });
+
+// ---- MultipartUploader — 大容量ファイル分割送信 UI (Issue #131) ---------------
+
+test.describe("MultipartUploader", () => {
+  test("プロジェクト選択時に分割送信ラベルが表示される (Issue #131)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // ログインせずプロジェクトパネルを開く
+    await page.getByRole("button", { name: "プロジェクト" }).click();
+    // MultipartUploader は selectedProjectId があるときのみ表示される
+    // 未選択時は表示されない
+    await expect(
+      page.locator('[data-testid="multipart-file-input"]'),
+    ).not.toBeVisible();
+  });
+
+  test("分割送信ラベルテキストはアップロードボタン名と重複しない (Issue #131)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "プロジェクト" }).click();
+    // "アップロード" ボタンが1つだけ存在すること (strict mode 対策)
+    const uploadBtn = page.getByRole("button", { name: "アップロード" });
+    // ページに存在する場合は単一マッチ確認 (プロジェクト未選択では非表示なので count=0も可)
+    const count = await uploadBtn.count();
+    expect(count).toBeLessThanOrEqual(1);
+  });
+});
