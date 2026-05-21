@@ -690,3 +690,37 @@ async def list_audit_logs(
         )
         for r in result.scalars().all()
     ]
+
+
+# ---- Admin: User Management ----
+
+
+async def list_users(
+    session: AsyncSession,
+    *,
+    skip: int = 0,
+    limit: int = 50,
+) -> list[UserOut]:
+    """Return all users (admin only — callers must check RBAC)."""
+    result = await session.execute(
+        select(User).order_by(User.created_at.asc()).offset(skip).limit(limit)
+    )
+    return [
+        UserOut(id=u.id, email=u.email, role=u.role, created_at=u.created_at)
+        for u in result.scalars().all()
+    ]
+
+
+async def get_user_by_id(session: AsyncSession, user_id: UUID) -> User | None:
+    """Return the DB row for *user_id*, or None if not found."""
+    result = await session.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
+async def delete_user(session: AsyncSession, user_id: UUID) -> bool:
+    """Delete *user_id* and all their data. Returns False if user not found."""
+    user = await get_user_by_id(session, user_id)
+    if user is None:
+        return False
+    await session.delete(user)
+    return True
