@@ -9,7 +9,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import AdminStats, AuditLogOut, CurrentUser, UserCreate, UserOut, UserRoleUpdate
+from app.schemas import (
+    AdminPasswordReset,
+    AdminStats,
+    AuditLogOut,
+    CurrentUser,
+    UserCreate,
+    UserOut,
+    UserRoleUpdate,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -189,3 +197,40 @@ async def update_user_role(
     )
     await db.commit()
     return result
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        401: {"description": "missing bearer token"},
+        403: {"description": "admin role required"},
+        404: {"description": "user not found or has no DB password"},
+    },
+)
+async def reset_user_password(
+    user_id: UUID,
+    body: AdminPasswordReset,
+    db: DbDep,
+    current: Annotated[CurrentUser, AdminDep],
+) -> None:
+    """Reset any user's password. Admin only — no current-password check."""
+    from app.security import hash_password
+
+    target = await crud.get_user_by_id(db, user_id)
+    if target is None or not target.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="user not found or has no DB password (SSO-only account)",
+        )
+    new_hash = hash_password(body.new_password)
+    await crud.update_user_password(db, user_id=user_id, new_password_hash=new_hash)
+    await crud.log_audit_event(
+        db,
+        action="password_reset_by_admin",
+        user_id=None,
+        resource_type="user",
+        resource_id=str(user_id),
+        detail=f"reset by admin {current.sub}",
+    )
+    await db.commit()
