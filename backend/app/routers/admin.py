@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import AuditLogOut, CurrentUser, UserCreate, UserOut, UserRoleUpdate
+from app.schemas import AdminStats, AuditLogOut, CurrentUser, UserCreate, UserOut, UserRoleUpdate
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -41,6 +41,22 @@ async def get_audit_logs(
 ) -> list[AuditLogOut]:
     """Return audit log entries (newest first). Admin only."""
     return await crud.list_audit_logs(db, skip=skip, limit=limit, user_id=user_id, action=action)
+
+
+@router.get(
+    "/stats",
+    response_model=AdminStats,
+    responses={
+        401: {"description": "missing bearer token"},
+        403: {"description": "admin role required"},
+    },
+)
+async def get_admin_stats(
+    db: DbDep,
+    current: Annotated[CurrentUser, AdminDep],
+) -> AdminStats:
+    """Return aggregate counts across users, projects, files, and audit events. Admin only."""
+    return await crud.get_admin_stats(db)
 
 
 @router.get(

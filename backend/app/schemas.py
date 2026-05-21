@@ -225,6 +225,14 @@ class AuditLogOut(BaseModel):
     created_at: datetime
 
 
+# ---- Admin Stats ----
+class AdminStats(BaseModel):
+    total_users: int
+    total_projects: int
+    total_files: int
+    total_audit_events: int
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str
