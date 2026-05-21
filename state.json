@@ -10,7 +10,7 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Issue #101-#116 実装完了 — E2E 122+、PR #102/#104/#106/#109 merged。PR #112/#114/#116/#118 CI 中",
+  "goal": "Session 2026-05-21: 8 PR (#112/#114/#116/#118/#120/#122/#123/#124) Ready+green、人間 merge 承認待ち。#125 CI 進行中。",
   "phase": "Build",
   "mvp": {
     "definition": [
@@ -56,8 +56,8 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Verify",
-    "last_session_summary": "Build session 2026-05-21: PR #102 (file rename schemathesis 400 fix), #104 (screenshot), #106 (clipboard+console), #109 (scene clear) merged. New: PR #112 (grid/axes testid+color picker), #114 (shortcuts), #116 (scene filter), #118 (header user email). E2E 120→122+.",
-    "current_session_start_at": "2026-05-21T12:00:50.387Z",
+    "last_session_summary": "Build session 2026-05-21 (post-compact resume): PR #102/#104/#106/#109 merged 完了。新 Ready: #112/#114/#116/#118/#120/#122/#123/#124 (全 8 PR green、人間 merge 承認待ち)。#125 (state bookkeeping) CI 進行中。E2E 116→120、backend pytest 130→145。Codex review (#122) clean。",
+    "current_session_start_at": "2026-05-21T12:11:26.040Z",
     "session_soft_deadline": "2026-05-22T00:00:00+09:00",
     "session_hard_deadline": "2026-05-22T00:30:00+09:00",
     "last_trigger": "manual",
@@ -330,7 +330,7 @@
     "resume_note": "Session 2026-05-21: E2E 90→107+, backend 177→197, PR #78/#79/#80/#82/#84/#86 merged. PR #88/#90 in review. Issues #87/#89 in progress."
   },
   "compact": {
-    "last_pre_compact_at": "2026-05-21T11:59:19.984Z"
+    "last_pre_compact_at": "2026-05-21T12:09:47.993Z"
   },
   "dreaming": {
     "patterns": [],
