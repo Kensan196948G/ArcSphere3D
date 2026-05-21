@@ -88,3 +88,61 @@ def _presign_sync(key: str, expires: int) -> str:
 async def generate_presigned_url(key: str, expires: int = 3600) -> str:
     """Return a pre-signed GET URL for *key* valid for *expires* seconds."""
     return await asyncio.to_thread(_presign_sync, key, expires)
+
+
+# ---- Multipart upload helpers ----
+
+_CHUNK_SIZE = 10 * 1024 * 1024  # 10 MiB — MinIO recommended minimum: 5 MiB
+
+
+def _create_multipart_sync(key: str, content_type: str) -> str:
+    resp = _client.create_multipart_upload(Bucket=_bucket, Key=key, ContentType=content_type)
+    return resp["UploadId"]  # type: ignore[no-any-return]
+
+
+async def create_multipart_upload(key: str, content_type: str) -> str:
+    """Initiate a multipart upload and return the upload_id."""
+    return await asyncio.to_thread(_create_multipart_sync, key, content_type)
+
+
+def _presign_part_sync(key: str, upload_id: str, part_number: int, expires: int) -> str:
+    return _client.generate_presigned_url(  # type: ignore[no-any-return]
+        "upload_part",
+        Params={
+            "Bucket": _bucket,
+            "Key": key,
+            "UploadId": upload_id,
+            "PartNumber": part_number,
+        },
+        ExpiresIn=expires,
+    )
+
+
+async def generate_presigned_part_url(
+    key: str, upload_id: str, part_number: int, expires: int = 3600
+) -> str:
+    """Return a pre-signed PUT URL for a single part of a multipart upload."""
+    return await asyncio.to_thread(_presign_part_sync, key, upload_id, part_number, expires)
+
+
+def _complete_multipart_sync(key: str, upload_id: str, parts: list[dict[str, Any]]) -> None:
+    _client.complete_multipart_upload(
+        Bucket=_bucket,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": parts},
+    )
+
+
+async def complete_multipart_upload(key: str, upload_id: str, parts: list[dict[str, Any]]) -> None:
+    """Complete a multipart upload. *parts* is a list of {PartNumber, ETag} dicts."""
+    await asyncio.to_thread(_complete_multipart_sync, key, upload_id, parts)
+
+
+def _abort_multipart_sync(key: str, upload_id: str) -> None:
+    _client.abort_multipart_upload(Bucket=_bucket, Key=key, UploadId=upload_id)
+
+
+async def abort_multipart_upload(key: str, upload_id: str) -> None:
+    """Abort a multipart upload and clean up incomplete parts from MinIO."""
+    await asyncio.to_thread(_abort_multipart_sync, key, upload_id)
