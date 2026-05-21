@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import AuditLogOut, CurrentUser, UserOut
+from app.schemas import AuditLogOut, CurrentUser, UserCreate, UserOut
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -59,6 +59,46 @@ async def list_users(
 ) -> list[UserOut]:
     """Return all users (newest first). Admin only."""
     return await crud.list_users(db, skip=skip, limit=limit)
+
+
+@router.post(
+    "/users",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        401: {"description": "missing bearer token"},
+        403: {"description": "admin role required"},
+        409: {"description": "email already in use"},
+    },
+)
+async def create_user(
+    body: UserCreate,
+    db: DbDep,
+    current: Annotated[CurrentUser, AdminDep],
+) -> UserOut:
+    """Create a new user with a bcrypt-hashed password. Admin only."""
+    from app.security import hash_password
+
+    existing = await crud.get_user_by_email(db, body.email)
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="email already in use",
+        )
+    user = await crud.create_user_with_password(
+        db,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        role=body.role,
+    )
+    await crud.log_audit_event(
+        db,
+        action="user_created",
+        resource_type="user",
+        resource_id=str(user.id),
+    )
+    await db.commit()
+    return user
 
 
 @router.delete(
