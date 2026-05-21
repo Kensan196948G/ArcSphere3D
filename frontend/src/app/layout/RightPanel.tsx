@@ -16,7 +16,7 @@ import EarthworkPanel from "@/features/earthwork/EarthworkPanel";
 import AlignmentPanel from "@/features/alignment/AlignmentPanel";
 import CadPanel from "@/features/cad/CadPanel";
 import MembersPanel from "@/features/members/MembersPanel";
-import AuditLogPanel from "@/features/admin/AuditLogPanel";
+import AdminPanel from "@/features/admin/AdminPanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -80,7 +80,7 @@ export default function RightPanel() {
       case "members":
         return <MembersPanel />;
       case "admin":
-        return <AuditLogPanel />;
+        return <AdminPanel />;
       default:
         return null;
     }
