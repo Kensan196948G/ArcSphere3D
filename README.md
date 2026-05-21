@@ -70,14 +70,18 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 46  | 🔎 Scene Tree フィルタ検索 (Issue #114, PR #116)                                  | 🟡 Ready   |
 | 47  | 👤 Header にログインユーザー email 表示 (Issue #116, PR #118)                     | 🟡 Ready   |
 | 48  | 🎛️ Object opacity スライダー (Issue #117, PR #120)                                | 🟡 Ready   |
-| 49  | 🎬 ダブルクリックで選択オブジェクトにカメラフォーカス (Issue #118, PR #122)       | 🟡 Ready   |
-| 50  | 💾 コンソールログを `.log` ファイルとして export (Issue #107, PR #123)            | 🟡 Ready   |
-| 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3, PR #124)                            | 🟡 Ready   |
-| 52  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 53  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 54  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 49  | 🎬 ダブルクリックで選択オブジェクトにカメラフォーカス (Issue #118, PR #122)       | ✅ Done    |
+| 50  | 💾 コンソールログを `.log` ファイルとして export (Issue #107, PR #123)            | ✅ Done    |
+| 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3, PR #124)                            | ✅ Done    |
+| 52  | 📋 監査ログ — audit_logs テーブル + append-only 記録 (Issue #129, PR #132)        | ✅ Done    |
+| 53  | 🔐 本番認証基盤 — DB ユーザー管理 + Entra ID OIDC scaffold (Issue #128, PR #133)  | 🟡 CI中    |
+| 54  | 📤 マルチパート / resumable アップロード — 大容量 BIM/CAD (Issue #131, PR #134)   | 🟡 CI中    |
+| 55  | 🐳 Docker Compose 実環境 E2E — API 結合 + Playwright (Issue #130, PR #135)        | 🟡 CI中    |
+| 56  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 57  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 58  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
-> 🟡 **Ready** = CI green + CodeRabbit pass、human merge 承認待ち (8 PR merge train queued)
+> 🟡 **CI中** = CI green 確認後に merge (2026-05-22 セッション作成)
 
 ---
 
@@ -170,6 +174,12 @@ graph LR
 | `DELETE` | `/api/projects/{id}/members/{uid}`                         | Remove member (owner only)                              |
 | `GET`    | `/healthz`                                                 | Liveness probe (always 200)                             |
 | `GET`    | `/readyz`                                                  | Readiness probe (checks DB connectivity)                |
+| `GET`    | `/api/admin/audit-logs`                                    | 監査ログ一覧 (admin ロール限定)                         |
+| `POST`   | `/api/auth/refresh`                                        | アクセストークン更新 (refresh)                          |
+| `GET`    | `/api/auth/oidc/callback`                                  | Entra ID OIDC callback scaffold (post-MVP placeholder)  |
+| `POST`   | `/api/files/multipart/init`                                | マルチパートアップロード開始・presigned URLs 発行       |
+| `POST`   | `/api/files/multipart/complete`                            | マルチパートアップロード完了・DB メタデータ登録         |
+| `POST`   | `/api/files/multipart/abort`                               | マルチパートアップロード中断・MinIO クリーンアップ      |
 
 Full interactive docs are available at `http://localhost:8001/docs` when running locally.
 
