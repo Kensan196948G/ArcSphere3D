@@ -1,0 +1,77 @@
+name: E2E Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-integration:
+    name: e2e-integration (real API + MinIO)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build backend Docker image
+        working-directory: .
+        run: docker build -f docker/Dockerfile.backend -t arcsphere3d-backend:test .
+
+      - name: Start Docker Compose test stack
+        working-directory: docker
+        run: docker compose -f docker-compose.test.yml up -d --wait
+
+      - name: Wait for backend health
+        run: |
+          set -e
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8001/healthz > /dev/null 2>&1; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            echo "Attempt $i/30: backend not ready yet, sleeping 3s"
+            sleep 3
+          done
+          echo "Backend did not become healthy in time"
+          exit 1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run API integration E2E tests
+        env:
+          API_BASE_URL: http://localhost:8001
+        run: npx playwright test --config playwright.config.integration.ts --reporter=github
+
+      - name: Upload Playwright integration report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-integration-report
+          path: frontend/playwright-report
+          retention-days: 7
+
+      - name: Stop Docker Compose stack
+        if: always()
+        working-directory: docker
+        run: docker compose -f docker-compose.test.yml down --volumes
