@@ -76,14 +76,24 @@ Users authenticate via **JWT (RS256)**, manage 3D projects and files through a s
 | 52  | 📋 監査ログ — audit_logs テーブル + append-only 記録 (Issue #129, PR #132)        | ✅ Done    |
 | 53  | 🔐 本番認証基盤 — DB ユーザー管理 + Entra ID OIDC scaffold (Issue #128, PR #133)  | ✅ Done    |
 | 54  | 📤 マルチパート / resumable アップロード — 大容量 BIM/CAD (Issue #131, PR #134)   | ✅ Done    |
-| 55  | 🐳 Docker Compose 実環境 E2E — API 結合 + Playwright (Issue #130, PR #135)        | 🟡 CI中    |
-| 56  | 🎨 マルチパート UI — 10 MiB チャンク進捗バー + キャンセル (Issue #131, PR #136)   | 🟡 CI中    |
-| 57  | 🛡️ 監査ログ閲覧パネル — 管理者向け UI (Issue #139, PR #140)                      | 🟡 CI中    |
-| 58  | 🔑 パスワード変更 API — POST /api/auth/password (Issue #137, PR #141)             | 🟡 CI中    |
-| 59  | 👤 管理者ユーザー管理 API — GET/DELETE /api/admin/users (Issue #138, PR #142)     | 🟡 CI中    |
-| 60  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 61  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 62  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
+| 55  | 🐳 Docker Compose 実環境 E2E — API 結合 + Playwright (Issue #130, PR #135)        | ✅ Done    |
+| 56  | 🎨 マルチパート UI — 10 MiB チャンク進捗バー + キャンセル (Issue #131, PR #136)   | ✅ Done    |
+| 57  | 🛡️ 監査ログ閲覧パネル — 管理者向け UI (Issue #139, PR #140)                      | ✅ Done    |
+| 58  | 🔑 パスワード変更 API — POST /api/auth/password (Issue #137, PR #141)             | ✅ Done    |
+| 59  | 👤 管理者ユーザー管理 API — GET/DELETE /api/admin/users (Issue #138, PR #142)     | ✅ Done    |
+| 60  | 📊 管理ダッシュボード統計ウィジェット — AuditLogPanel に stats カード (PR #148)   | ✅ Done    |
+| 61  | 🧪 パスワード変更・監査ログ API 実環境統合テスト (PR #149)                        | ✅ Done    |
+| 62  | 👤 管理者ユーザー作成 — POST /api/admin/users (Issue #144, PR #150)               | ✅ Done    |
+| 63  | 🔢 マルチパートアップロード E2E テスト (Issue #131, PR #147)                      | ✅ Done    |
+| 64  | 📊 管理ダッシュボード統計 API — GET /api/admin/stats (PR #146)                    | 🟡 CI中    |
+| 65  | 🔑 ユーザーロール変更 — PATCH /api/admin/users/{id}/role (PR #151)                | 🟡 CI中    |
+| 66  | ⚙️ 設定パネル パスワード変更フォーム (PR #152)                                    | 🟡 CI中    |
+| 67  | 👤 管理者ユーザー管理パネル — AdminPanel タブUI (PR #153)                         | 🟡 CI中    |
+| 68  | 🔔 グローバル Toast 通知システム (Issue #154, PR #155)                            | 🟡 CI中    |
+| 69  | 🔐 管理者パスワードリセット — POST /api/admin/users/{id}/reset-password (Issue #156, PR #157) | 🟡 CI中    |
+| 70  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
+| 71  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
+| 72  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
 
 > 🟡 **CI中** = CI green 確認後に merge (2026-05-22 セッション作成)
 
