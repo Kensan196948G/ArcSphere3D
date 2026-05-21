@@ -32,6 +32,11 @@ class UserCreate(BaseModel):
     role: str = Field(default="viewer", pattern="^(admin|editor|viewer)$")
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=8, max_length=256)
+
+
 class UserOut(BaseModel):
     id: UUID
     email: str
