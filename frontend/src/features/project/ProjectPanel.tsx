@@ -3,6 +3,7 @@ import { useAuthStore } from "@/state/authStore";
 import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
+import MultipartUploader from "@/features/viewport/MultipartUploader";
 import { getProjectStats, type ProjectStats } from "@/lib/api";
 
 export default function ProjectPanel() {
@@ -244,6 +245,14 @@ export default function ProjectPanel() {
               className="hidden"
             />
           </div>
+
+          {/* 大容量ファイル用マルチパートアップローダー */}
+          <MultipartUploader
+            projectId={selectedProjectId}
+            onComplete={() => {
+              void useProjectStore.getState().selectProject(token, selectedProjectId);
+            }}
+          />
 
           {loading && (
             <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>

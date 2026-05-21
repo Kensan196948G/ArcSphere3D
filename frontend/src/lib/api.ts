@@ -134,6 +134,82 @@ export async function getDownloadUrl(
   return handleResponse<DownloadUrl>(res);
 }
 
+// ---- Multipart upload -----------------------------------------------------
+
+export interface MultipartInitResponse {
+  upload_id: string;
+  s3_key: string;
+  part_urls: string[];
+  expires_in: number;
+}
+
+export interface MultipartPart {
+  part_number: number;
+  etag: string;
+}
+
+export async function multipartInit(
+  token: string,
+  projectId: string,
+  filename: string,
+  contentType: string,
+  totalSizeBytes: number,
+  partCount: number,
+): Promise<MultipartInitResponse> {
+  const res = await fetch(`${BASE}/files/multipart/init?project_id=${projectId}`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename,
+      content_type: contentType,
+      total_size_bytes: totalSizeBytes,
+      part_count: partCount,
+    }),
+  });
+  return handleResponse<MultipartInitResponse>(res);
+}
+
+export async function multipartComplete(
+  token: string,
+  projectId: string,
+  uploadId: string,
+  s3Key: string,
+  filename: string,
+  totalSizeBytes: number,
+  contentType: string,
+  parts: MultipartPart[],
+): Promise<FileMetadata> {
+  const res = await fetch(`${BASE}/files/multipart/complete?project_id=${projectId}`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      upload_id: uploadId,
+      s3_key: s3Key,
+      filename,
+      total_size_bytes: totalSizeBytes,
+      content_type: contentType,
+      parts,
+    }),
+  });
+  return handleResponse<FileMetadata>(res);
+}
+
+export async function multipartAbort(
+  token: string,
+  uploadId: string,
+  s3Key: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/files/multipart/abort`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ upload_id: uploadId, s3_key: s3Key }),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
 // ---- Alignments -----------------------------------------------------------
 
 export interface IpPointApiOut {
