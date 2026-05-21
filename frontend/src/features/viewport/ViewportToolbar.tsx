@@ -6,14 +6,16 @@ interface ToolBtnProps {
   label: string;
   title: string;
   active?: boolean;
+  testId?: string;
   onClick: () => void;
 }
 
-function ToolBtn({ label, title, active, onClick }: ToolBtnProps) {
+function ToolBtn({ label, title, active, testId, onClick }: ToolBtnProps) {
   return (
     <button
       type="button"
       title={title}
+      data-testid={testId}
       onClick={onClick}
       className={
         "rounded px-2 py-1 text-xs font-medium transition " +
@@ -56,18 +58,21 @@ export default function ViewportToolbar() {
         label="グリッド"
         title="グリッド表示切替"
         active={showGrid}
+        testId="grid-toggle-btn"
         onClick={toggleGrid}
       />
       <ToolBtn
         label="軸"
         title="座標軸表示切替"
         active={showAxes}
+        testId="axes-toggle-btn"
         onClick={toggleAxes}
       />
       <ToolBtn
         label="ワイヤー"
         title="ワイヤーフレーム切替"
         active={wireframe}
+        testId="wireframe-toggle-btn"
         onClick={toggleWireframe}
       />
       <ToolBtn
