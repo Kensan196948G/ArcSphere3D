@@ -26,6 +26,19 @@ class CurrentUser(BaseModel):
     role: str = "viewer"
 
 
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=256)
+    role: str = Field(default="viewer", pattern="^(admin|editor|viewer)$")
+
+
+class UserOut(BaseModel):
+    id: UUID
+    email: str
+    role: str
+    created_at: datetime
+
+
 # NUL bytes (\x00) cannot be stored in PostgreSQL text columns.
 # Excluding them at the schema layer prevents psycopg.DataError at the DB layer
 # and keeps schemathesis-generated examples within the valid input domain.

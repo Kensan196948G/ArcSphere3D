@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,6 +32,7 @@ from app.schemas import (
     ProjectCreate,
     ProjectOut,
     ProjectStats,
+    UserOut,
     VerticalAlignmentCreate,
     VerticalAlignmentOut,
     VipCreate,
@@ -58,6 +60,44 @@ async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
     """Return the DB row for a user with *email*, or None if not found."""
     result = await session.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+
+async def create_user_with_password(
+    session: AsyncSession,
+    *,
+    email: str,
+    password_hash: str,
+    role: str = "viewer",
+) -> UserOut:
+    """Create a new DB-backed user with a bcrypt password hash."""
+    user = User(sub=email, email=email, role=role, password_hash=password_hash)
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return UserOut(id=user.id, email=user.email, role=user.role, created_at=user.created_at)
+
+
+async def get_or_create_db_user(
+    session: AsyncSession,
+    *,
+    email: str,
+    password_hash: str,
+    role: str = "viewer",
+) -> User:
+    """Upsert a DB user by email — idempotent, safe under concurrent calls."""
+    stmt = (
+        pg_insert(User)
+        .values(sub=email, email=email, role=role, password_hash=password_hash)
+        .on_conflict_do_update(
+            index_elements=["email"],
+            set_={"password_hash": password_hash, "role": role},
+        )
+        .returning(User)
+    )
+    result = await session.execute(stmt)
+    user = result.scalar_one()
+    await session.commit()
+    return user
 
 
 async def list_projects(
