@@ -18,12 +18,33 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+    refresh_token: str | None = None
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = None
 
 
 class CurrentUser(BaseModel):
     sub: str
     email: str | None = None
     role: str = "viewer"
+
+
+# ---- Audit Logs ----
+class AuditLogOut(BaseModel):
+    id: UUID
+    user_id: UUID | None
+    action: str
+    resource_type: str
+    resource_id: str | None
+    ip_address: str | None
+    detail: str | None
+    created_at: datetime
 
 
 # NUL bytes (\x00) cannot be stored in PostgreSQL text columns.

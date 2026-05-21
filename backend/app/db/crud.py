@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import secrets
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -14,13 +17,16 @@ from app.models.alignment import (
     VerticalAlignment,
     VerticalAlignmentVip,
 )
+from app.models.audit_log import AuditLog
 from app.models.file import File
 from app.models.project import Project
 from app.models.project_member import ProjectMember
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas import (
     AlignmentCreate,
     AlignmentOut,
+    AuditLogOut,
     CurrentUser,
     FileMetadata,
     IpPointCreate,
@@ -34,6 +40,12 @@ from app.schemas import (
     VipCreate,
     VipOut,
 )
+
+_REFRESH_TOKEN_TTL_DAYS = 30
+
+
+def _hash_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
@@ -546,6 +558,162 @@ async def upsert_vips(
         await session.refresh(vip)
 
     return [_vip_to_out(v) for v in sorted(new_vips, key=lambda v: v.seq)]
+
+
+# ---- Local Auth (DB-backed) ----
+
+
+async def authenticate_user_local(
+    session: AsyncSession, email: str, password: str
+) -> User | None:
+    """Return the User if email+password match a local-auth account, else None."""
+    from app.security import verify_password
+
+    result = await session.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if user is None or user.password_hash is None:
+        return None
+    if not verify_password(password, user.password_hash):
+        return None
+    return user
+
+
+async def create_refresh_token(session: AsyncSession, user_id: UUID) -> str:
+    """Generate, store, and return a new opaque refresh token for *user_id*."""
+    raw = secrets.token_urlsafe(32)
+    rt = RefreshToken(
+        user_id=user_id,
+        token_hash=_hash_token(raw),
+        expires_at=datetime.now(UTC) + timedelta(days=_REFRESH_TOKEN_TTL_DAYS),
+    )
+    session.add(rt)
+    await session.commit()
+    return raw
+
+
+async def rotate_refresh_token(
+    session: AsyncSession, raw: str
+) -> tuple[User, str] | None:
+    """Verify *raw* refresh token, revoke it, issue a new one.
+
+    Returns (user, new_raw_token) on success, or None if invalid/expired/revoked.
+    """
+    now = datetime.now(UTC)
+    result = await session.execute(
+        select(RefreshToken).where(
+            RefreshToken.token_hash == _hash_token(raw),
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > now,
+        )
+    )
+    rt = result.scalar_one_or_none()
+    if rt is None:
+        return None
+
+    user_result = await session.execute(select(User).where(User.id == rt.user_id))
+    user = user_result.scalar_one_or_none()
+    if user is None:
+        return None
+
+    rt.revoked_at = now
+    new_raw = secrets.token_urlsafe(32)
+    new_rt = RefreshToken(
+        user_id=rt.user_id,
+        token_hash=_hash_token(new_raw),
+        expires_at=now + timedelta(days=_REFRESH_TOKEN_TTL_DAYS),
+    )
+    session.add(new_rt)
+    await session.commit()
+    return user, new_raw
+
+
+async def revoke_refresh_token(session: AsyncSession, raw: str) -> bool:
+    """Revoke a refresh token. Returns True if found and revoked, False if not found."""
+    result = await session.execute(
+        select(RefreshToken).where(
+            RefreshToken.token_hash == _hash_token(raw),
+            RefreshToken.revoked_at.is_(None),
+        )
+    )
+    rt = result.scalar_one_or_none()
+    if rt is None:
+        return False
+    rt.revoked_at = datetime.now(UTC)
+    await session.commit()
+    return True
+
+
+async def seed_demo_users(session: AsyncSession) -> None:
+    """Seed demo users if they don't exist — for dev/test environments only."""
+    from app.security import hash_password
+
+    demo_accounts = [
+        ("demo@arcsphere3d.dev", "arcsphere-demo", "admin"),
+        ("other@arcsphere3d.dev", "arcsphere-demo", "viewer"),
+    ]
+    for email, password, role in demo_accounts:
+        result = await session.execute(select(User).where(User.email == email))
+        if result.scalar_one_or_none() is None:
+            session.add(
+                User(
+                    sub=email,
+                    email=email,
+                    role=role,
+                    password_hash=hash_password(password),
+                )
+            )
+    await session.commit()
+
+
+# ---- Audit Log ----
+
+
+async def log_audit(
+    session: AsyncSession,
+    *,
+    user_id: UUID | None,
+    action: str,
+    resource_type: str,
+    resource_id: str | None = None,
+    ip_address: str | None = None,
+    detail: str | None = None,
+) -> None:
+    """Append an audit event. Failures are suppressed to avoid blocking the main request."""
+    try:
+        session.add(
+            AuditLog(
+                user_id=user_id,
+                action=action,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                ip_address=ip_address,
+                detail=detail,
+            )
+        )
+        await session.commit()
+    except Exception:  # noqa: BLE001
+        await session.rollback()
+
+
+async def list_audit_logs(
+    session: AsyncSession, skip: int = 0, limit: int = 100
+) -> list[AuditLogOut]:
+    result = await session.execute(
+        select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit)
+    )
+    return [
+        AuditLogOut(
+            id=row.id,
+            user_id=row.user_id,
+            action=row.action,
+            resource_type=row.resource_type,
+            resource_id=row.resource_id,
+            ip_address=row.ip_address,
+            detail=row.detail,
+            created_at=row.created_at,
+        )
+        for row in result.scalars().all()
+    ]
 
 
 async def get_project_stats(session: AsyncSession, project_id: UUID) -> ProjectStats:

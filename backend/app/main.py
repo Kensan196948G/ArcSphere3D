@@ -8,10 +8,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import get_settings
-from app.db.session import close_engine, init_engine
+from app.config import DEV_ENVS, get_settings
+from app.db import crud
+from app.db.session import close_engine, init_engine, new_session
 from app.logging import configure_logging, logger
-from app.routers import alignments, auth, files, health, project_members, projects, users, verticals
+from app.routers import admin, alignments, auth, files, health, project_members, projects, users, verticals
 from app.s3 import init_s3
 
 
@@ -20,6 +21,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     init_engine()
     init_s3(settings)
+    if settings.app_env in DEV_ENVS:
+        async with new_session() as session:
+            await crud.seed_demo_users(session)
     logger.info("startup", app=settings.app_name, version=settings.app_version)
     yield
     await close_engine()
@@ -47,6 +51,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(admin.router)
     app.include_router(users.router)
     app.include_router(projects.router)
     app.include_router(files.router)

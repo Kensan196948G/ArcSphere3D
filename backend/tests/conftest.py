@@ -54,6 +54,11 @@ import app.security as _security_mod  # noqa: E402
 
 _security_mod._cached_keys = (_test_priv_pem, _test_pub_pem)
 
+# Pre-compute demo user password hashes once per process to avoid bcrypt cost per test.
+from app.security import hash_password as _hp  # noqa: E402
+
+_DEMO_HASH = _hp("arcsphere-demo")
+
 # Initialise the app's async engine before any test function runs.
 init_engine()
 
@@ -76,8 +81,30 @@ def _db_truncate(_db_schema: None) -> None:
             text(
                 "TRUNCATE users, projects, files, alignments,"
                 " alignment_ip_points, vertical_alignments, vertical_alignment_vips,"
-                " project_members RESTART IDENTITY CASCADE"
+                " project_members, refresh_tokens, audit_logs RESTART IDENTITY CASCADE"
             )
+        )
+    engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _seed_demo_users(_db_truncate: None) -> None:
+    """Seed demo users after each truncation so auth tests work with DB-backed login."""
+    engine = create_engine(get_settings().database_url)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO users (sub, email, role, password_hash) VALUES "
+                "(:s1, :e1, 'admin', :h1), (:s2, :e2, 'viewer', :h2)"
+            ),
+            {
+                "s1": "demo@arcsphere3d.dev",
+                "e1": "demo@arcsphere3d.dev",
+                "h1": _DEMO_HASH,
+                "s2": "other@arcsphere3d.dev",
+                "e2": "other@arcsphere3d.dev",
+                "h2": _DEMO_HASH,
+            },
         )
     engine.dispose()
 

@@ -1,7 +1,10 @@
-"""Auth endpoints (MVP scaffold).
+"""Auth endpoints — DB-backed local authentication + refresh token rotation.
 
-WARNING: This is a *scaffold*. The MVP demo user is configured in-memory
-and must be replaced by a real user store + Entra ID SSO before production.
+Production readiness (Issue #128):
+- Login verifies against DB users (bcrypt password_hash)
+- Refresh token is an opaque 256-bit value stored as SHA-256 hash in DB
+- Logout revokes the refresh token (DB row)
+- OIDC/Entra ID callback stub (post-MVP)
 """
 
 from __future__ import annotations
@@ -11,26 +14,21 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import get_settings
+from app.db import crud
+from app.deps import DbDep
 from app.ratelimit import SimpleRateLimiter
-from app.schemas import CurrentUser, LoginRequest, TokenResponse
-from app.security import create_access_token, get_public_key_jwk, hash_password, verify_password
+from app.schemas import (
+    CurrentUser,
+    LoginRequest,
+    LogoutRequest,
+    RefreshTokenRequest,
+    TokenResponse,
+)
+from app.security import create_access_token, get_public_key_jwk
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-# 5 attempts per 60 seconds per client IP — brute-force mitigation.
 _login_limiter = SimpleRateLimiter(max_calls=5, window_seconds=60)
-
-# Demo users (MVP only). Replace with DB-backed store.
-_DEMO_USERS: dict[str, dict[str, str]] = {
-    "demo@arcsphere3d.dev": {
-        "password_hash": hash_password("arcsphere-demo"),
-        "role": "admin",
-    },
-    "other@arcsphere3d.dev": {
-        "password_hash": hash_password("arcsphere-demo"),
-        "role": "viewer",
-    },
-}
 
 
 @router.get("/.well-known/jwks.json", tags=["auth"])
@@ -48,7 +46,7 @@ def jwks() -> dict[str, Any]:
         429: {"description": "too many requests — rate limit exceeded"},
     },
 )
-def login(request: Request, payload: LoginRequest) -> TokenResponse:
+async def login(request: Request, payload: LoginRequest, session: DbDep) -> TokenResponse:
     client_ip = request.client.host if request.client else "unknown"
     if not _login_limiter.is_allowed(client_ip):
         raise HTTPException(
@@ -56,20 +54,41 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
             detail="too many login attempts — try again later",
             headers={"Retry-After": "60"},
         )
-    user = _DEMO_USERS.get(payload.email)
-    if not user or not verify_password(payload.password, user["password_hash"]):
+
+    user = await crud.authenticate_user_local(session, payload.email, payload.password)
+    if user is None:
+        await crud.log_audit(
+            session,
+            user_id=None,
+            action="login_failure",
+            resource_type="auth",
+            ip_address=client_ip,
+            detail=f"email={payload.email}",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid credentials",
         )
+
     token = create_access_token(
-        subject=payload.email,
-        extra={"email": payload.email, "role": user["role"]},
+        subject=user.sub,
+        extra={"email": user.email, "role": user.role},
     )
+    raw_refresh = await crud.create_refresh_token(session, user.id)
+
+    await crud.log_audit(
+        session,
+        user_id=user.id,
+        action="login_success",
+        resource_type="auth",
+        ip_address=client_ip,
+    )
+
     s = get_settings()
     return TokenResponse(
         access_token=token,
         expires_in=s.jwt_access_token_ttl_minutes * 60,
+        refresh_token=raw_refresh,
     )
 
 
@@ -78,23 +97,57 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
     response_model=TokenResponse,
     responses={
         400: {"description": "malformed request body"},
-        401: {"description": "invalid or missing token"},
+        401: {"description": "invalid or expired refresh token"},
     },
 )
-def refresh(current: CurrentUser) -> TokenResponse:  # pragma: no cover - scaffold
-    # TODO(post-MVP): rotate refresh tokens via httpOnly cookie.
+async def refresh(payload: RefreshTokenRequest, session: DbDep) -> TokenResponse:
+    """Issue a new access token by rotating the provided refresh token."""
+    result = await crud.rotate_refresh_token(session, payload.refresh_token)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid or expired refresh token",
+        )
+    user, new_raw = result
     token = create_access_token(
-        subject=current.sub,
-        extra={"email": current.email, "role": current.role},
+        subject=user.sub,
+        extra={"email": user.email, "role": user.role},
     )
     s = get_settings()
     return TokenResponse(
         access_token=token,
         expires_in=s.jwt_access_token_ttl_minutes * 60,
+        refresh_token=new_raw,
     )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout() -> None:
-    # Stateless JWT — client just discards the token.
+async def logout(
+    request: Request,
+    session: DbDep,
+    payload: LogoutRequest | None = None,
+) -> None:
+    """Revoke the refresh token so it cannot be used again."""
+    if payload and payload.refresh_token:
+        await crud.revoke_refresh_token(session, payload.refresh_token)
     return None
+
+
+@router.get(
+    "/oidc/callback",
+    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+    responses={501: {"description": "Entra ID SSO not yet configured — post-MVP"}},
+    include_in_schema=True,
+)
+def oidc_callback(
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+) -> dict[str, str]:
+    """Microsoft Entra ID OIDC callback stub (post-MVP)."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Entra ID SSO is not yet configured. This endpoint will be activated post-MVP.",
+    )
+
+
