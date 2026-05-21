@@ -539,6 +539,24 @@ export async function getAdminStats(token: string): Promise<AdminStats> {
   return handleResponse<AdminStats>(res);
 }
 
+// ---- Admin: Password Reset ------------------------------------------------
+
+export async function resetAdminUserPassword(
+  token: string,
+  userId: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/admin/users/${userId}/reset-password`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
 // ---- Project stats --------------------------------------------------------
 
 export interface ProjectStats {
