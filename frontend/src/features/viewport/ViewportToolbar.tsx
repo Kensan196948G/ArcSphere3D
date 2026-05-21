@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { useViewportStore } from "@/state/viewportStore";
 import type { CameraPreset } from "@/state/viewportStore";
 import { getRendererDomElement } from "@/lib/threeContext";
@@ -36,6 +37,14 @@ const PRESETS: { preset: CameraPreset; label: string; title: string }[] = [
   { preset: "side", label: "側面", title: "側面ビュー（右）" },
 ];
 
+const SHORTCUTS = [
+  { key: "W", desc: "移動モード" },
+  { key: "E", desc: "回転モード" },
+  { key: "R", desc: "拡縮モード" },
+  { key: "Esc", desc: "選択解除" },
+  { key: "Del / BS", desc: "選択オブジェクト削除" },
+];
+
 export default function ViewportToolbar() {
   const {
     showGrid,
@@ -51,6 +60,23 @@ export default function ViewportToolbar() {
     resetCamera,
     setCameraPreset,
   } = useViewportStore();
+
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const shortcutsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!shortcutsOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        shortcutsRef.current &&
+        !shortcutsRef.current.contains(e.target as Node)
+      ) {
+        setShortcutsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [shortcutsOpen]);
 
   return (
     <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 rounded-lg bg-slate-900/80 px-3 py-2 shadow-lg backdrop-blur">
@@ -137,6 +163,42 @@ export default function ViewportToolbar() {
         />
         <span className="w-6 text-right">{dirIntensity.toFixed(1)}</span>
       </label>
+
+      <div className="relative" ref={shortcutsRef}>
+        <button
+          type="button"
+          data-testid="shortcuts-btn"
+          title="キーボードショートカット一覧"
+          onClick={() => setShortcutsOpen((o) => !o)}
+          className="rounded bg-slate-800/70 px-2 py-1 text-xs font-medium text-slate-300 hover:bg-slate-700/80"
+        >
+          ?
+        </button>
+        {shortcutsOpen && (
+          <div
+            data-testid="shortcuts-panel"
+            className="absolute bottom-full right-0 mb-2 min-w-[180px] rounded-lg bg-slate-900 p-3 shadow-xl ring-1 ring-slate-700"
+          >
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              キーボードショートカット
+            </p>
+            <table className="w-full text-xs">
+              <tbody>
+                {SHORTCUTS.map(({ key, desc }) => (
+                  <tr key={key}>
+                    <td className="pr-3 py-0.5">
+                      <kbd className="rounded bg-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-slate-200">
+                        {key}
+                      </kbd>
+                    </td>
+                    <td className="py-0.5 text-slate-300">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
