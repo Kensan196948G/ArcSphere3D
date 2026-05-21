@@ -10,7 +10,7 @@
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "Session 2026-05-21: 8 PR (#112/#114/#116/#118/#120/#122/#123/#124) Ready+green、人間 merge 承認待ち。#125 CI 進行中。",
+  "goal": "Session 2026-05-21 終了 (21:25 JST): 10 PR Ready+green、人間 merge 承認待ち。merge_train=#112/#114/#116/#118/#120/#122/#123/#124, bookkeeping=#125 (state) + #126 (README docs)。GitHub Projects 未作成。",
   "phase": "Build",
   "mvp": {
     "definition": [
@@ -56,8 +56,8 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Verify",
-    "last_session_summary": "Build session 2026-05-21 (post-compact resume): PR #102/#104/#106/#109 merged 完了。新 Ready: #112/#114/#116/#118/#120/#122/#123/#124 (全 8 PR green、人間 merge 承認待ち)。#125 (state bookkeeping) CI 進行中。E2E 116→120、backend pytest 130→145。Codex review (#122) clean。",
-    "current_session_start_at": "2026-05-21T12:11:26.040Z",
+    "last_session_summary": "Session 2026-05-21 完了: PR #102/#104/#106/#109 merged。新規 Ready 8 PR (#112/#114/#116/#118/#120/#122/#123/#124) 全 CI green + Codex/CodeRabbit pass、人間 merge 承認待ち。docs/state 分離で PR #125 (chore/state-2026-05-21) + PR #126 (docs/readme-2026-05-21) 作成。E2E 116→120、backend pytest 130→145。GitHub Projects は ArcSphere3D 用未作成 (27 project 検索済み、none match)。Memory 3 件追加: codex review scope leakage / PR scope separation / merge train queue。",
+    "current_session_start_at": "2026-05-21T12:16:44.815Z",
     "session_soft_deadline": "2026-05-22T00:00:00+09:00",
     "session_hard_deadline": "2026-05-22T00:30:00+09:00",
     "last_trigger": "manual",
@@ -321,16 +321,16 @@
   },
   "next_session_hints": {
     "priority_order": [
-      "Verify: PR #88 (Issue #87 login failure E2E) — CI 完了後マージ",
-      "Verify: PR #90 (Issue #89 LayerPanel E2E) — CI 完了後マージ",
-      "Build: Viewport ドラッグ&ドロップ対応 — HTMLと Three.js Canvas へのファイルD&D",
-      "Build: OpenCascade.js WASM 統合フェーズ2 — cadPrimitives.ts → OCC.js swap-in",
-      "Improve: TypeScript strict mode — noUncheckedIndexedAccess 対応 (101 errors を段階的修正)"
+      "P1: merge_train 消化 (#112/#114/#116/#118/#120/#122/#123/#124) — 人間が gh pr merge --squash --auto で順次 merge",
+      "P1: PR #125 (state) + #126 (README) backend pytest 完了確認後 merge",
+      "P2: GitHub Projects 作成 (gh project create owner=Kensan196948G title=ArcSphere3D)",
+      "P2: 残 Issue 棚卸し + 次フェーズ目標設定 (週 9 開始、Quality phase 移行検討)",
+      "P3: 44 件 untracked .claude/ scaffolding の gitignore 判断"
     ],
-    "resume_note": "Session 2026-05-21: E2E 90→107+, backend 177→197, PR #78/#79/#80/#82/#84/#86 merged. PR #88/#90 in review. Issues #87/#89 in progress."
+    "resume_note": "Session 2026-05-21 終了。10 PR merge train queue。次回は merge 消化を最優先、その後 GitHub Projects 作成と Quality phase 移行判断。"
   },
   "compact": {
-    "last_pre_compact_at": "2026-05-21T12:09:47.993Z"
+    "last_pre_compact_at": "2026-05-21T12:15:00.429Z"
   },
   "dreaming": {
     "patterns": [],
