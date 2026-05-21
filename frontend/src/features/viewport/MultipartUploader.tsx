@@ -152,7 +152,7 @@ export default function MultipartUploader({ projectId, onComplete }: Props) {
               e.target.value = "";
             }}
           />
-          大容量ファイル (≥10 MB) をアップロード
+          大容量 BIM/CAD ファイル (≥10 MB) を分割送信
         </label>
       )}
 
