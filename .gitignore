@@ -54,6 +54,20 @@ docker/volumes/
 .claude/local/
 .claude/cache/
 .claude/logs/
+.claude/CLAUDE.md
+.claude/agents/
+.claude/commands/
+.claude/hooks/
+.claude/skills/
+.claude/statusline.py
+.claude/settings.json
+.claude/claude_pty_bridge.py
+.claude/claude_startup_bridge.sh
+.claude/claudeos/
+# --- CI / test artefacts ---
+reports/
+test-results/
+frontend/test-results/
 
 # --- Build artefacts ---
 *.wasm.map
