@@ -406,6 +406,70 @@ export async function getProjectStats(
   return handleResponse<ProjectStats>(res);
 }
 
+// ---- Multipart Upload -------------------------------------------------------
+
+export interface MultipartPartInfo {
+  part_number: number;
+  presigned_url: string;
+}
+
+export interface MultipartInitResponse {
+  upload_token: string;
+  upload_id: string;
+  parts: MultipartPartInfo[];
+  chunk_size: number;
+  total_parts: number;
+}
+
+export interface MultipartCompletePart {
+  part_number: number;
+  etag: string;
+}
+
+export async function initMultipartUpload(
+  token: string,
+  projectId: string,
+  file: File,
+  chunkSize = 10 * 1024 * 1024,
+): Promise<MultipartInitResponse> {
+  const res = await fetch(`${BASE}/files/multipart/init`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      project_id: projectId,
+      filename: file.name,
+      file_size: file.size,
+      content_type: file.type || "application/octet-stream",
+      chunk_size: chunkSize,
+    }),
+  });
+  return handleResponse<MultipartInitResponse>(res);
+}
+
+export async function completeMultipartUpload(
+  token: string,
+  uploadToken: string,
+  parts: MultipartCompletePart[],
+): Promise<FileMetadata> {
+  const res = await fetch(`${BASE}/files/multipart/complete`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ upload_token: uploadToken, parts }),
+  });
+  return handleResponse<FileMetadata>(res);
+}
+
+export async function abortMultipartUpload(
+  token: string,
+  uploadToken: string,
+): Promise<void> {
+  await fetch(`${BASE}/files/multipart/abort`, {
+    method: "DELETE",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ upload_token: uploadToken }),
+  });
+}
+
 // ---- JWT utils (client-side payload decode, no signature check) -----------
 
 export interface JwtPayload {
