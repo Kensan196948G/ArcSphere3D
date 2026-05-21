@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/state/authStore";
-import { listAuditLogs, parseJwtPayload, type AuditLogOut } from "@/lib/api";
+import {
+  getAdminStats,
+  listAuditLogs,
+  parseJwtPayload,
+  type AdminStats,
+  type AuditLogOut,
+} from "@/lib/api";
 
 const PAGE_SIZE = 20;
 
@@ -15,12 +21,20 @@ const ACTION_OPTIONS = [
 export default function AuditLogPanel() {
   const token = useAuthStore((s) => s.token);
   const [logs, setLogs] = useState<AuditLogOut[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [page, setPage] = useState(0);
   const [actionFilter, setActionFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const role = token ? (parseJwtPayload(token)?.role ?? "") : "";
+
+  useEffect(() => {
+    if (!token || role !== "admin") return;
+    getAdminStats(token)
+      .then(setStats)
+      .catch(() => setStats(null));
+  }, [token, role]);
 
   useEffect(() => {
     if (!token || role !== "admin") return;
@@ -42,6 +56,29 @@ export default function AuditLogPanel() {
 
   return (
     <div className="flex flex-col gap-2 text-xs" data-testid="audit-log-panel">
+      {stats && (
+        <div
+          className="grid grid-cols-2 gap-1 rounded bg-slate-100 p-2 dark:bg-slate-800"
+          data-testid="admin-stats"
+        >
+          <div className="text-center">
+            <div className="text-lg font-bold text-arc-accent">{stats.total_users}</div>
+            <div className="text-[9px] text-slate-500">ユーザー</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-arc-accent">{stats.total_projects}</div>
+            <div className="text-[9px] text-slate-500">プロジェクト</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-arc-accent">{stats.total_files}</div>
+            <div className="text-[9px] text-slate-500">ファイル</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-arc-accent">{stats.total_audit_events}</div>
+            <div className="text-[9px] text-slate-500">監査イベント</div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           アクション
