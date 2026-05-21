@@ -159,3 +159,80 @@ test.describe("files", () => {
     await request.delete(`/api/projects/${projectId}`, { headers });
   });
 });
+
+// ── Auth: Password change ─────────────────────────────────────────────────────
+
+test.describe("password-change", () => {
+  test("authenticated user can change and revert password", async ({
+    request,
+  }) => {
+    const token = await getSharedToken(request);
+    const headers = { Authorization: `Bearer ${token}` };
+
+    // Change to new password
+    const changeRes = await request.post("/api/auth/password", {
+      headers,
+      data: {
+        current_password: "arcsphere-demo",
+        new_password: "integration-new-pw-99",
+      },
+    });
+    expect(changeRes.status()).toBe(204);
+
+    // Login with new password (1 extra login call)
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        email: "demo@arcsphere3d.dev",
+        password: "integration-new-pw-99",
+      },
+    });
+    expect(loginRes.status()).toBe(200);
+    const newToken = ((await loginRes.json()) as { access_token: string })
+      .access_token;
+
+    // Revert to original password
+    const revertRes = await request.post("/api/auth/password", {
+      headers: { Authorization: `Bearer ${newToken}` },
+      data: {
+        current_password: "integration-new-pw-99",
+        new_password: "arcsphere-demo",
+      },
+    });
+    expect(revertRes.status()).toBe(204);
+
+    // Invalidate shared token so next test fetches a fresh one
+    _sharedToken = null;
+  });
+
+  test("wrong current password returns 401", async ({ request }) => {
+    const token = await getSharedToken(request);
+    const res = await request.post("/api/auth/password", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        current_password: "completely-wrong-password",
+        new_password: "new-valid-pw-123",
+      },
+    });
+    expect(res.status()).toBe(401);
+  });
+});
+
+// ── Admin: Audit logs ─────────────────────────────────────────────────────────
+
+test.describe("admin-audit-logs", () => {
+  test("admin can list audit logs", async ({ request }) => {
+    const token = await getSharedToken(request);
+    const res = await request.get("/api/admin/audit-logs", {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { limit: "10" },
+    });
+    expect(res.status()).toBe(200);
+    const logs = await res.json();
+    expect(Array.isArray(logs)).toBe(true);
+  });
+
+  test("unauthenticated request returns 401", async ({ request }) => {
+    const res = await request.get("/api/admin/audit-logs");
+    expect(res.status()).toBe(401);
+  });
+});
