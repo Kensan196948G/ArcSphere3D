@@ -81,7 +81,8 @@ def _db_truncate(_db_schema: None) -> None:
             text(
                 "TRUNCATE users, projects, files, alignments,"
                 " alignment_ip_points, vertical_alignments, vertical_alignment_vips,"
-                " project_members, refresh_tokens, audit_logs RESTART IDENTITY CASCADE"
+                " project_members, refresh_tokens, audit_logs, multipart_uploads"
+                " RESTART IDENTITY CASCADE"
             )
         )
     engine.dispose()

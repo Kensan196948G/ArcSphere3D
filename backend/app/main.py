@@ -12,7 +12,7 @@ from app.config import DEV_ENVS, get_settings
 from app.db import crud
 from app.db.session import close_engine, init_engine, new_session
 from app.logging import configure_logging, logger
-from app.routers import admin, alignments, auth, files, health, project_members, projects, users, verticals
+from app.routers import admin, alignments, auth, files, health, multipart, project_members, projects, users, verticals
 from app.s3 import init_s3
 
 
@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router)
     app.include_router(users.router)
     app.include_router(projects.router)
+    app.include_router(multipart.router)  # must be before files.router (prefix overlap)
     app.include_router(files.router)
     app.include_router(alignments.router)
     app.include_router(verticals.router)

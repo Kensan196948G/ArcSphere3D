@@ -176,6 +176,51 @@ class MemberOut(BaseModel):
     created_at: datetime
 
 
+# ---- Multipart Upload ----
+
+_CHUNK_SIZE_MIN = 5 * 1024 * 1024   # MinIO minimum 5 MB
+_CHUNK_SIZE_MAX = 100 * 1024 * 1024  # 100 MB per part cap
+
+
+class MultipartInitRequest(BaseModel):
+    project_id: UUID
+    filename: str = Field(min_length=1, max_length=255)
+    file_size: int = Field(gt=0, le=5 * 1024 * 1024 * 1024 * 1024)  # 5 TB max
+    content_type: str = Field(default="application/octet-stream", max_length=128)
+    chunk_size: int = Field(
+        default=10 * 1024 * 1024,
+        ge=_CHUNK_SIZE_MIN,
+        le=_CHUNK_SIZE_MAX,
+    )
+
+
+class MultipartPartInfo(BaseModel):
+    part_number: int
+    presigned_url: str
+
+
+class MultipartInitResponse(BaseModel):
+    upload_token: UUID
+    upload_id: str
+    parts: list[MultipartPartInfo]
+    chunk_size: int
+    total_parts: int
+
+
+class MultipartCompletePart(BaseModel):
+    part_number: int = Field(ge=1)
+    etag: str
+
+
+class MultipartCompleteRequest(BaseModel):
+    upload_token: UUID
+    parts: list[MultipartCompletePart] = Field(min_length=1)
+
+
+class MultipartAbortRequest(BaseModel):
+    upload_token: UUID
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str

@@ -19,6 +19,7 @@ from app.models.alignment import (
 )
 from app.models.audit_log import AuditLog
 from app.models.file import File
+from app.models.multipart_upload import MultipartUpload
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.refresh_token import RefreshToken
@@ -32,6 +33,7 @@ from app.schemas import (
     IpPointCreate,
     IpPointOut,
     MemberOut,
+    MultipartInitRequest,
     ProjectCreate,
     ProjectOut,
     ProjectStats,
@@ -714,6 +716,74 @@ async def list_audit_logs(
         )
         for row in result.scalars().all()
     ]
+
+
+# ---- Multipart Upload ----
+
+
+async def create_multipart_upload_record(
+    session: AsyncSession,
+    project_id: UUID,
+    user_id: UUID,
+    minio_upload_id: str,
+    s3_key: str,
+    req: MultipartInitRequest,
+) -> MultipartUpload:
+    record = MultipartUpload(
+        project_id=project_id,
+        user_id=user_id,
+        minio_upload_id=minio_upload_id,
+        s3_key=s3_key,
+        filename=req.filename,
+        content_type=req.content_type,
+        file_size=req.file_size,
+        chunk_size=req.chunk_size,
+    )
+    session.add(record)
+    await session.commit()
+    await session.refresh(record)
+    return record
+
+
+async def get_multipart_upload(
+    session: AsyncSession, upload_token: UUID
+) -> MultipartUpload | None:
+    result = await session.execute(
+        select(MultipartUpload).where(
+            MultipartUpload.id == upload_token,
+            MultipartUpload.status == "in_progress",
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def finish_multipart_upload_record(
+    session: AsyncSession,
+    record: MultipartUpload,
+    sha256: bytes,
+    actual_size: int,
+) -> File:
+    """Mark the multipart upload as completed and create the File DB record."""
+    record.status = "completed"
+    db_file = File(
+        project_id=record.project_id,
+        filename=record.filename,
+        size_bytes=actual_size,
+        content_type=record.content_type,
+        s3_key=record.s3_key,
+        sha256=sha256,
+    )
+    session.add(db_file)
+    await session.commit()
+    await session.refresh(db_file)
+    return db_file
+
+
+async def abort_multipart_upload_record(
+    session: AsyncSession, record: MultipartUpload
+) -> None:
+    record.status = "aborted"
+    await session.commit()
 
 
 async def get_project_stats(session: AsyncSession, project_id: UUID) -> ProjectStats:
