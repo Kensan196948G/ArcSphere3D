@@ -21,6 +21,7 @@ from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.user import User
 from app.schemas import (
+    AdminStats,
     AlignmentCreate,
     AlignmentOut,
     AuditLogOut,
@@ -738,3 +739,20 @@ async def update_user_role(
         return None
     await session.execute(update(User).where(User.id == user_id).values(role=new_role))
     return UserOut(id=user.id, email=user.email, role=new_role, created_at=user.created_at)
+
+
+# ---- Admin: Dashboard Stats ----
+
+
+async def get_admin_stats(session: AsyncSession) -> AdminStats:
+    """Return aggregate counts across all users, projects, files, and audit events."""
+    user_count = (await session.execute(select(func.count()).select_from(User))).scalar_one()
+    project_count = (await session.execute(select(func.count()).select_from(Project))).scalar_one()
+    file_count = (await session.execute(select(func.count()).select_from(File))).scalar_one()
+    audit_count = (await session.execute(select(func.count()).select_from(AuditLog))).scalar_one()
+    return AdminStats(
+        total_users=user_count,
+        total_projects=project_count,
+        total_files=file_count,
+        total_audit_events=audit_count,
+    )
