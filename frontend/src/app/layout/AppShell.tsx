@@ -2,6 +2,7 @@ import Header from "./Header";
 import LeftMenu from "./LeftMenu";
 import RightPanel from "./RightPanel";
 import BottomConsole from "./BottomConsole";
+import Toaster from "./Toaster";
 import Viewport from "@/features/viewport/Viewport";
 
 export default function AppShell() {
@@ -26,6 +27,8 @@ export default function AppShell() {
       <footer className="col-span-3 row-start-3 row-end-4 border-t border-slate-200 bg-arc-panel/80 dark:border-slate-700">
         <BottomConsole />
       </footer>
+
+      <Toaster />
     </div>
   );
 }

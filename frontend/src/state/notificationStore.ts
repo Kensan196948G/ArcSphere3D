@@ -1,0 +1,42 @@
+import { create } from "zustand";
+
+export type NotificationType = "success" | "error" | "info";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+}
+
+interface NotificationState {
+  notifications: Notification[];
+  addNotification: (type: NotificationType, message: string) => void;
+  removeNotification: (id: string) => void;
+}
+
+export const useNotificationStore = create<NotificationState>((set) => ({
+  notifications: [],
+  addNotification: (type, message) =>
+    set((s) => ({
+      notifications: [
+        ...s.notifications,
+        { id: `${Date.now()}-${Math.random()}`, type, message },
+      ],
+    })),
+  removeNotification: (id) =>
+    set((s) => ({
+      notifications: s.notifications.filter((n) => n.id !== id),
+    })),
+}));
+
+export function notifySuccess(message: string) {
+  useNotificationStore.getState().addNotification("success", message);
+}
+
+export function notifyError(message: string) {
+  useNotificationStore.getState().addNotification("error", message);
+}
+
+export function notifyInfo(message: string) {
+  useNotificationStore.getState().addNotification("info", message);
+}
