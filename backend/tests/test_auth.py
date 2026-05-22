@@ -169,6 +169,56 @@ def test_login_rate_limit_resets_after_clear() -> None:
     assert res.status_code == 200
 
 
+def test_refresh_reflects_role_change_by_admin() -> None:
+    """POST /refresh must return a token with the DB role, not the JWT payload role."""
+    admin_token = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    ).json()["access_token"]
+
+    # Create a viewer user.
+    viewer_res = client.post(
+        "/api/admin/users",
+        json={
+            "email": "role-sync-test@arcsphere3d.dev",
+            "password": "init-pass-1!",
+            "role": "viewer",
+        },  # noqa: E501
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert viewer_res.status_code == 201
+    uid = viewer_res.json()["id"]
+
+    # Login as viewer — token carries role=viewer.
+    viewer_token = client.post(
+        "/api/auth/login",
+        json={"email": "role-sync-test@arcsphere3d.dev", "password": "init-pass-1!"},
+    ).json()["access_token"]
+    assert jose_jwt.get_unverified_claims(viewer_token)["role"] == "viewer"
+
+    # Admin promotes the viewer to editor.
+    patch_res = client.patch(
+        f"/api/admin/users/{uid}/role",
+        json={"role": "editor"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert patch_res.status_code == 200
+
+    # Viewer refreshes with the old token — new token must carry role=editor.
+    refresh_res = client.post(
+        "/api/auth/refresh",
+        headers={"Authorization": f"Bearer {viewer_token}"},
+    )
+    assert refresh_res.status_code == 200
+    new_claims = jose_jwt.get_unverified_claims(refresh_res.json()["access_token"])
+    assert new_claims["role"] == "editor"
+
+
+def test_refresh_unauthenticated_returns_401() -> None:
+    res = client.post("/api/auth/refresh")
+    assert res.status_code == 401
+
+
 def test_member_project_appears_in_list() -> None:
     """Projects where user is a member should appear in their project list."""
     owner_token = client.post(
