@@ -1,236 +1,302 @@
 # ArcSphere3D
 
-> **AI Native Web 3D CAD Platform** — Full browser-based 3D CAD / BIM / Digital Twin with JWT authentication and S3-backed file storage.
+> **AI Native Web 3D CAD Platform** — フルブラウザ型 3D CAD / BIM / Digital Twin。JWT 認証 + S3 ストレージ + 管理者パネル + Undo/Redo 完備。
 
 [![CI](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml/badge.svg)](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Proprietary-blue)]()
-[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20Three.js%20r169-61DAFB)]()
-[![Backend](https://img.shields.io/badge/backend-FastAPI%20%2B%20Python%203.12-009688)]()
-[![Storage](https://img.shields.io/badge/storage-PostgreSQL%2016%20%2B%20MinIO-4169E1)]()
+[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20Three.js%20r169-61DAFB?logo=react)]()
+[![Backend](https://img.shields.io/badge/backend-FastAPI%20%2B%20Python%203.12-009688?logo=fastapi)]()
+[![Storage](https://img.shields.io/badge/storage-PostgreSQL%2016%20%2B%20MinIO-4169E1?logo=postgresql)]()
+[![Docker](https://img.shields.io/badge/infra-Docker%20Compose-2496ED?logo=docker)]()
 
 ---
 
-## Overview
+## 🌐 Overview
 
-ArcSphere3D is an **AI Native** web-based 3D CAD platform designed for architecture, manufacturing, and engineering workflows. It runs entirely in the browser — no plugins, no local installs — backed by a FastAPI REST API, PostgreSQL, and S3-compatible object storage.
+ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォームです。建築・製造・土木エンジニアリングのワークフローを想定して設計されており、プラグイン不要でブラウザから即時利用できます。
 
-Users authenticate via **JWT (RS256)**, manage 3D projects and files through a structured REST API, and visualize models directly in the browser using a Three.js viewport. IFC (Industry Foundation Classes) files are parsed and rendered client-side via **web-ifc**, enabling BIM workflows without any server-side CAD kernel. The platform is built for collaborative, cloud-first teams who need professional 3D tooling without the overhead of traditional desktop CAD.
-
----
-
-## Feature Status
-
-| #   | Feature                                                                           | Status     |
-| --- | --------------------------------------------------------------------------------- | ---------- |
-| 1   | 🔐 JWT authentication (RS256 asymmetric keypair)                                  | ✅ Done    |
-| 2   | 📁 Project management CRUD                                                        | ✅ Done    |
-| 3   | 📤 File upload — S3 presigned + sha256 deduplication                              | ✅ Done    |
-| 4   | 🏗️ IFC 3D viewer (web-ifc, client-side WASM)                                      | ✅ Done    |
-| 5   | 🎮 Three.js viewport — Grid / Axes / Transform Controls                           | ✅ Done    |
-| 6   | 🌙 Light / Dark theme                                                             | ✅ Done    |
-| 7   | 🗺️ GIS background map (MapLibre GL JS)                                            | ✅ Done    |
-| 8   | ☁️ Point cloud viewer (LAS/LAZ, color modes)                                      | ✅ Done    |
-| 9   | 🏔️ Terrain TIN surface (Delaunay triangulation)                                   | ✅ Done    |
-| 10  | 🏗️ Earthwork calculation (cut/fill volumes)                                       | ✅ Done    |
-| 11  | 📐 Horizontal alignment (IP method, CRUD + 3D line)                               | ✅ Done    |
-| 12  | 📏 Vertical alignment (VIP method, profile view + backend API)                    | ✅ Done    |
-| 13  | 🔭 Click-to-select + emissive highlight (raycasting)                              | ✅ Done    |
-| 14  | 🔑 JWKS endpoint (RFC 7517) — public key discovery                                | ✅ Done    |
-| 15  | 📊 OpenAPI contract tests (schemathesis, 27/27 pass + auth)                       | ✅ Done    |
-| 16  | 🐳 Docker Compose integration test stack                                          | ✅ Done    |
-| 17  | 📋 Alembic DB migrations (0001→0006)                                              | ✅ Done    |
-| 18  | 🏥 /readyz DB connectivity probe                                                  | ✅ Done    |
-| 19  | 🧪 E2E tests — Playwright / Firefox (120+ pass)                                   | ✅ Done    |
-| 20  | 👥 RBAC — member access (owner/editor/viewer per project)                         | ✅ Done    |
-| 21  | 🔒 Rate limiting — brute-force protection on login (5 req/60s)                    | ✅ Done    |
-| 22  | 👥 Multi-owner model + last-owner protection (Issue #66)                          | ✅ Done    |
-| 23  | 📐 CAD Panel — Three.js primitive shapes (Box/Sphere/Cyl/…)                       | ✅ Done    |
-| 24  | 👥 MembersPanel UI — メール検索でメンバー追加/削除 (Issue #71)                    | ✅ Done    |
-| 25  | 🗑️ Project delete UI — owner がプロジェクトを削除                                 | ✅ Done    |
-| 26  | ✏️ Project rename UI — owner/editor がプロジェクト名変更                          | ✅ Done    |
-| 27  | 🔍 User lookup API — `GET /api/users/lookup?email=`                               | ✅ Done    |
-| 28  | 📧 MembersPanel UX — email 表示 + バリデーション + editor/viewer 閲覧 (Issue #73) | ✅ Done    |
-| 29  | 📐 Alignment 3D renderer — IP点クリック選択・3Dビュー連携 (Issue #76)             | ✅ Done    |
-| 30  | 📂 FileLoader E2E — STL/GLB/STEP/IGES アップロードテスト (Issue #81)              | ✅ Done    |
-| 31  | 🔐 Files API RBAC — viewer/editor/non-member アクセス制御テスト (Issue #83)       | ✅ Done    |
-| 32  | 🔐 Alignments/Verticals RBAC — GET/DELETE/IP点置換テスト (Issue #85)              | ✅ Done    |
-| 33  | 🖱️ ログイン失敗フィードバック E2E テスト (Issue #87)                              | ✅ Done    |
-| 34  | 🗂️ LayerPanel 可視性切替・削除 E2E テスト (Issue #89)                             | ✅ Done    |
-| 35  | 🎯 Viewport ドラッグ&ドロップ + useFileProcessor フック (Issue #91)               | ✅ Done    |
-| 36  | 🎬 カメラプリセットビュー — 平面図/正面/側面/3D (Issue #93)                       | ✅ Done    |
-| 37  | ⌨️ Delete/Backspace キーで選択オブジェクト削除 (Issue #95)                        | ✅ Done    |
-| 38  | 📊 GET /api/projects/{id}/stats — 統計 API (Issue #97)                            | ✅ Done    |
-| 39  | 📊 ProjectPanel 統計バッジ表示 (Issue #99)                                        | ✅ Done    |
-| 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API (Issue #101)                        | ✅ Done    |
-| 41  | 📷 Viewport スクリーンショット保存 (Issue #103)                                   | ✅ Done    |
-| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー (Issue #105/#107)                | ✅ Done    |
-| 43  | 🗑️ シーン全削除ボタン + clearScene (Issue #108)                                   | ✅ Done    |
-| 44  | 🗺️ Grid/Axes トグル + Grid color picker (Issue #111, PR #112)                     | 🟡 Ready   |
-| 45  | ⌨️ ショートカットヘルプ Overlay (Issue #113, PR #114)                             | 🟡 Ready   |
-| 46  | 🔎 Scene Tree フィルタ検索 (Issue #114, PR #116)                                  | 🟡 Ready   |
-| 47  | 👤 Header にログインユーザー email 表示 (Issue #116, PR #118)                     | 🟡 Ready   |
-| 48  | 🎛️ Object opacity スライダー (Issue #117, PR #120)                                | 🟡 Ready   |
-| 49  | 🎬 ダブルクリックで選択オブジェクトにカメラフォーカス (Issue #118, PR #122)       | ✅ Done    |
-| 50  | 💾 コンソールログを `.log` ファイルとして export (Issue #107, PR #123)            | ✅ Done    |
-| 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3, PR #124)                            | ✅ Done    |
-| 52  | 📋 監査ログ — audit_logs テーブル + append-only 記録 (Issue #129, PR #132)        | ✅ Done    |
-| 53  | 🔐 本番認証基盤 — DB ユーザー管理 + Entra ID OIDC scaffold (Issue #128, PR #133)  | ✅ Done    |
-| 54  | 📤 マルチパート / resumable アップロード — 大容量 BIM/CAD (Issue #131, PR #134)   | ✅ Done    |
-| 55  | 🐳 Docker Compose 実環境 E2E — API 結合 + Playwright (Issue #130, PR #135)        | ✅ Done    |
-| 56  | 🎨 マルチパート UI — 10 MiB チャンク進捗バー + キャンセル (Issue #131, PR #136)   | ✅ Done    |
-| 57  | 🛡️ 監査ログ閲覧パネル — 管理者向け UI (Issue #139, PR #140)                      | ✅ Done    |
-| 58  | 🔑 パスワード変更 API — POST /api/auth/password (Issue #137, PR #141)             | ✅ Done    |
-| 59  | 👤 管理者ユーザー管理 API — GET/DELETE /api/admin/users (Issue #138, PR #142)     | ✅ Done    |
-| 60  | 📊 管理ダッシュボード統計ウィジェット — AuditLogPanel に stats カード (PR #148)   | ✅ Done    |
-| 61  | 🧪 パスワード変更・監査ログ API 実環境統合テスト (PR #149)                        | ✅ Done    |
-| 62  | 👤 管理者ユーザー作成 — POST /api/admin/users (Issue #144, PR #150)               | ✅ Done    |
-| 63  | 🔢 マルチパートアップロード E2E テスト (Issue #131, PR #147)                      | ✅ Done    |
-| 64  | 📊 管理ダッシュボード統計 API — GET /api/admin/stats (PR #146)                    | 🟡 CI中    |
-| 65  | 🔑 ユーザーロール変更 — PATCH /api/admin/users/{id}/role (PR #151)                | 🟡 CI中    |
-| 66  | ⚙️ 設定パネル パスワード変更フォーム (PR #152)                                    | 🟡 CI中    |
-| 67  | 👤 管理者ユーザー管理パネル — AdminPanel タブUI (PR #153)                         | 🟡 CI中    |
-| 68  | 🔔 グローバル Toast 通知システム (Issue #154, PR #155)                            | 🟡 CI中    |
-| 69  | 🔐 管理者パスワードリセット — POST /api/admin/users/{id}/reset-password (Issue #156, PR #157) | 🟡 CI中    |
-| 70  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (placeholder: Issue #75)       | 🚧 WIP     |
-| 71  | 🌐 Real-time collaboration (WebSocket)                                            | 🔮 Planned |
-| 72  | 🤖 AI-assisted CAD commands                                                       | 🔮 Planned |
-
-> 🟡 **CI中** = CI green 確認後に merge (2026-05-22 セッション作成)
+- **3D エンジン**: Three.js r169 (OrbitControls / TransformControls / raycasting)
+- **BIM/IFC**: web-ifc (WASM, クライアントサイドで IFC 解析)
+- **認証**: JWT RS256 非対称鍵 + DB ベースユーザー管理
+- **ストレージ**: S3 互換 (MinIO) + sha256 重複排除
+- **管理者機能**: ユーザー管理 / ロール変更 / パスワードリセット / 監査ログ
+- **インフラ**: Docker Compose (backend + frontend nginx + PostgreSQL + MinIO)
 
 ---
 
-## Architecture
+## ✅ Feature Status
+
+| #   | 機能                                                                              | ステータス     |
+| --- | --------------------------------------------------------------------------------- | -------------- |
+| 1   | 🔐 JWT 認証 (RS256 非対称鍵ペア)                                                  | ✅ Done        |
+| 2   | 📁 プロジェクト管理 CRUD                                                          | ✅ Done        |
+| 3   | 📤 ファイルアップロード — S3 presigned + sha256 重複排除                          | ✅ Done        |
+| 4   | 🏗️ IFC 3D ビューア (web-ifc, クライアント WASM)                                   | ✅ Done        |
+| 5   | 🎮 Three.js ビューポート — Grid / Axes / TransformControls                        | ✅ Done        |
+| 6   | 🌙 ライト / ダークテーマ                                                          | ✅ Done        |
+| 7   | 🗺️ GIS バックグラウンドマップ (MapLibre GL JS)                                    | ✅ Done        |
+| 8   | ☁️ 点群ビューア (LAS/LAZ, カラーモード)                                           | ✅ Done        |
+| 9   | 🏔️ 地形 TIN サーフェス (Delaunay 三角分割)                                        | ✅ Done        |
+| 10  | 🏗️ 土工量計算 (切土/盛土ボリューム)                                               | ✅ Done        |
+| 11  | 📐 平面線形 (IP 法, CRUD + 3D ライン)                                             | ✅ Done        |
+| 12  | 📏 縦断線形 (VIP 法, プロファイルビュー + バックエンド API)                       | ✅ Done        |
+| 13  | 🔭 クリック選択 + emissive ハイライト (レイキャスティング)                        | ✅ Done        |
+| 14  | 🔑 JWKS エンドポイント (RFC 7517) — 公開鍵ディスカバリー                          | ✅ Done        |
+| 15  | 📊 OpenAPI コントラクトテスト (schemathesis, 27/27 pass + auth)                   | ✅ Done        |
+| 16  | 🐳 Docker Compose 統合テストスタック                                              | ✅ Done        |
+| 17  | 📋 Alembic DB マイグレーション (0001→0006)                                        | ✅ Done        |
+| 18  | 🏥 /readyz DB 接続プローブ                                                        | ✅ Done        |
+| 19  | 🧪 E2E テスト — Playwright / Firefox (120+ pass)                                  | ✅ Done        |
+| 20  | 👥 RBAC — メンバーアクセス制御 (owner/editor/viewer per project)                  | ✅ Done        |
+| 21  | 🔒 レートリミット — ログインブルートフォース対策 (5 req/60s)                      | ✅ Done        |
+| 22  | 👥 マルチオーナーモデル + 最終オーナー保護 (Issue #66)                            | ✅ Done        |
+| 23  | 📐 CAD パネル — Three.js プリミティブ形状 (Box/Sphere/Cyl/…)                     | ✅ Done        |
+| 24  | 👥 MembersPanel UI — メール検索でメンバー追加/削除 (Issue #71)                    | ✅ Done        |
+| 25  | 🗑️ プロジェクト削除 UI — owner がプロジェクトを削除                               | ✅ Done        |
+| 26  | ✏️ プロジェクト名変更 UI — owner/editor がプロジェクト名変更                      | ✅ Done        |
+| 27  | 🔍 ユーザー検索 API — `GET /api/users/lookup?email=`                              | ✅ Done        |
+| 28  | 📧 MembersPanel UX — email 表示 + バリデーション + editor/viewer 閲覧             | ✅ Done        |
+| 29  | 📐 Alignment 3D レンダラー — IP 点クリック選択・3D ビュー連携                    | ✅ Done        |
+| 30  | 📂 FileLoader E2E — STL/GLB/STEP/IGES アップロードテスト                          | ✅ Done        |
+| 31  | 🔐 Files API RBAC — viewer/editor/non-member アクセス制御テスト                   | ✅ Done        |
+| 32  | 🔐 Alignments/Verticals RBAC — GET/DELETE/IP 点置換テスト                         | ✅ Done        |
+| 33  | 🖱️ ログイン失敗フィードバック E2E テスト                                          | ✅ Done        |
+| 34  | 🗂️ LayerPanel 可視性切替・削除 E2E テスト                                         | ✅ Done        |
+| 35  | 🎯 Viewport ドラッグ&ドロップ + useFileProcessor フック                           | ✅ Done        |
+| 36  | 🎬 カメラプリセットビュー — 平面図/正面/側面/3D                                   | ✅ Done        |
+| 37  | ⌨️ Delete/Backspace キーで選択オブジェクト削除                                    | ✅ Done        |
+| 38  | 📊 GET /api/projects/{id}/stats — 統計 API                                        | ✅ Done        |
+| 39  | 📊 ProjectPanel 統計バッジ表示                                                    | ✅ Done        |
+| 40  | ✏️ PATCH /api/files/{id} — ファイル名変更 API + `renameFile()` (Issue #166)       | ✅ Done        |
+| 41  | 📷 Viewport スクリーンショット保存 (PNG)                                          | ✅ Done        |
+| 42  | 📋 コンソールログ保存 + 計測クリップボードコピー                                  | ✅ Done        |
+| 43  | 🗑️ シーン全削除ボタン + clearScene                                                | ✅ Done        |
+| 44  | 🗺️ Grid/Axes トグル + Grid カラーピッカー                                         | ✅ Done        |
+| 45  | ⌨️ ショートカットヘルプ Overlay                                                    | ✅ Done        |
+| 46  | 🔎 Scene Tree フィルタ検索                                                        | ✅ Done        |
+| 47  | 👤 Header にログインユーザー email 表示                                           | ✅ Done        |
+| 48  | 🎛️ Object opacity スライダー                                                      | ✅ Done        |
+| 49  | 🎬 ダブルクリックで選択オブジェクトにカメラフォーカス                             | ✅ Done        |
+| 50  | 💾 コンソールログを `.log` ファイルとして export                                   | ✅ Done        |
+| 51  | 🧪 Backend TDD coverage 強化 (ratelimit / S3)                                     | ✅ Done        |
+| 52  | 📋 監査ログ — audit_logs テーブル + append-only 記録                              | ✅ Done        |
+| 53  | 🔐 本番認証基盤 — DB ユーザー管理 + Entra ID OIDC scaffold                        | ✅ Done        |
+| 54  | 📤 マルチパート / resumable アップロード — 大容量 BIM/CAD                         | ✅ Done        |
+| 55  | 🐳 Docker Compose 実環境 E2E — API 結合 + Playwright                              | ✅ Done        |
+| 56  | 🎨 マルチパート UI — 10 MiB チャンク進捗バー + キャンセル                         | ✅ Done        |
+| 57  | 🛡️ 監査ログ閲覧パネル — 管理者向け UI                                             | ✅ Done        |
+| 58  | 🔑 パスワード変更 API — POST /api/auth/password                                   | ✅ Done        |
+| 59  | 👤 管理者ユーザー管理 API — GET/DELETE /api/admin/users                           | ✅ Done        |
+| 60  | 📊 管理ダッシュボード統計ウィジェット — AuditLogPanel に stats カード             | ✅ Done        |
+| 61  | 🧪 パスワード変更・監査ログ API 実環境統合テスト                                  | ✅ Done        |
+| 62  | 👤 管理者ユーザー作成 — POST /api/admin/users                                     | ✅ Done        |
+| 63  | 🔢 マルチパートアップロード E2E テスト                                            | ✅ Done        |
+| 64  | 📊 管理ダッシュボード統計 API — GET /api/admin/stats                              | ✅ Done        |
+| 65  | 🔑 ユーザーロール変更 — PATCH /api/admin/users/{id}/role                          | ✅ Done        |
+| 66  | ⚙️ 設定パネル パスワード変更フォーム                                              | ✅ Done        |
+| 67  | 👤 管理者ユーザー管理パネル — AdminPanel タブ UI                                  | ✅ Done        |
+| 68  | 🔔 グローバル Toast 通知システム                                                  | ✅ Done        |
+| 69  | 🔐 管理者パスワードリセット — POST /api/admin/users/{id}/reset-password (Issue #156) | ✅ Done     |
+| 70  | ↩️ Undo / Redo — Command Pattern (sceneStore, Issue #162)                         | 🟡 PR #163     |
+| 71  | 🎛️ AdminUsersPanel ロール変更 + パスワードリセット UI (Issue #164)                | 🟡 PR #170     |
+| 72  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165)                              | 🟡 PR #172     |
+| 73  | ✏️ renameFile() フロントエンド関数 (Issue #166)                                   | 🟡 PR #169     |
+| 74  | 🐳 docker-compose frontend nginx サービス追加 (Issue #167)                       | 🟡 PR #171     |
+| 75  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 76  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
+| 77  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+
+> 🟡 **PR審査中** = CI green 確認後に merge 予定
+
+---
+
+## 🏗️ Architecture
 
 ```mermaid
-graph LR
-    subgraph Browser["Browser (React + TypeScript)"]
-        UI[UI Panels]
-        VP[Three.js Viewport]
-        IFC[web-ifc IFC Parser]
+graph TB
+    subgraph Browser["🌐 Browser (React 18 + TypeScript)"]
+        direction TB
+        UI["🎨 UI Panels\n(ProjectPanel / AdminPanel\n/ AuditLogPanel / SettingsPanel)"]
+        VP["🎮 Three.js Viewport\n(OrbitControls / TransformControls\n/ Raycasting / Undo-Redo)"]
+        IFC["🏗️ web-ifc\n(IFC Parser — WASM)"]
+        Store["📦 Zustand Stores\n(sceneStore / ifcStore\n/ viewportStore / themeStore)"]
         UI --> VP
         VP --> IFC
+        Store --> VP
+        UI --> Store
     end
 
-    subgraph API["Backend (FastAPI)"]
-        AUTH[JWT Auth RS256]
-        PROJ[Projects API]
-        FILES[Files API]
+    subgraph Nginx["🔀 nginx (Port 80)"]
+        SPA["SPA fallback\n(try_files)"]
+        Proxy["/api/ → backend:8001"]
+    end
+
+    subgraph API["⚡ Backend (FastAPI 0.115+)"]
+        direction TB
+        AUTH["🔐 Auth\n(JWT RS256 / refresh\n/ rate-limit / OIDC scaffold)"]
+        ADMIN["👑 Admin\n(users / roles / stats\n/ audit-logs / reset-password)"]
+        PROJ["📁 Projects\n(CRUD / members / stats)"]
+        FILES["📤 Files\n(upload / presigned / multipart\n/ rename / RBAC)"]
+        ALIGN["📐 Alignments\n(horizontal / vertical)"]
         AUTH --> PROJ
+        AUTH --> ADMIN
         AUTH --> FILES
+        AUTH --> ALIGN
     end
 
-    subgraph Data["Data Layer"]
-        PG[(PostgreSQL 16)]
-        S3[(MinIO / S3)]
+    subgraph Data["💾 Data Layer"]
+        PG[("🐘 PostgreSQL 16\n(users / projects / files\n/ alignments / audit_logs)")]
+        S3[("🪣 MinIO / S3\n(file objects)")]
     end
 
-    Browser <-->|"HTTPS REST"| API
+    Browser <-->|"HTTPS"| Nginx
+    Nginx -->|"REST"| API
     PROJ --> PG
     FILES --> PG
+    ADMIN --> PG
     FILES <-->|"presigned URL"| S3
 ```
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-| Layer                  | Technology                                                           |
-| ---------------------- | -------------------------------------------------------------------- |
-| **Frontend Framework** | React 18, TypeScript                                                 |
-| **3D Rendering**       | Three.js r169 (OrbitControls, TransformControls, GridHelper)         |
-| **BIM / IFC**          | web-ifc (WASM, client-side)                                          |
-| **Bundler**            | Vite 6 — esbuild minify, manual chunks (vendor-three / vendor-react) |
-| **Styling**            | Tailwind CSS                                                         |
-| **State Management**   | Zustand                                                              |
-| **E2E Testing**        | Playwright (Firefox, xvfb-run)                                       |
-| **Backend Framework**  | FastAPI 0.115+                                                       |
-| **ORM / Migrations**   | SQLAlchemy 2, Alembic                                                |
-| **Database Driver**    | psycopg3 (psycopg[binary])                                           |
-| **Authentication**     | python-jose RS256, bcrypt 4.x                                        |
-| **Object Storage**     | boto3 + MinIO (S3-compatible)                                        |
-| **Logging**            | structlog (structured JSON)                                          |
-| **Linting / Typing**   | Ruff, mypy, ESLint 9 flat config                                     |
-| **Database**           | PostgreSQL 16                                                        |
-| **Local Infra**        | Docker Compose                                                       |
-| **CI**                 | GitHub Actions                                                       |
-
----
-
-## API Endpoints
-
-| Method   | Path                                                       | Description                                             |
-| -------- | ---------------------------------------------------------- | ------------------------------------------------------- |
-| `POST`   | `/api/auth/login`                                          | Obtain JWT access token (RS256)                         |
-| `GET`    | `/api/auth/.well-known/jwks.json`                          | JWKS — RSA public key for token verification (RFC 7517) |
-| `GET`    | `/api/users/me`                                            | Current authenticated user (DB UUID)                    |
-| `GET`    | `/api/users/lookup?email=`                                 | Look up user ID by email address (authenticated)        |
-| `GET`    | `/api/projects`                                            | List projects (paginated)                               |
-| `POST`   | `/api/projects`                                            | Create a project                                        |
-| `GET`    | `/api/projects/{id}`                                       | Get project detail                                      |
-| `PUT`    | `/api/projects/{id}`                                       | Rename project (owner or editor)                        |
-| `DELETE` | `/api/projects/{id}`                                       | Delete project (owner only)                             |
-| `GET`    | `/api/projects/{id}/files`                                 | List files in project (paginated)                       |
-| `POST`   | `/api/projects/{id}/files`                                 | Upload file (S3 presigned, sha256 dedup)                |
-| `GET`    | `/api/projects/{id}/files/{fid}/download`                  | Get presigned download URL                              |
-| `DELETE` | `/api/projects/{id}/files/{fid}`                           | Delete file                                             |
-| `GET`    | `/api/projects/{id}/alignments`                            | List horizontal alignments                              |
-| `POST`   | `/api/projects/{id}/alignments`                            | Create alignment                                        |
-| `GET`    | `/api/projects/{id}/alignments/{aid}`                      | Get alignment detail                                    |
-| `DELETE` | `/api/projects/{id}/alignments/{aid}`                      | Delete alignment                                        |
-| `PUT`    | `/api/projects/{id}/alignments/{aid}/ip-points`            | Replace all IP points (idempotent sync)                 |
-| `GET`    | `/api/projects/{id}/alignments/{aid}/verticals`            | List vertical alignments                                |
-| `POST`   | `/api/projects/{id}/alignments/{aid}/verticals`            | Create vertical alignment                               |
-| `GET`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`      | Get vertical alignment detail                           |
-| `DELETE` | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`      | Delete vertical alignment                               |
-| `PUT`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}/vips` | Replace all VIPs (idempotent sync)                      |
-| `GET`    | `/api/projects/{id}/members`                               | List project members (any member — Issue #73)           |
-| `POST`   | `/api/projects/{id}/members`                               | Add / update member role (owner only)                   |
-| `DELETE` | `/api/projects/{id}/members/{uid}`                         | Remove member (owner only)                              |
-| `GET`    | `/healthz`                                                 | Liveness probe (always 200)                             |
-| `GET`    | `/readyz`                                                  | Readiness probe (checks DB connectivity)                |
-| `GET`    | `/api/admin/audit-logs`                                    | 監査ログ一覧 (admin ロール限定)                         |
-| `GET`    | `/api/admin/users`                                         | ユーザー一覧 (admin ロール限定)                         |
-| `DELETE` | `/api/admin/users/{user_id}`                               | ユーザー削除 (admin, 自己削除禁止)                      |
-| `POST`   | `/api/auth/refresh`                                        | アクセストークン更新 (refresh)                          |
-| `POST`   | `/api/auth/password`                                       | パスワード変更 (認証済みユーザー)                       |
-| `GET`    | `/api/auth/oidc/callback`                                  | Entra ID OIDC callback scaffold (post-MVP placeholder)  |
-| `POST`   | `/api/files/multipart/init`                                | マルチパートアップロード開始・presigned URLs 発行       |
-| `POST`   | `/api/files/multipart/complete`                            | マルチパートアップロード完了・DB メタデータ登録         |
-| `POST`   | `/api/files/multipart/abort`                               | マルチパートアップロード中断・MinIO クリーンアップ      |
-
-Full interactive docs are available at `http://localhost:8001/docs` when running locally.
+| レイヤー               | 技術                                                                  |
+| ---------------------- | --------------------------------------------------------------------- |
+| **フロントエンド FW**  | React 18, TypeScript                                                  |
+| **3D レンダリング**    | Three.js r169 (OrbitControls, TransformControls, GridHelper)          |
+| **BIM / IFC**          | web-ifc (WASM, クライアントサイド)                                    |
+| **バンドラー**         | Vite 6 — esbuild minify, manual chunks (vendor-three / vendor-react)  |
+| **スタイリング**       | Tailwind CSS                                                          |
+| **状態管理**           | Zustand (sceneStore / ifcStore / viewportStore / themeStore)          |
+| **E2E テスト**         | Playwright (Firefox, xvfb-run)                                        |
+| **バックエンド FW**    | FastAPI 0.115+                                                        |
+| **ORM / マイグレーション** | SQLAlchemy 2, Alembic                                             |
+| **DB ドライバー**      | psycopg3 (psycopg[binary])                                            |
+| **認証**               | python-jose RS256, bcrypt 4.x                                         |
+| **オブジェクトストレージ** | boto3 + MinIO (S3 互換)                                           |
+| **ロギング**           | structlog (structured JSON)                                           |
+| **Lint / 型チェック**  | Ruff, mypy, ESLint 9 flat config                                      |
+| **データベース**       | PostgreSQL 16                                                         |
+| **ローカルインフラ**   | Docker Compose (backend / frontend-nginx / postgres / minio)          |
+| **CI**                 | GitHub Actions                                                        |
 
 ---
 
-## CI Pipeline
+## 🔌 API Endpoints
+
+### 🔐 Auth
+
+| Method   | Path                                        | 説明                                              |
+| -------- | ------------------------------------------- | ------------------------------------------------- |
+| `POST`   | `/api/auth/login`                           | JWT アクセストークン取得 (RS256)                  |
+| `POST`   | `/api/auth/refresh`                         | アクセストークン更新 — DB からロール再取得        |
+| `POST`   | `/api/auth/logout`                          | ログアウト (クライアント側トークン破棄)           |
+| `POST`   | `/api/auth/password`                        | パスワード変更 (認証済みユーザー)                 |
+| `GET`    | `/api/auth/.well-known/jwks.json`           | JWKS — RSA 公開鍵 (RFC 7517)                      |
+| `GET`    | `/api/auth/oidc/callback`                   | Entra ID OIDC callback scaffold (post-MVP)        |
+
+### 👤 Users
+
+| Method | Path                            | 説明                                          |
+| ------ | ------------------------------- | --------------------------------------------- |
+| `GET`  | `/api/users/me`                 | 認証中ユーザー情報 (DB UUID)                  |
+| `GET`  | `/api/users/lookup?email=`      | メールアドレスでユーザー検索                  |
+
+### 📁 Projects
+
+| Method   | Path                                                       | 説明                                     |
+| -------- | ---------------------------------------------------------- | ---------------------------------------- |
+| `GET`    | `/api/projects`                                            | プロジェクト一覧 (ページネーション)      |
+| `POST`   | `/api/projects`                                            | プロジェクト作成                         |
+| `GET`    | `/api/projects/{id}`                                       | プロジェクト詳細                         |
+| `PUT`    | `/api/projects/{id}`                                       | プロジェクト名変更 (owner/editor)        |
+| `DELETE` | `/api/projects/{id}`                                       | プロジェクト削除 (owner のみ)            |
+| `GET`    | `/api/projects/{id}/stats`                                 | プロジェクト統計                         |
+| `GET`    | `/api/projects/{id}/members`                               | メンバー一覧                             |
+| `POST`   | `/api/projects/{id}/members`                               | メンバー追加/ロール更新 (owner のみ)     |
+| `DELETE` | `/api/projects/{id}/members/{uid}`                         | メンバー除名 (owner のみ)                |
+
+### 📤 Files
+
+| Method   | Path                                    | 説明                                    |
+| -------- | --------------------------------------- | --------------------------------------- |
+| `GET`    | `/api/projects/{id}/files`              | ファイル一覧 (ページネーション)         |
+| `POST`   | `/api/projects/{id}/files`              | ファイルアップロード (presigned + dedup) |
+| `GET`    | `/api/projects/{id}/files/{fid}/download` | presigned ダウンロード URL 発行       |
+| `DELETE` | `/api/projects/{id}/files/{fid}`        | ファイル削除                            |
+| `PATCH`  | `/api/files/{id}`                       | ファイル名変更                          |
+| `POST`   | `/api/files/multipart/init`             | マルチパートアップロード開始            |
+| `POST`   | `/api/files/multipart/complete`         | マルチパートアップロード完了            |
+| `POST`   | `/api/files/multipart/abort`            | マルチパートアップロード中断            |
+
+### 📐 Alignments
+
+| Method   | Path                                                            | 説明                           |
+| -------- | --------------------------------------------------------------- | ------------------------------ |
+| `GET`    | `/api/projects/{id}/alignments`                                 | 平面線形一覧                   |
+| `POST`   | `/api/projects/{id}/alignments`                                 | 平面線形作成                   |
+| `GET`    | `/api/projects/{id}/alignments/{aid}`                           | 平面線形詳細                   |
+| `DELETE` | `/api/projects/{id}/alignments/{aid}`                           | 平面線形削除                   |
+| `PUT`    | `/api/projects/{id}/alignments/{aid}/ip-points`                 | IP 点一括置換 (idempotent)     |
+| `GET`    | `/api/projects/{id}/alignments/{aid}/verticals`                 | 縦断線形一覧                   |
+| `POST`   | `/api/projects/{id}/alignments/{aid}/verticals`                 | 縦断線形作成                   |
+| `GET`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`           | 縦断線形詳細                   |
+| `DELETE` | `/api/projects/{id}/alignments/{aid}/verticals/{vid}`           | 縦断線形削除                   |
+| `PUT`    | `/api/projects/{id}/alignments/{aid}/verticals/{vid}/vips`      | VIP 一括置換 (idempotent)      |
+
+### 👑 Admin (admin ロール限定)
+
+| Method   | Path                                        | 説明                                              |
+| -------- | ------------------------------------------- | ------------------------------------------------- |
+| `GET`    | `/api/admin/users`                          | ユーザー一覧                                      |
+| `POST`   | `/api/admin/users`                          | ユーザー作成                                      |
+| `DELETE` | `/api/admin/users/{user_id}`                | ユーザー削除 (自己削除禁止)                       |
+| `PATCH`  | `/api/admin/users/{user_id}/role`           | ユーザーロール変更 (自己降格禁止)                 |
+| `POST`   | `/api/admin/users/{user_id}/reset-password` | ユーザーパスワード強制リセット                    |
+| `GET`    | `/api/admin/stats`                          | ダッシュボード統計 (users/projects/files/events)  |
+| `GET`    | `/api/admin/audit-logs`                     | 監査ログ一覧 (action / resource_type フィルタ)    |
+
+### 🏥 Health
+
+| Method | Path       | 説明                          |
+| ------ | ---------- | ----------------------------- |
+| `GET`  | `/healthz` | 生存プローブ (常時 200)       |
+| `GET`  | `/readyz`  | 準備プローブ (DB 接続確認)    |
+
+> インタラクティブ API ドキュメント: `http://localhost:8001/docs` (Swagger UI)
+
+---
+
+## ⚙️ CI Pipeline
 
 ```mermaid
 flowchart LR
     A([push / PR]) --> F
 
-    subgraph F["frontend job"]
+    subgraph F["🎨 frontend"]
         F1[npm ci] --> F2[ESLint]
         F2 --> F3[tsc --noEmit]
         F3 --> F4[vite build]
-        F4 --> F5[Upload dist artifact]
+        F4 --> F5[Upload dist]
     end
 
-    subgraph E["e2e job"]
+    subgraph E["🧪 e2e"]
         E1[Download dist] --> E2[Playwright install Firefox]
         E2 --> E3[playwright test]
         E3 --> E4[Upload report]
     end
 
-    subgraph B["backend job"]
+    subgraph B["🐍 backend"]
         B1[pip install] --> B2[ruff check]
         B2 --> B3[ruff format --check]
         B3 --> B4[mypy]
-        B4 --> B5[pytest --cov 130/130]
-        B5 --> B6[schemathesis 27/27 + auth]
+        B4 --> B5["pytest --cov\n130/130 pass"]
+        B5 --> B6["schemathesis\n27/27 + auth"]
         B6 --> B7[Upload coverage 98%]
     end
 
-    subgraph I["integration job"]
+    subgraph I["🐳 integration"]
         I1[docker compose up] --> I2[wait healthy]
         I2 --> I3[API smoke tests]
     end
@@ -242,42 +308,42 @@ flowchart LR
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-Prerequisites: **Docker 24+** and **Docker Compose v2** (recommended), or Node.js 20+ / Python 3.12+ for manual setup.
+前提: **Docker 24+** と **Docker Compose v2** (推奨)、または Node.js 20+ / Python 3.12+。
 
 ```bash
-# Clone the repository
+# リポジトリをクローン
 git clone https://github.com/Kensan196948G/ArcSphere3D.git
 cd ArcSphere3D
 
-# Start the full stack (API + DB + MinIO + Frontend dev server)
+# フルスタック起動 (API + DB + MinIO + Frontend nginx)
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-| Service             | URL                        |
-| ------------------- | -------------------------- |
-| Frontend (Vite dev) | http://localhost:5175      |
-| Backend API         | http://localhost:8001      |
-| API Docs (Swagger)  | http://localhost:8001/docs |
-| MinIO Console       | http://localhost:9001      |
+| サービス              | URL                         |
+| --------------------- | --------------------------- |
+| フロントエンド (nginx) | http://localhost            |
+| Backend API           | http://localhost:8001       |
+| API Docs (Swagger)    | http://localhost:8001/docs  |
+| MinIO Console         | http://localhost:9001       |
 
-**Manual setup (without Docker)**
+**手動セットアップ (Docker なし)**
 
 ```bash
-# Frontend
+# フロントエンド
 cd frontend
 npm install
 npm run dev          # http://localhost:5175
 
-# Backend (separate terminal)
+# バックエンド (別ターミナル)
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 8001
 ```
 
-**Run E2E tests**
+**E2E テスト実行**
 
 ```bash
 cd frontend
@@ -285,7 +351,7 @@ npx playwright install --with-deps firefox
 npx playwright test
 ```
 
-**Run backend tests**
+**バックエンドテスト実行**
 
 ```bash
 cd backend
@@ -294,7 +360,7 @@ pytest -q --cov=app
 
 ---
 
-## Development Roadmap
+## 📅 Development Roadmap
 
 ```mermaid
 gantt
@@ -303,89 +369,106 @@ gantt
     axisFormat %b %Y
 
     section Foundation
-    Monorepo & CI setup          :done,    f1, 2026-05-14, 7d
-    Three.js Viewport + UI       :done,    f2, 2026-05-15, 21d
-    FastAPI + Auth + File API    :done,    f3, 2026-05-15, 21d
+    Monorepo & CI setup             :done,    f1, 2026-05-14, 7d
+    Three.js Viewport + UI          :done,    f2, 2026-05-15, 21d
+    FastAPI + Auth + File API       :done,    f3, 2026-05-15, 21d
 
     section Build
-    Click Select + Highlight     :active,  b1, 2026-06-01, 14d
-    glTF / OBJ / STL Loaders    :         b2, 2026-06-15, 14d
-    RBAC + Entra ID (OAuth2)    :         b3, 2026-06-22, 21d
+    Admin Panel + RBAC              :done,    b1, 2026-05-20, 14d
+    Undo/Redo + Security hardening  :active,  b2, 2026-05-22, 14d
+    glTF / OBJ / STL Loaders       :         b3, 2026-06-15, 14d
+    Entra ID (OAuth2)               :         b4, 2026-06-22, 21d
 
     section Quality
-    Security Hardening           :         q1, 2026-07-15, 21d
-    Integration test coverage    :         q2, 2026-08-01, 21d
+    Integration test coverage       :         q1, 2026-07-15, 21d
+    Performance profiling           :         q2, 2026-08-01, 14d
 
     section Integration
-    OpenCascade.js CAD kernel    :         i1, 2026-08-22, 28d
-    AI Assist PoC                :         i2, 2026-09-19, 21d
+    OpenCascade.js CAD kernel       :         i1, 2026-08-22, 28d
+    AI Assist PoC                   :         i2, 2026-09-19, 21d
 
     section Release
-    UAT / Bugfix                 :         r1, 2026-10-10, 28d
-    Production Release v1.0.0   :crit,    r2, 2026-11-07, 7d
+    UAT / Bugfix                    :         r1, 2026-10-10, 28d
+    Production Release v1.0.0      :crit,    r2, 2026-11-07, 7d
 ```
 
-| Month               | Phase       | Key Milestones                                                       |
-| ------------------- | ----------- | -------------------------------------------------------------------- |
-| **M1** May 2026     | Foundation  | Monorepo, CI pipeline, Three.js viewport, FastAPI skeleton, JWT auth |
-| **M2** Jun 2026     | Build       | Click-select, glTF/OBJ/STL loaders, RBAC, Entra ID OAuth2            |
-| **M3** Jul 2026     | Quality     | Security audit, integration test coverage, performance profiling     |
-| **M4** Aug 2026     | Integration | OpenCascade.js CAD kernel, IFC advanced features                     |
-| **M5** Sep 2026     | Integration | AI assist PoC, WebSocket collaboration prototype                     |
-| **M6** Oct–Nov 2026 | Release     | UAT, bugfix, CHANGELOG, **v1.0.0 release 2026-11-14**                |
+| フェーズ              | 期間                    | 主要マイルストーン                                                    |
+| --------------------- | ----------------------- | --------------------------------------------------------------------- |
+| **M1** May 2026       | Foundation              | Monorepo, CI, Three.js ビューポート, FastAPI スケルトン, JWT 認証     |
+| **M2** Jun 2026       | Build                   | 管理者パネル, Undo/Redo, glTF/OBJ/STL ローダー, Entra ID OAuth2       |
+| **M3** Jul 2026       | Quality                 | セキュリティ監査, 統合テストカバレッジ, パフォーマンスプロファイリング |
+| **M4** Aug 2026       | Integration             | OpenCascade.js CAD kernel, IFC 高度機能                               |
+| **M5** Sep 2026       | Integration             | AI アシスト PoC, WebSocket コラボレーションプロトタイプ               |
+| **M6** Oct–Nov 2026   | Release                 | UAT, バグ修正, CHANGELOG, **v1.0.0 リリース 2026-11-14**             |
 
 ---
 
 ## 🔒 Security
 
-ArcSphere3D applies defense-in-depth across authentication, authorization, and transport.
+ArcSphere3D は認証・認可・トランスポートにわたる多層防御を適用しています。
 
-| Layer                 | Mechanism                                                                | Standard / Reference                |
-| --------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
-| **Authentication**    | JWT RS256 asymmetric keypair — short-lived tokens, never stored in DB    | RFC 7519, RFC 7517 (JWKS)           |
-| **Brute-force guard** | In-memory sliding-window rate limiter — 5 req / 60 s per IP on `/login`  | RFC 7231 §7.1.3 (429 + Retry-After) |
-| **Authorization**     | RBAC per project — `owner / editor / viewer` roles enforced at API layer | OWASP Access Control                |
-| **Password storage**  | bcrypt 4.x with per-user salt — no plaintext, no MD5/SHA1                | OWASP Password Storage              |
-| **Transport**         | HTTPS-only in production; HSTS recommended at reverse-proxy layer        | OWASP TLS Cheat Sheet               |
-| **File integrity**    | SHA-256 deduplication on upload — tamper-evident file storage            | —                                   |
+| レイヤー                   | 機能                                                                     | 標準 / 参考                           |
+| -------------------------- | ------------------------------------------------------------------------ | ------------------------------------- |
+| **認証**                   | JWT RS256 非対称鍵 — 短命トークン、DB に保存しない                       | RFC 7519, RFC 7517 (JWKS)             |
+| **ロール同期**             | リフレッシュ時に DB からロール再取得 — 古いロールが残存しない            | Issue #165                            |
+| **ブルートフォース対策**   | 1 IP あたり 5 req/60s のスライディングウィンドウ制限                     | RFC 7231 §7.1.3 (429 + Retry-After)   |
+| **認可**                   | プロジェクト単位 RBAC — `owner / editor / viewer` を API レイヤーで強制  | OWASP Access Control                  |
+| **管理者機能 RBAC**        | グローバルロール `admin` による ユーザー管理・監査ログアクセス            | —                                     |
+| **パスワード保管**         | bcrypt 4.x + per-user salt — 平文・MD5/SHA1 なし                         | OWASP Password Storage                |
+| **トランスポート**         | 本番環境 HTTPS のみ；HSTS はリバースプロキシ層で推奨                     | OWASP TLS Cheat Sheet                 |
+| **ファイル整合性**         | アップロード時 SHA-256 重複排除 — 改ざん検出可能                         | —                                     |
 
-### 🛡️ Rate Limiting
+### 🛡️ レートリミット
 
-Login endpoint (`POST /api/auth/login`) is protected by a per-IP sliding-window limiter:
+ログインエンドポイント (`POST /api/auth/login`) は IP 別スライディングウィンドウで保護:
 
 ```
-Max attempts  : 5
-Window        : 60 seconds
-Response      : HTTP 429 + Retry-After: 60
-Reset         : automatic after window expiry
+最大試行回数 : 5
+ウィンドウ   : 60 秒
+レスポンス   : HTTP 429 + Retry-After: 60
+リセット     : ウィンドウ有効期限後に自動
 ```
 
-This prevents credential-stuffing and brute-force password attacks without requiring Redis or an external service.
+Redis 等の外部サービス不要で、クレデンシャルスタッフィングとブルートフォース攻撃を防止します。
 
-### 🔐 3-Tier Authorization Matrix (RBAC)
+### 🔐 3 層認可マトリックス (RBAC)
 
-Every project resource enforces a **3-tier access model** distinguishing _non-member_, _member-but-not-owner_, and _owner_. Returning `404` (not `403`) to non-members prevents leaking project existence — an [IDOR](https://owasp.org/www-community/attacks/Insecure_Direct_Object_References) defense.
+すべてのプロジェクトリソースに**3 段階アクセスモデル**を適用。非メンバーには `404` を返すことでプロジェクト存在リークを防ぐ ([IDOR](https://owasp.org/www-community/attacks/Insecure_Direct_Object_References) 対策)。
 
-| Role               | `GET /members`       | `POST /members` | `DELETE /members/{uid}` | `DELETE /projects/{id}` |
-| ------------------ | -------------------- | --------------- | ----------------------- | ----------------------- |
-| 👑 owner           | ✅ `200`             | ✅ `201`        | ✅ `204`                | ✅ `204`                |
-| ✏️ editor (member) | ✅ `200` (Issue #73) | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
-| 👀 viewer (member) | ✅ `200` (Issue #73) | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
-| 🪪 stranger        | ❓ `404`             | ❓ `404`        | ❓ `404`                | ❓ `404`                |
+| ロール              | `GET /members`  | `POST /members` | `DELETE /members/{uid}` | `DELETE /projects/{id}` |
+| ------------------- | --------------- | --------------- | ----------------------- | ----------------------- |
+| 👑 owner            | ✅ `200`        | ✅ `201`        | ✅ `204`                | ✅ `204`                |
+| ✏️ editor (member)  | ✅ `200`        | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
+| 👀 viewer (member)  | ✅ `200`        | 🚫 `403`        | 🚫 `403`                | 🚫 `403`                |
+| 🪪 stranger         | ❓ `404`        | ❓ `404`        | ❓ `404`                | ❓ `404`                |
 
-**Validation hardening**: text fields (`Project.name`, `Alignment.name`, `VerticalAlignment.name`) reject NUL bytes (`\x00`) via Pydantic `pattern` constraint — defending against PostgreSQL `text` injection that previously surfaced as `500` errors. Missing `user_id` in member POST returns clean `404`, not a 500-leaking FK violation.
+### 👥 マルチオーナーモデル (Issue #66)
 
-### 👥 Multi-Owner Model (Issue #66)
+プロジェクト作成時に `project_members` へ **owner 行を自動挿入**。
+最終オーナー保護: `DELETE /members/{uid}` で唯一のオーナーを除名しようとすると `409 Conflict`。
 
-Project creation now auto-inserts an **owner row** into `project_members`.
-The last-owner protection prevents orphaning a project: `DELETE /members/{uid}` returns `409 Conflict` when the target is the sole owner.
+| シナリオ                                             | 結果                                            |
+| ---------------------------------------------------- | ----------------------------------------------- |
+| 最後のオーナーを除名                                 | `409 Conflict` — "cannot remove the last owner" |
+| 最後ではないオーナーを除名                           | `204 No Content`                                |
+| editor / viewer を除名                               | `204 No Content`                                |
+| オーナー移譲 (2 人目追加 → 1 人目削除)               | 両操作 `201` / `204`                            |
 
-| Scenario                                        | Result                                          |
-| ----------------------------------------------- | ----------------------------------------------- |
-| Remove last owner                               | `409 Conflict` — "cannot remove the last owner" |
-| Remove non-last owner                           | `204 No Content`                                |
-| Remove editor / viewer                          | `204 No Content`                                |
-| Transfer ownership (add 2nd owner → remove 1st) | Both operations `201` / `204`                   |
+---
+
+## 🎮 Viewport キーボードショートカット
+
+| キー          | 操作                         |
+| ------------- | ---------------------------- |
+| `W`           | 移動モード                   |
+| `E`           | 回転モード                   |
+| `R`           | 拡縮モード                   |
+| `F`           | 選択オブジェクトにフォーカス |
+| `Esc`         | 選択解除                     |
+| `Ctrl+D`      | 選択オブジェクトを複製       |
+| `Del / BS`    | 選択オブジェクト削除         |
+| `Ctrl+Z`      | 元に戻す (Undo)              |
+| `Ctrl+Y`      | やり直す (Redo)              |
 
 ---
 
