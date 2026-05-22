@@ -55,7 +55,9 @@ def test_jwt_uses_rs256_algorithm() -> None:
 
 
 def test_jwt_payload_has_correct_claims() -> None:
-    """Issued tokens must carry iss=ArcSphere3D and sub=email."""
+    """Issued tokens must carry iss=ArcSphere3D, sub=user.id (UUID), email=email."""
+    from uuid import UUID
+
     res = client.post(
         "/api/auth/login",
         json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
@@ -63,7 +65,9 @@ def test_jwt_payload_has_correct_claims() -> None:
     token = res.json()["access_token"]
     claims = jose_jwt.get_unverified_claims(token)
     assert claims["iss"] == "ArcSphere3D"
-    assert claims["sub"] == "demo@arcsphere3d.dev"
+    # sub is now an immutable UUID (Issue #180), email lives in a separate claim
+    UUID(claims["sub"])  # raises if not a valid UUID
+    assert claims["email"] == "demo@arcsphere3d.dev"
 
 
 def test_tampered_hs256_token_rejected() -> None:
@@ -131,7 +135,11 @@ def test_jwks_key_can_verify_issued_token() -> None:
     ).decode()
 
     claims = jose_jwt.decode(token, pub_pem, algorithms=["RS256"])
-    assert claims["sub"] == "demo@arcsphere3d.dev"
+    # sub is the immutable UUID (Issue #180); we just verify it round-trips
+    from uuid import UUID
+
+    UUID(claims["sub"])
+    assert claims["email"] == "demo@arcsphere3d.dev"
 
 
 def test_login_rate_limit_blocks_after_max_attempts() -> None:

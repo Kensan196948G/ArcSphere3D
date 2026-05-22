@@ -95,15 +95,20 @@ async def login(request: Request, payload: LoginRequest, db: DbDep) -> TokenResp
             detail="invalid credentials",
         )
 
+    # JWT subject: immutable user.id (UUID stringified per RFC 7519 §4.1.2).
+    # Email is mutable — using it as `sub` would invalidate live tokens after
+    # an email change and pollute audit logs with renamed-away identifiers.
+    assert db_user is not None  # narrowing: authenticated path guarantees this
     token = create_access_token(
-        subject=payload.email,
-        extra={"email": payload.email, "role": role},
+        subject=str(db_user.id),
+        extra={"email": db_user.email, "role": role},
     )
     await crud.log_audit_event(
         db,
         action="login_success",
+        user_id=db_user.id,
         resource_type="user",
-        resource_id=payload.email,
+        resource_id=str(db_user.id),
         ip_address=client_ip,
     )
     await db.commit()
@@ -123,23 +128,35 @@ async def login(request: Request, payload: LoginRequest, db: DbDep) -> TokenResp
     },
 )
 async def refresh(db: DbDep, current: CurrentUser = CurrentUserDep) -> TokenResponse:
+    # current.sub is a UUID string (Issue #180). Reject malformed subs as 401
+    # — they can only come from a tampered token or a pre-migration JWT.
+    from uuid import UUID
+
+    try:
+        user_id = UUID(current.sub)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid or expired credentials",
+        ) from exc
     # Re-fetch from DB: picks up role/email changes and rejects deleted accounts.
-    db_user = await crud.get_user_by_email(db, current.sub)
+    db_user = await crud.get_user_by_id(db, user_id)
     if db_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid or expired credentials",
         )
     token = create_access_token(
-        subject=current.sub,
+        subject=str(db_user.id),
         extra={"email": db_user.email, "role": db_user.role},
     )
     action = "token_refreshed_role_changed" if db_user.role != current.role else "token_refreshed"
     await crud.log_audit_event(
         db,
         action=action,
+        user_id=db_user.id,
         resource_type="user",
-        resource_id=current.sub,
+        resource_id=str(db_user.id),
     )
     await db.commit()
     s = get_settings()
@@ -170,7 +187,16 @@ async def change_password(
     current: CurrentUser = CurrentUserDep,
 ) -> None:
     """Change the authenticated user's password after verifying the current one."""
-    db_user = await crud.get_user_by_email(db, current.sub)
+    from uuid import UUID
+
+    try:
+        user_id = UUID(current.sub)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid or expired credentials",
+        ) from exc
+    db_user = await crud.get_user_by_id(db, user_id)
     if db_user is None or not db_user.password_hash:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

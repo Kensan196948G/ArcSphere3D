@@ -42,18 +42,41 @@ from app.schemas import (
 
 
 async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
-    """Return the DB row for *current*, inserting it on first login."""
-    result = await session.execute(select(User).where(User.sub == current.sub))
-    db_user = result.scalar_one_or_none()
-    if db_user is None:
-        db_user = User(
-            sub=current.sub,
-            email=current.email or current.sub,
-            role=current.role,
-        )
-        session.add(db_user)
-        await session.commit()
-        await session.refresh(db_user)
+    """Return the DB row for *current*, inserting it on first login.
+
+    Post Issue #180: `current.sub` is a UUID string (immutable user.id). We
+    look up by primary key when possible, falling back to email for legacy
+    tokens / SSO bootstrap. The fallback writes `sub` = email so the legacy
+    column stays populated; new rows created from a UUID-sub token use email
+    as the legacy `sub` value too.
+    """
+    try:
+        user_uuid = UUID(current.sub)
+    except ValueError:
+        user_uuid = None
+
+    if user_uuid is not None:
+        result = await session.execute(select(User).where(User.id == user_uuid))
+        db_user = result.scalar_one_or_none()
+        if db_user is not None:
+            return db_user
+
+    # Fallback: email-based lookup (legacy tokens or fresh SSO bootstrap).
+    if current.email:
+        result = await session.execute(select(User).where(User.email == current.email))
+        db_user = result.scalar_one_or_none()
+        if db_user is not None:
+            return db_user
+
+    legacy_sub = current.email or current.sub
+    db_user = User(
+        sub=legacy_sub,
+        email=current.email or current.sub,
+        role=current.role,
+    )
+    session.add(db_user)
+    await session.commit()
+    await session.refresh(db_user)
     return db_user
 
 

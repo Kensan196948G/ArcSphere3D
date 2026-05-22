@@ -144,7 +144,7 @@ async def delete_user(
     target = await crud.get_user_by_id(db, user_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
-    if target.email == current.sub:
+    if str(target.id) == current.sub:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="cannot delete your own account",
@@ -182,7 +182,7 @@ async def update_user_role(
     target = await crud.get_user_by_id(db, user_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
-    if target.email == current.sub and body.role != "admin":
+    if str(target.id) == current.sub and body.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="cannot demote your own admin role",
@@ -234,6 +234,6 @@ async def reset_user_password(
         user_id=None,
         resource_type="user",
         resource_id=str(user_id),
-        detail=f"reset by admin {current.sub}",
+        detail=f"reset by admin {current.email or current.sub}",
     )
     await db.commit()
