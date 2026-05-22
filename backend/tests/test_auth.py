@@ -227,6 +227,55 @@ def test_refresh_unauthenticated_returns_401() -> None:
     assert res.status_code == 401
 
 
+def test_legacy_email_sub_token_is_rejected_centrally() -> None:
+    """Issue #180 adversarial-review regression.
+
+    A token whose `sub` is an email (the pre-migration shape) must be rejected
+    by `get_current_user` before it reaches any handler — otherwise the admin
+    self-guard (`str(target.id) == current.sub`) could be bypassed by anyone
+    still holding a valid legacy token. We mint such a token here using the
+    same signing key the app uses, then assert that several representative
+    protected routes — including the admin ones — all return 401.
+    """
+    from app.security import create_access_token
+
+    legacy_token = create_access_token(
+        subject="demo@arcsphere3d.dev",
+        extra={"email": "demo@arcsphere3d.dev", "role": "admin"},
+    )
+    headers = {"Authorization": f"Bearer {legacy_token}"}
+
+    # Routes that previously used `current.sub` directly — must all 401 now.
+    me_res = client.get("/api/users/me", headers=headers)
+    assert me_res.status_code == 401
+    projects_res = client.get("/api/projects", headers=headers)
+    assert projects_res.status_code == 401
+    admin_users_res = client.get("/api/admin/users", headers=headers)
+    assert admin_users_res.status_code == 401
+
+
+def test_token_with_random_uuid_for_unknown_user_returns_401() -> None:
+    """A well-formed UUID sub that does not match any user must 401, not 500.
+
+    Closes the adversarial-review concern that `upsert_user` could silently
+    fall back to email-based lookup or fabricate a new row when the JWT sub
+    has no matching DB user (e.g. deleted account, forged-but-syntactic UUID).
+    """
+    from uuid import uuid4
+
+    from app.security import create_access_token
+
+    orphan_token = create_access_token(
+        subject=str(uuid4()),
+        extra={"email": "ghost@arcsphere3d.dev", "role": "admin"},
+    )
+    res = client.get(
+        "/api/users/me",
+        headers={"Authorization": f"Bearer {orphan_token}"},
+    )
+    assert res.status_code == 401
+
+
 def test_member_project_appears_in_list() -> None:
     """Projects where user is a member should appear in their project list."""
     owner_token = client.post(

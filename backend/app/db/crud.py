@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,41 +43,35 @@ from app.schemas import (
 
 
 async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
-    """Return the DB row for *current*, inserting it on first login.
+    """Return the DB row for the JWT-authenticated *current* user.
 
-    Post Issue #180: `current.sub` is a UUID string (immutable user.id). We
-    look up by primary key when possible, falling back to email for legacy
-    tokens / SSO bootstrap. The fallback writes `sub` = email so the legacy
-    column stays populated; new rows created from a UUID-sub token use email
-    as the legacy `sub` value too.
+    Post Issue #180 `current.sub` is guaranteed to be a UUID — `get_current_user`
+    rejects non-UUID subjects centrally — so this function does a pure primary
+    key lookup and no longer creates rows from JWT context. Row creation
+    belongs in registration paths (password signup, admin user creation, SSO
+    bootstrap) where identity is established before a token is issued.
+
+    Failing closed on a malformed sub (defense in depth) and on a missing row
+    (deleted user with a still-valid token) closes the email-fallback bypass
+    surfaced by adversarial review and removes the SELECT-then-INSERT race
+    that the previous dual-lookup widened.
     """
     try:
         user_uuid = UUID(current.sub)
-    except ValueError:
-        user_uuid = None
-
-    if user_uuid is not None:
-        result = await session.execute(select(User).where(User.id == user_uuid))
-        db_user = result.scalar_one_or_none()
-        if db_user is not None:
-            return db_user
-
-    # Fallback: email-based lookup (legacy tokens or fresh SSO bootstrap).
-    if current.email:
-        result = await session.execute(select(User).where(User.email == current.email))
-        db_user = result.scalar_one_or_none()
-        if db_user is not None:
-            return db_user
-
-    legacy_sub = current.email or current.sub
-    db_user = User(
-        sub=legacy_sub,
-        email=current.email or current.sub,
-        role=current.role,
-    )
-    session.add(db_user)
-    await session.commit()
-    await session.refresh(db_user)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="token subject is not a user UUID",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+    result = await session.execute(select(User).where(User.id == user_uuid))
+    db_user = result.scalar_one_or_none()
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user no longer exists",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return db_user
 
 
