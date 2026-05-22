@@ -3,6 +3,7 @@ import { create } from "zustand";
 export type PanelId =
   | "project"
   | "model"
+  | "properties"
   | "layer"
   | "bim"
   | "material"

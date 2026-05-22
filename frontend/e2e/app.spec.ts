@@ -2666,3 +2666,26 @@ test.describe("Viewport: Undo / Redo", () => {
     await expect(page.getByTestId("shortcuts-panel")).toContainText("やり直す");
   });
 });
+
+// ---- PropertiesPanel — 専用プロパティパネル (Issue #176) -------------------
+
+test.describe("PropertiesPanel", () => {
+  test("左メニューに「プロパティ」ボタンが存在する (Issue #176)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("button", { name: /プロパティ/ })
+    ).toBeVisible();
+  });
+
+  test("プロパティパネル: オブジェクト未選択時はプレースホルダが表示される (Issue #176)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /プロパティ/ }).click();
+    await expect(
+      page.getByText("オブジェクトを選択してください。")
+    ).toBeVisible();
+  });
+});
