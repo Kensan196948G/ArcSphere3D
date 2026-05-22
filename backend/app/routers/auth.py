@@ -123,9 +123,16 @@ async def login(request: Request, payload: LoginRequest, db: DbDep) -> TokenResp
     },
 )
 async def refresh(db: DbDep, current: CurrentUser = CurrentUserDep) -> TokenResponse:
+    # Re-fetch role from DB so admin role changes take effect immediately on next refresh.
+    db_user = await crud.get_user_by_email(db, current.sub)
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user not found",
+        )
     token = create_access_token(
         subject=current.sub,
-        extra={"email": current.email, "role": current.role},
+        extra={"email": current.email, "role": db_user.role},
     )
     await crud.log_audit_event(
         db,
