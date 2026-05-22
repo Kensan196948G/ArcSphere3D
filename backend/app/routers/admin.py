@@ -22,10 +22,33 @@ from app.schemas import (
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-def _require_admin(current: CurrentUser = CurrentUserDep) -> CurrentUser:
-    if current.role != "admin":
+async def _require_admin(
+    db: DbDep,
+    current: CurrentUser = CurrentUserDep,
+) -> CurrentUser:
+    """Admin gate that authorizes from *live* DB state, not stale JWT claims.
+
+    Issue #180 round-4 hardening: a stateless JWT's `role` claim cannot reflect
+    revocation — a token minted while the user was an admin remains valid (and
+    self-asserts `role=admin`) until `exp`, so a deleted or demoted admin could
+    otherwise keep calling admin endpoints for the rest of the access-token
+    lifetime. By re-loading the actor row on every protected request and
+    authorizing from `db_user.role`, revocation takes effect immediately for
+    privileged operations.
+    """
+    db_user = await crud.get_user_by_id(db, UUID(current.sub))
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user no longer exists",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if db_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return current
+    # Reflect live role on the dependency object so handlers see authoritative
+    # state (defense in depth — handlers should not check role separately, but
+    # if they do, they read the DB value, not the token).
+    return CurrentUser(sub=current.sub, email=current.email, role=db_user.role)
 
 
 AdminDep = Depends(_require_admin)

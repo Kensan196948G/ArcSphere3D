@@ -346,6 +346,59 @@ def test_token_with_random_uuid_for_unknown_user_returns_401() -> None:
     assert res.status_code == 401
 
 
+def test_demoted_admin_token_cannot_keep_calling_admin_routes() -> None:
+    """Adversarial-review round 4 regression.
+
+    A stateless JWT carries the role at issuance time. If we authorized purely
+    from `claims['role']`, a demoted admin could keep calling `/api/admin/*`
+    for the remainder of the access-token lifetime. `_require_admin` now
+    reloads the actor from the DB and authorizes from the live role.
+    """
+    from app.security import create_access_token
+
+    # Log in as a non-admin user, then mint a token *claiming* admin role.
+    other_login = client.post(
+        "/api/auth/login",
+        json={"email": "other@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    assert other_login.status_code == 200
+    other_id = client.get(
+        "/api/users/me",
+        headers={"Authorization": f"Bearer {other_login.json()['access_token']}"},
+    ).json()["id"]
+    forged_admin = create_access_token(
+        subject=other_id,
+        extra={"email": "other@arcsphere3d.dev", "role": "admin"},
+    )
+    # DB says viewer, so admin route must 403 even though token claims admin.
+    res = client.get(
+        "/api/admin/users",
+        headers={"Authorization": f"Bearer {forged_admin}"},
+    )
+    assert res.status_code == 403, (
+        f"stale JWT role claim authorized admin route: {res.status_code} {res.text}"
+    )
+
+
+def test_deleted_user_token_is_rejected_on_admin_routes() -> None:
+    """Adversarial-review round 4 regression.
+
+    A token issued before user deletion must 401 on protected admin endpoints
+    once the row is gone, not silently accept the stale claim.
+    """
+    from uuid import uuid4
+
+    from app.security import create_access_token
+
+    # Token for a UUID that has no DB row.
+    ghost = create_access_token(
+        subject=str(uuid4()),
+        extra={"email": "ghost@arcsphere3d.dev", "role": "admin"},
+    )
+    res = client.get("/api/admin/users", headers={"Authorization": f"Bearer {ghost}"})
+    assert res.status_code == 401
+
+
 def test_member_project_appears_in_list() -> None:
     """Projects where user is a member should appear in their project list."""
     owner_token = client.post(
