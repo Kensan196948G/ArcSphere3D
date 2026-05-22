@@ -41,7 +41,9 @@ const SHORTCUTS = [
   { key: "W", desc: "移動モード" },
   { key: "E", desc: "回転モード" },
   { key: "R", desc: "拡縮モード" },
+  { key: "F", desc: "選択オブジェクトにフォーカス" },
   { key: "Esc", desc: "選択解除" },
+  { key: "Ctrl+D", desc: "選択オブジェクトを複製" },
   { key: "Del / BS", desc: "選択オブジェクト削除" },
 ];
 

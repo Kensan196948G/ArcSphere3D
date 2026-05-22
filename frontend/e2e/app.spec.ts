@@ -2608,3 +2608,24 @@ test.describe("Toaster", () => {
     await expect(page.locator('[data-testid="toast-container"]')).not.toBeVisible();
   });
 });
+
+// ---- Ctrl+D 複製 (Issue #160) -----------------------------------------------
+
+test.describe("Viewport: Ctrl+D 複製", () => {
+  test("ショートカット一覧に Ctrl+D が表示される (Issue #160)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("shortcuts-btn").click();
+    await expect(page.getByTestId("shortcuts-panel")).toBeVisible();
+    await expect(page.getByTestId("shortcuts-panel")).toContainText("Ctrl+D");
+  });
+
+  test("ショートカット一覧に「複製」の説明が表示される (Issue #160)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("shortcuts-btn").click();
+    await expect(page.getByTestId("shortcuts-panel")).toContainText("複製");
+  });
+});
