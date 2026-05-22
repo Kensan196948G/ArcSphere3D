@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Object3D } from "three";
+import { Mesh, type Object3D } from "three";
 
 export interface SceneObject {
   id: string;
@@ -93,10 +93,22 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     const src = get().objects.find((o) => o.id === id);
     if (!src) return;
     const clone = src.object.clone();
+    // Offset to make the duplicate visible immediately
     clone.position.x += 1;
+    // Clone materials independently so color changes don't bleed between copies
+    clone.traverse((node) => {
+      const mesh = node as Mesh;
+      if (mesh.isMesh && mesh.material) {
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((m) => m.clone())
+          : mesh.material.clone();
+      }
+    });
     const newId = `obj-${Date.now()}`;
     const newName = `${src.name} (コピー)`;
     clone.name = newName;
+    const scene = src.object.parent;
+    if (scene) scene.add(clone);
     set((s) => ({
       objects: [
         ...s.objects,
@@ -108,10 +120,11 @@ export const useSceneStore = create<SceneState>((set, get) => ({
           visible: src.visible,
         },
       ],
-      logs: [...s.logs, `[scene] ⧉ duplicate ${src.name}`].slice(-200),
+      selectedId: newId,
+      logs: [...s.logs, `[scene] ⧉ duplicate ${src.name} → ${newName}`].slice(
+        -200,
+      ),
     }));
-    const scene = src.object.parent;
-    if (scene) scene.add(clone);
   },
   setObjectVisibility: (id, visible) =>
     set((s) => ({

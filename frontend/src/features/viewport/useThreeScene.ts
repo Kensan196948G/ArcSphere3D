@@ -319,6 +319,9 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
         if (store.selectedId) useViewportStore.getState().focusObject();
       } else if (e.key === "Delete" || e.key === "Backspace") {
         if (store.selectedId) store.removeObject(store.selectedId);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "d") {
+        e.preventDefault();
+        if (store.selectedId) store.duplicateObject(store.selectedId);
       }
     };
     window.addEventListener("keydown", onKey);
