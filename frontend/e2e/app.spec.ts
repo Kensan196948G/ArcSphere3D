@@ -2629,3 +2629,40 @@ test.describe("Viewport: Ctrl+D 複製", () => {
     await expect(page.getByTestId("shortcuts-panel")).toContainText("複製");
   });
 });
+
+// ---- Undo / Redo (Issue #162) -----------------------------------------------
+
+test.describe("Viewport: Undo / Redo", () => {
+  test("ショートカット一覧に Ctrl+Z が表示される (Issue #162)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("shortcuts-btn").click();
+    await expect(page.getByTestId("shortcuts-panel")).toBeVisible();
+    await expect(page.getByTestId("shortcuts-panel")).toContainText("Ctrl+Z");
+  });
+
+  test("ショートカット一覧に Ctrl+Y が表示される (Issue #162)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("shortcuts-btn").click();
+    await expect(page.getByTestId("shortcuts-panel")).toContainText("Ctrl+Y");
+  });
+
+  test("ショートカット一覧に「元に戻す」の説明が表示される (Issue #162)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("shortcuts-btn").click();
+    await expect(page.getByTestId("shortcuts-panel")).toContainText("元に戻す");
+  });
+
+  test("ショートカット一覧に「やり直す」の説明が表示される (Issue #162)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("shortcuts-btn").click();
+    await expect(page.getByTestId("shortcuts-panel")).toContainText("やり直す");
+  });
+});

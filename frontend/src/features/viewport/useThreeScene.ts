@@ -322,6 +322,15 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
       } else if ((e.ctrlKey || e.metaKey) && e.key === "d") {
         e.preventDefault();
         if (store.selectedId) store.duplicateObject(store.selectedId);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        store.undo();
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.shiftKey && e.key === "z"))
+      ) {
+        e.preventDefault();
+        store.redo();
       }
     };
     window.addEventListener("keydown", onKey);

@@ -45,6 +45,8 @@ const SHORTCUTS = [
   { key: "Esc", desc: "選択解除" },
   { key: "Ctrl+D", desc: "選択オブジェクトを複製" },
   { key: "Del / BS", desc: "選択オブジェクト削除" },
+  { key: "Ctrl+Z", desc: "元に戻す（Undo）" },
+  { key: "Ctrl+Y", desc: "やり直す（Redo）" },
 ];
 
 export default function ViewportToolbar() {
