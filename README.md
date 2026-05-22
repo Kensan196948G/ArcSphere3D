@@ -1,6 +1,6 @@
 # ArcSphere3D
 
-> **AI Native Web 3D CAD Platform** — フルブラウザ型 3D CAD / BIM / Digital Twin。JWT 認証 + S3 ストレージ + 管理者パネル + Undo/Redo 完備。
+> **AI Native Web 3D CAD Platform** — フルブラウザ型 3D CAD / BIM / Digital Twin。JWT 認証 + S3 ストレージ + 管理者パネル + Undo/Redo + GLTF エクスポート + プロパティ編集 完備。
 
 [![CI](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml/badge.svg)](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Proprietary-blue)]()
@@ -97,16 +97,39 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 67  | 👤 管理者ユーザー管理パネル — AdminPanel タブ UI                                  | ✅ Done        |
 | 68  | 🔔 グローバル Toast 通知システム                                                  | ✅ Done        |
 | 69  | 🔐 管理者パスワードリセット — POST /api/admin/users/{id}/reset-password (Issue #156) | ✅ Done     |
-| 70  | ↩️ Undo / Redo — Command Pattern (sceneStore, Issue #162)                         | 🟡 PR #163     |
-| 71  | 🎛️ AdminUsersPanel ロール変更 + パスワードリセット UI (Issue #164)                | 🟡 PR #170     |
-| 72  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165)                              | 🟡 PR #172     |
-| 73  | ✏️ renameFile() フロントエンド関数 (Issue #166)                                   | 🟡 PR #169     |
-| 74  | 🐳 docker-compose frontend nginx サービス追加 (Issue #167)                       | 🟡 PR #171     |
-| 75  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 76  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
-| 77  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 70  | ↩️ Undo / Redo — Command Pattern (sceneStore, Issue #162)                         | ✅ Done        |
+| 71  | 🎛️ AdminUsersPanel ロール変更 + パスワードリセット UI (Issue #164)                | ✅ Done        |
+| 72  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165, 対抗レビュー済)              | ✅ Done        |
+| 73  | ✏️ renameFile() フロントエンド関数 + PATCH /api/files/{id} (Issue #166)           | ✅ Done        |
+| 74  | 🐳 docker-compose frontend nginx サービス追加 (Issue #167)                        | ✅ Done        |
+| 75  | 📤 シーン GLTF (.glb) エクスポート — ViewportToolbar (Issue #175)                  | ✅ Done        |
+| 76  | 🎛️ オブジェクトプロパティパネル — 位置/回転/拡縮の数値入力 (Issue #176)           | ✅ Done        |
+| 77  | 📚 README 大幅刷新 — 表・アイコン・Mermaid ダイアグラム (Issue #168)               | ✅ Done        |
+| 78  | 🔑 JWT subject に immutable user.id を使う (Issue #180, CodeRabbit 提案)          | 🚧 WIP         |
+| 79  | 🖱️ ProjectPanel ファイルリネーム UI (Issue #174)                                  | 🚧 WIP         |
+| 80  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 81  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
+| 82  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
-> 🟡 **PR審査中** = CI green 確認後に merge 予定
+> 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
+
+---
+
+## 🆕 直近のリリース (Session 2026-05-22)
+
+| PR    | コミット   | 内容                                                                | 種別        |
+| ----- | ---------- | ------------------------------------------------------------------- | ----------- |
+| #163  | `a40a507`  | ↩️ Ctrl+Z / Ctrl+Y で Undo / Redo — シーン操作履歴 (Issue #162)     | ⚙️ Feature  |
+| #169  | `94e250e`  | ✏️ PATCH /api/files/{id} ファイル名変更 API (Issue #166)            | ⚙️ Backend  |
+| #170  | `69d6cd1`  | 🎛️ AdminUsersPanel ロール変更・パスワードリセット UI (Issue #164)   | 🖼️ UI       |
+| #171  | `7593b95`  | 🐳 docker-compose にフロントエンド nginx サービスを追加 (Issue #167) | 🛠️ Infra    |
+| #172  | `da0c91b`  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165, 対抗レビュー)   | 🛡️ Security |
+| #173  | `342fad7`  | 📚 README 大幅刷新 — 表・アイコン・Mermaid ダイアグラム (Issue #168) | 📝 Docs     |
+| #177  | `e9ceb76`  | 📤 シーン GLTF (.glb) エクスポートボタン (Issue #175)               | ⚙️ Feature  |
+| #178  | `40142e6`  | 🎛️ オブジェクトプロパティパネル — 位置/回転/拡縮 (Issue #176)       | 🖼️ UI       |
+| #179  | `21efd80`  | 🔑 パスワード制約を bcrypt 72-byte 上限と整合                       | 🛡️ Security |
+
+> 🛡️ **Security ハイライト**: PR #172 では JWT リフレッシュ時に DB から最新ロールを再取得し、降格直後の管理者権限残存を防止 (Codex 対抗レビュー実施)。フォローアップとして Issue #180 で JWT subject を immutable な `user.id` に切り替えることを計画。
 
 ---
 
@@ -375,9 +398,10 @@ gantt
 
     section Build
     Admin Panel + RBAC              :done,    b1, 2026-05-20, 14d
-    Undo/Redo + Security hardening  :active,  b2, 2026-05-22, 14d
-    glTF / OBJ / STL Loaders       :         b3, 2026-06-15, 14d
-    Entra ID (OAuth2)               :         b4, 2026-06-22, 21d
+    Undo/Redo + Security hardening  :done,    b2, 2026-05-22, 7d
+    GLTF Export + Properties Panel  :done,    b3, 2026-05-22, 3d
+    glTF / OBJ / STL Loaders        :active,  b4, 2026-06-01, 14d
+    Entra ID (OAuth2)               :         b5, 2026-06-22, 21d
 
     section Quality
     Integration test coverage       :         q1, 2026-07-15, 21d
