@@ -155,7 +155,7 @@ async def delete_user(
     await crud.log_audit_event(
         db,
         action="user_deleted",
-        user_id=None,
+        user_id=UUID(current.sub),
         resource_type="user",
         resource_id=str(user_id),
     )
@@ -193,6 +193,7 @@ async def update_user_role(
     await crud.log_audit_event(
         db,
         action="user_role_changed",
+        user_id=UUID(current.sub),
         resource_type="user",
         resource_id=str(user_id),
         detail=f"role changed to {body.role}",
@@ -231,7 +232,7 @@ async def reset_user_password(
     await crud.log_audit_event(
         db,
         action="password_reset_by_admin",
-        user_id=None,
+        user_id=UUID(current.sub),
         resource_type="user",
         resource_id=str(user_id),
         detail=f"reset by admin {current.email or current.sub}",
