@@ -54,7 +54,7 @@ export default function AdminUsersPanel() {
     if (pwReset) {
       setTimeout(() => pwInputRef.current?.focus(), 50);
     }
-  }, [pwReset?.userId]);
+  }, [pwReset]);
 
   if (!token || role !== "admin") {
     return (
