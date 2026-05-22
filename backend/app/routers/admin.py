@@ -90,6 +90,7 @@ async def list_users(
     response_model=UserOut,
     status_code=status.HTTP_201_CREATED,
     responses={
+        400: {"description": "malformed request body"},
         401: {"description": "missing bearer token"},
         403: {"description": "admin role required"},
         409: {"description": "email already in use"},
@@ -165,6 +166,7 @@ async def delete_user(
     "/users/{user_id}/role",
     response_model=UserOut,
     responses={
+        400: {"description": "malformed request body"},
         401: {"description": "missing bearer token"},
         403: {"description": "admin role required or attempting self-demotion"},
         404: {"description": "user not found"},
@@ -203,6 +205,7 @@ async def update_user_role(
     "/users/{user_id}/reset-password",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
+        400: {"description": "malformed request body"},
         401: {"description": "missing bearer token"},
         403: {"description": "admin role required"},
         404: {"description": "user not found or has no DB password"},
