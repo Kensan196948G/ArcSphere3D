@@ -254,6 +254,76 @@ def test_legacy_email_sub_token_is_rejected_centrally() -> None:
     assert admin_users_res.status_code == 401
 
 
+def test_non_canonical_uuid_sub_cannot_bypass_admin_self_guard() -> None:
+    """Adversarial-review follow-up regression.
+
+    Python's `UUID()` accepts several textual spellings (uppercase, no hyphens,
+    `urn:uuid:` prefix) of the same value. Before normalization, a token
+    minted with the admin's UUID in any of these alternate spellings would
+    pass authentication but compare unequal to `str(target.id)`, letting the
+    admin slip past the self-delete / self-demote guard. `get_current_user`
+    now canonicalizes via `str(UUID(sub))`, so this test asserts that even a
+    non-canonical sub for the admin's own row is recognized as self.
+    """
+    from app.security import create_access_token
+
+    # Log in normally to discover the demo admin's canonical UUID.
+    login = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    canonical_token = login.json()["access_token"]
+    admin_id = client.get(
+        "/api/users/me",
+        headers={"Authorization": f"Bearer {canonical_token}"},
+    ).json()["id"]
+
+    # Mint a token whose sub is the same UUID, but in upper-case and stripped
+    # of hyphens — the exact bypass shape Codex flagged.
+    forged = create_access_token(
+        subject=admin_id.replace("-", "").upper(),
+        extra={"email": "demo@arcsphere3d.dev", "role": "admin"},
+    )
+    res = client.delete(
+        f"/api/admin/users/{admin_id}",
+        headers={"Authorization": f"Bearer {forged}"},
+    )
+    # The self-guard must still fire (403 'cannot delete your own account'),
+    # NOT silently delete the admin (204).
+    assert res.status_code == 403, f"self-guard bypassed: {res.status_code} {res.text}"
+
+
+def test_token_with_non_string_sub_returns_401() -> None:
+    """A signed token whose `sub` is an int / null / array must 401, not 500.
+
+    `uuid.UUID()` raises `TypeError` (not `ValueError`) for non-string input,
+    so the central UUID check has to catch both — otherwise malformed tokens
+    leak as server errors.
+    """
+    from app.config import get_settings
+    from app.security import _get_or_generate_keys
+
+    priv_pem, _ = _get_or_generate_keys(get_settings())
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    settings = get_settings()
+    bogus = jose_jwt.encode(
+        {
+            "sub": 12345,  # int, not a UUID string
+            "iat": int(now.timestamp()),
+            "exp": int((now + timedelta(minutes=10)).timestamp()),
+            "iss": settings.app_name,
+            "email": "x@arcsphere3d.dev",
+            "role": "admin",
+        },
+        priv_pem,
+        algorithm="RS256",
+    )
+    res = client.get("/api/users/me", headers={"Authorization": f"Bearer {bogus}"})
+    assert res.status_code == 401
+
+
 def test_token_with_random_uuid_for_unknown_user_returns_401() -> None:
     """A well-formed UUID sub that does not match any user must 401, not 500.
 

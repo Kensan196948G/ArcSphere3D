@@ -31,15 +31,26 @@ def get_current_user(authorization: str | None = Header(default=None)) -> Curren
             detail=str(exc),
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
-    sub = claims.get("sub", "")
+    raw_sub = claims.get("sub")
     # Issue #180: every JWT 'sub' must be a UUID (the immutable user.id).
     # Rejecting non-UUID subs centrally here invalidates pre-migration tokens
-    # (which carried email as sub) across every protected route, instead of
-    # relying on each handler to remember the check — a single chokepoint
-    # closes the admin self-guard bypass surfaced by adversarial review.
+    # (email subs) across every protected route, instead of relying on each
+    # handler to remember the check.
+    #
+    # We also *normalize* the sub via `str(UUID(...))` rather than just
+    # validating it: `UUID()` accepts several textual spellings of the same
+    # value (uppercase, hyphen-less, urn:uuid: prefix), but `str(target.id)`
+    # downstream always emits the canonical lowercase + hyphenated form. If
+    # we stored the raw token string, an attacker could mint a token whose
+    # `sub` was their own UUID in a non-canonical spelling, slip past the
+    # admin self-guards (`str(target.id) == current.sub`), and self-delete
+    # or self-demote — exactly the bypass surfaced by adversarial review.
+    # `TypeError` covers non-string sub claims (null, int, array).
     try:
-        UUID(sub)
-    except ValueError as exc:
+        if not isinstance(raw_sub, str):
+            raise TypeError("sub must be a string")
+        sub = str(UUID(raw_sub))
+    except (ValueError, TypeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="token subject is not a user UUID; please re-authenticate",
