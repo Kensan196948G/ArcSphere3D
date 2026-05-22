@@ -736,6 +736,22 @@ async def get_user_by_id(session: AsyncSession, user_id: UUID) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_user_by_id_for_update(session: AsyncSession, user_id: UUID) -> User | None:
+    """Return the DB row for *user_id* under a row-level lock (``SELECT ... FOR UPDATE``).
+
+    Issue #180 round-5 hardening: closes a TOCTOU race between the admin gate and the
+    privileged write. ``_require_admin`` reloads the actor row to validate role, but a
+    plain ``SELECT`` does not prevent a concurrent admin from demoting/deleting that
+    actor before the handler's ``UPDATE``/``DELETE`` commits. Acquiring ``FOR UPDATE``
+    on the actor row holds an exclusive lock for the lifetime of the request
+    transaction (DbDep is request-scoped, one session per request), so any concurrent
+    role change or deletion of this actor blocks until the current admin mutation
+    commits — making revocation effective immediately, not "eventually consistent".
+    """
+    result = await session.execute(select(User).where(User.id == user_id).with_for_update())
+    return result.scalar_one_or_none()
+
+
 async def delete_user(session: AsyncSession, user_id: UUID) -> bool:
     """Delete *user_id* and all their data. Returns False if user not found."""
     user = await get_user_by_id(session, user_id)

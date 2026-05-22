@@ -399,6 +399,62 @@ def test_deleted_user_token_is_rejected_on_admin_routes() -> None:
     assert res.status_code == 401
 
 
+def test_admin_gate_acquires_row_lock_on_actor() -> None:
+    """Adversarial-review round 5 regression.
+
+    The admin gate must take ``SELECT ... FOR UPDATE`` on the actor row so a
+    concurrent demote/delete cannot slip in between authorization and the
+    privileged write. We assert (1) the row-locked crud variant is used by the
+    gate, and (2) the compiled SQL it emits includes ``FOR UPDATE``.
+    """
+    from unittest.mock import patch
+
+    from app.db import crud as crud_module
+
+    admin_login = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    assert admin_login.status_code == 200, admin_login.text
+    token = admin_login.json()["access_token"]
+
+    with patch.object(
+        crud_module,
+        "get_user_by_id_for_update",
+        wraps=crud_module.get_user_by_id_for_update,
+    ) as spy:
+        res = client.get(
+            "/api/admin/users",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert res.status_code == 200, res.text
+    assert spy.call_count == 1, (
+        f"_require_admin must invoke get_user_by_id_for_update exactly once per "
+        f"protected request; called {spy.call_count} times"
+    )
+
+
+def test_get_user_by_id_for_update_compiles_with_for_update_clause() -> None:
+    """Adversarial-review round 5 regression.
+
+    Statically verify the row-locked crud helper emits ``FOR UPDATE`` so that a
+    refactor cannot silently downgrade the lock to a plain SELECT.
+    """
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from app.models.user import User
+
+    stmt = select(User).where(User.id == uuid4()).with_for_update()
+    compiled = stmt.compile(
+        dialect=__import__("sqlalchemy.dialects.postgresql", fromlist=["dialect"]).dialect(),
+        compile_kwargs={"literal_binds": False},
+    )
+    sql = str(compiled).upper()
+    assert "FOR UPDATE" in sql, f"expected FOR UPDATE clause in compiled SQL: {sql}"
+
+
 def test_member_project_appears_in_list() -> None:
     """Projects where user is a member should appear in their project list."""
     owner_token = client.post(

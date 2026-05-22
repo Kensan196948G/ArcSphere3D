@@ -26,17 +26,25 @@ async def _require_admin(
     db: DbDep,
     current: CurrentUser = CurrentUserDep,
 ) -> CurrentUser:
-    """Admin gate that authorizes from *live* DB state, not stale JWT claims.
+    """Admin gate that authorizes from *live* DB state under a row-level lock.
 
     Issue #180 round-4 hardening: a stateless JWT's `role` claim cannot reflect
     revocation — a token minted while the user was an admin remains valid (and
     self-asserts `role=admin`) until `exp`, so a deleted or demoted admin could
     otherwise keep calling admin endpoints for the rest of the access-token
     lifetime. By re-loading the actor row on every protected request and
-    authorizing from `db_user.role`, revocation takes effect immediately for
-    privileged operations.
+    authorizing from `db_user.role`, revocation takes effect immediately.
+
+    Issue #180 round-5 hardening: an in-memory re-check still leaves a TOCTOU
+    window between the gate and the write — between `_require_admin` returning
+    and the handler's `UPDATE`/`DELETE` committing, another admin can demote
+    or delete this actor under READ COMMITTED, yet the privileged write would
+    still go through. We close that window by taking `SELECT ... FOR UPDATE`
+    on the actor row: any concurrent demote/delete of this actor blocks until
+    the current admin request commits or rolls back, making the gate atomic
+    with the write within the request-scoped transaction.
     """
-    db_user = await crud.get_user_by_id(db, UUID(current.sub))
+    db_user = await crud.get_user_by_id_for_update(db, UUID(current.sub))
     if db_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
