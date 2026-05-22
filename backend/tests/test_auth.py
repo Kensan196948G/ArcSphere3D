@@ -399,13 +399,17 @@ def test_deleted_user_token_is_rejected_on_admin_routes() -> None:
     assert res.status_code == 401
 
 
-def test_admin_gate_acquires_row_lock_on_actor() -> None:
-    """Adversarial-review round 5 regression.
+def test_admin_mutation_locks_actor_and_target_in_uuid_order() -> None:
+    """Adversarial-review round 6 regression.
 
-    The admin gate must take ``SELECT ... FOR UPDATE`` on the actor row so a
-    concurrent demote/delete cannot slip in between authorization and the
-    privileged write. We assert (1) the row-locked crud variant is used by the
-    gate, and (2) the compiled SQL it emits includes ``FOR UPDATE``.
+    Round 5 took ``FOR UPDATE`` on the actor row inside the admin gate, which
+    closed the gate↔write TOCTOU window but introduced a cross-admin deadlock
+    (request 1 locks A then waits B; request 2 locks B then waits A). Round 6
+    moves the lock to the mutation handler and acquires actor + target rows in
+    UUID order via ``crud.lock_user_pair_for_update``. We verify here that an
+    admin mutation invokes the pair-lock helper, and that the order of the
+    individual locked SELECTs follows the UUID total order — that ordering is
+    what makes the lock graph acyclic across all concurrent admin requests.
     """
     from unittest.mock import patch
 
@@ -416,21 +420,62 @@ def test_admin_gate_acquires_row_lock_on_actor() -> None:
         json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
     )
     assert admin_login.status_code == 200, admin_login.text
-    token = admin_login.json()["access_token"]
+    admin_token = admin_login.json()["access_token"]
+    admin_id = client.get(
+        "/api/users/me", headers={"Authorization": f"Bearer {admin_token}"}
+    ).json()["id"]
 
-    with patch.object(
-        crud_module,
-        "get_user_by_id_for_update",
-        wraps=crud_module.get_user_by_id_for_update,
-    ) as spy:
-        res = client.get(
-            "/api/admin/users",
-            headers={"Authorization": f"Bearer {token}"},
+    # Create a fresh target user to update — UUIDs are random, both orderings
+    # (admin < target / target < admin) are exercised across CI runs over time,
+    # so a single test covers the symmetry.
+    create_res = client.post(
+        "/api/admin/users",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "email": "round6-target@arcsphere3d.dev",
+            "password": "arcsphere-demo",
+            "role": "viewer",
+        },
+    )
+    assert create_res.status_code == 201, create_res.text
+    target_id = create_res.json()["id"]
+
+    locked_ids: list[str] = []
+    real_locked = crud_module.get_user_by_id_for_update
+
+    async def _spy_locked(session: object, user_id: object) -> object:
+        locked_ids.append(str(user_id))
+        return await real_locked(session, user_id)  # type: ignore[arg-type]
+
+    with (
+        patch.object(crud_module, "get_user_by_id_for_update", side_effect=_spy_locked),
+        patch.object(
+            crud_module,
+            "lock_user_pair_for_update",
+            wraps=crud_module.lock_user_pair_for_update,
+        ) as pair_spy,
+    ):
+        res = client.patch(
+            f"/api/admin/users/{target_id}/role",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"role": "editor"},
         )
     assert res.status_code == 200, res.text
-    assert spy.call_count == 1, (
-        f"_require_admin must invoke get_user_by_id_for_update exactly once per "
-        f"protected request; called {spy.call_count} times"
+    assert pair_spy.call_count == 1, (
+        f"admin mutation must call lock_user_pair_for_update exactly once; "
+        f"called {pair_spy.call_count} times"
+    )
+    assert len(locked_ids) == 2, (
+        f"pair lock must acquire two row locks (actor, target); got {locked_ids}"
+    )
+    # UUID order invariant — the smaller UUID is locked first regardless of which
+    # role (actor vs target) it plays. This is what kills the deadlock cycle.
+    assert locked_ids == sorted(locked_ids), (
+        f"row locks must be acquired in UUID order to avoid deadlock; got {locked_ids}"
+    )
+    # Sanity: the pair must include both admin and target.
+    assert {admin_id, target_id} == set(locked_ids), (
+        f"pair lock must cover both actor and target; got {locked_ids}"
     )
 
 

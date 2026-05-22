@@ -752,6 +752,49 @@ async def get_user_by_id_for_update(session: AsyncSession, user_id: UUID) -> Use
     return result.scalar_one_or_none()
 
 
+async def lock_user_pair_for_update(
+    session: AsyncSession,
+    *,
+    actor_id: UUID,
+    target_id: UUID,
+) -> tuple[User | None, User | None]:
+    """Lock the actor and target ``users`` rows for the current transaction in UUID order.
+
+    Returns ``(actor, target)`` (either may be ``None`` if the row no longer exists).
+    When ``actor_id == target_id`` the same row is returned in both slots (one lock).
+
+    Issue #180 round-6 hardening: prevents cross-admin deadlock. The round-5 fix took
+    ``FOR UPDATE`` on the actor row inside the dependency, then handlers later updated
+    or deleted the target row. PostgreSQL row locks under that scheme establish a
+    request-specific lock order ``(actor, target)``, so two admins acting on each
+    other (A demotes/deletes B while B demotes/deletes A concurrently) form a cycle:
+    request 1 holds A waits B; request 2 holds B waits A — Postgres aborts one with
+    ``40P01 deadlock_detected``.
+
+    Locking both rows together in **UUID order** (a total order across all
+    transactions) makes the lock-acquisition graph acyclic by construction: every
+    admin mutation, regardless of who the actor or target is, takes the row with the
+    smaller UUID first, so two concurrent admin-on-admin requests serialize through
+    the lower-UUID row instead of deadlocking. Self-mutations (``actor_id ==
+    target_id``) take a single lock — there is no second row to deadlock against.
+
+    Callers (admin mutation handlers) must re-check ``actor.role == "admin"`` *after*
+    this returns: that re-check under the lock is what makes the gate atomic with the
+    write, since ``_require_admin`` itself no longer locks (it cannot, without
+    re-introducing the deadlock).
+    """
+    if actor_id == target_id:
+        row = await get_user_by_id_for_update(session, actor_id)
+        return row, row
+
+    first_id, second_id = sorted([actor_id, target_id])
+    first_row = await get_user_by_id_for_update(session, first_id)
+    second_row = await get_user_by_id_for_update(session, second_id)
+    if actor_id == first_id:
+        return first_row, second_row
+    return second_row, first_row
+
+
 async def delete_user(session: AsyncSession, user_id: UUID) -> bool:
     """Delete *user_id* and all their data. Returns False if user not found."""
     user = await get_user_by_id(session, user_id)
