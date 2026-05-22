@@ -3,6 +3,7 @@ import { useUiStore, type PanelId } from "@/state/uiStore";
 const items: { id: PanelId; icon: string; label: string }[] = [
   { id: "project", icon: "📁", label: "プロジェクト" },
   { id: "model", icon: "🧊", label: "モデル" },
+  { id: "properties", icon: "📋", label: "プロパティ" },
   { id: "layer", icon: "🧱", label: "レイヤー" },
   { id: "bim", icon: "🏗️", label: "BIM" },
   { id: "material", icon: "🎨", label: "マテリアル" },

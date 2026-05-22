@@ -3,6 +3,7 @@ import { useAuthStore } from "@/state/authStore";
 
 import ProjectPanel from "@/features/project/ProjectPanel";
 import ModelPanel from "@/features/model/ModelPanel";
+import PropertiesPanel from "@/features/properties/PropertiesPanel";
 import LayerPanel from "@/features/layer/LayerPanel";
 import MaterialPanel from "@/features/material/MaterialPanel";
 import AIPanel from "@/features/ai/AIPanel";
@@ -21,6 +22,7 @@ import AdminPanel from "@/features/admin/AdminPanel";
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
   model: "モデル",
+  properties: "プロパティ",
   layer: "レイヤー",
   bim: "BIM",
   material: "マテリアル",
@@ -53,6 +55,8 @@ export default function RightPanel() {
         );
       case "model":
         return <ModelPanel />;
+      case "properties":
+        return <PropertiesPanel />;
       case "layer":
         return <LayerPanel />;
       case "bim":
