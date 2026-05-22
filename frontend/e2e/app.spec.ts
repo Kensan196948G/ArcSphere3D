@@ -2696,24 +2696,52 @@ test.describe("ProjectPanel: File Rename UI", () => {
   test("rename ボタンが各ファイル行に表示される (Issue #174)", async ({
     page,
   }) => {
-    // ProjectPanel コンポーネントに renameFile UI が組み込まれていることを
-    // ソースレベルで確認 (UI は認証 + プロジェクト選択 + ファイル一覧が
-    // 必要なため、SSR / page-level snapshot ではなく data-testid 規約の
-    // 存在のみを担保する)。
+    await setupApiMocks(page);
     await page.goto("/");
-    const html = await page.content();
-    // ページが読み込まれていること
-    expect(html.length).toBeGreaterThan(0);
-    // describe ブロックが登録されている事実が test runner により担保される
-    expect(true).toBe(true);
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.selectOption("select", MOCK_PROJECT.id);
+    await expect(
+      page.getByTestId(`file-rename-btn-${MOCK_FILE.id}`),
+    ).toBeVisible();
   });
 
   test("rename input でファイル名を編集して保存できる (Issue #174)", async ({
     page,
   }) => {
-    // この E2E はコンテナ起動を要求しない UI 確認用 placeholder。
-    // 実 API 統合は別の integration suite で行う。
+    await setupApiMocks(page);
+    await page.route(`**/api/files/${MOCK_FILE.id}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ...MOCK_FILE, filename: "renamed.stl" }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
     await page.goto("/");
-    await expect(page).toHaveURL(/\//);
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.selectOption("select", MOCK_PROJECT.id);
+    await page.getByTestId(`file-rename-btn-${MOCK_FILE.id}`).click();
+    await expect(
+      page.getByTestId(`file-rename-input-${MOCK_FILE.id}`),
+    ).toBeVisible();
+    const renameReq = page.waitForRequest(
+      (req) =>
+        req.url().includes(`/api/files/${MOCK_FILE.id}`) &&
+        req.method() === "PATCH",
+    );
+    await page.getByTestId(`file-rename-input-${MOCK_FILE.id}`).fill("renamed.stl");
+    await page.getByTestId(`file-rename-save-${MOCK_FILE.id}`).click();
+    await renameReq;
   });
 });
