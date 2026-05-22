@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { useViewportStore } from "@/state/viewportStore";
 import type { CameraPreset } from "@/state/viewportStore";
-import { getRendererDomElement } from "@/lib/threeContext";
+import { getActiveScene, getRendererDomElement } from "@/lib/threeContext";
+import { useSceneStore } from "@/state/sceneStore";
 
 interface ToolBtnProps {
   label: string;
@@ -49,6 +51,30 @@ const SHORTCUTS = [
   { key: "Ctrl+Y", desc: "やり直す（Redo）" },
 ];
 
+function exportSceneAsGLB() {
+  const scene = getActiveScene();
+  if (!scene) return;
+  const exporter = new GLTFExporter();
+  exporter.parse(
+    scene,
+    (result) => {
+      const blob = new Blob([result as ArrayBuffer], {
+        type: "model/gltf-binary",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `arcsphere3d-${Date.now()}.glb`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    (err) => {
+      console.error("[GLTF export]", err);
+    },
+    { binary: true },
+  );
+}
+
 export default function ViewportToolbar() {
   const {
     showGrid,
@@ -65,6 +91,7 @@ export default function ViewportToolbar() {
     setCameraPreset,
   } = useViewportStore();
 
+  const hasObjects = useSceneStore((s) => s.objects.length > 0);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const shortcutsRef = useRef<HTMLDivElement>(null);
 
@@ -137,6 +164,16 @@ export default function ViewportToolbar() {
           a.click();
         }}
       />
+      <button
+        type="button"
+        title="シーンを GLTF (.glb) でエクスポート"
+        data-testid="export-gltf-btn"
+        disabled={!hasObjects}
+        onClick={exportSceneAsGLB}
+        className="rounded px-2 py-1 text-xs font-medium transition bg-slate-800/70 text-slate-300 hover:bg-slate-700/80 dark:bg-slate-800/70 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        📥 GLB
+      </button>
 
       <div className="mx-1 h-4 w-px bg-slate-600" />
 
