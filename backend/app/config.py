@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="ArcSphere3D")
     app_version: str = Field(default="0.1.0")
 
-    cors_origins: str = Field(default="http://localhost:5173")
+    cors_origins: str = Field(default="http://localhost:5173,http://localhost")
 
     database_url: str = Field(
         default="postgresql+psycopg://arc:arc@localhost:5432/arcsphere3d",
