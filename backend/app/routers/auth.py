@@ -7,6 +7,7 @@ during the MVP phase and will be removed when the user admin UI ships.
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -130,8 +131,6 @@ async def login(request: Request, payload: LoginRequest, db: DbDep) -> TokenResp
 async def refresh(db: DbDep, current: CurrentUser = CurrentUserDep) -> TokenResponse:
     # current.sub is a UUID string (Issue #180). Reject malformed subs as 401
     # — they can only come from a tampered token or a pre-migration JWT.
-    from uuid import UUID
-
     try:
         user_id = UUID(current.sub)
     except ValueError as exc:
@@ -187,8 +186,6 @@ async def change_password(
     current: CurrentUser = CurrentUserDep,
 ) -> None:
     """Change the authenticated user's password after verifying the current one."""
-    from uuid import UUID
-
     try:
         user_id = UUID(current.sub)
     except ValueError as exc:
