@@ -539,6 +539,21 @@ export async function getAdminStats(token: string): Promise<AdminStats> {
   return handleResponse<AdminStats>(res);
 }
 
+// ---- Admin: Role Update ---------------------------------------------------
+
+export async function updateUserRole(
+  token: string,
+  userId: string,
+  role: "viewer" | "editor" | "admin",
+): Promise<UserOut> {
+  const res = await fetch(`${BASE}/admin/users/${userId}/role`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  return handleResponse<UserOut>(res);
+}
+
 // ---- Admin: Password Reset ------------------------------------------------
 
 export async function resetAdminUserPassword(
