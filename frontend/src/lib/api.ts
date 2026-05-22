@@ -123,6 +123,19 @@ export async function deleteFile(token: string, fileId: string): Promise<void> {
   }
 }
 
+export async function renameFile(
+  token: string,
+  fileId: string,
+  name: string,
+): Promise<FileMetadata> {
+  const res = await fetch(`${BASE}/files/${fileId}`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: name }),
+  });
+  return handleResponse<FileMetadata>(res);
+}
+
 export async function getDownloadUrl(
   token: string,
   projectId: string,
