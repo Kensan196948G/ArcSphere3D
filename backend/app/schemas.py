@@ -3,15 +3,30 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+# Password constraints: bcrypt rejects inputs > 72 bytes (security.py raises ValueError
+# rather than silently truncating, since two distinct passwords sharing the same 72-byte
+# prefix would otherwise authenticate interchangeably). Restricting to printable ASCII
+# guarantees char length == byte length, so max_length=72 in the OpenAPI schema is a
+# tight, honest upper bound that downstream tooling (schemathesis/Hypothesis) can honor.
+NewPassword = Annotated[
+    str,
+    Field(min_length=8, max_length=72, pattern=r"^[\x20-\x7E]+$"),
+]
+ExistingPassword = Annotated[
+    str,
+    Field(min_length=1, max_length=72, pattern=r"^[\x20-\x7E]+$"),
+]
 
 
 # ---- Auth ----
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=256)
+    password: ExistingPassword
 
 
 class TokenResponse(BaseModel):
@@ -28,17 +43,17 @@ class CurrentUser(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=256)
+    password: NewPassword
     role: str = Field(default="viewer", pattern="^(admin|editor|viewer)$")
 
 
 class PasswordChangeRequest(BaseModel):
-    current_password: str = Field(min_length=1, max_length=256)
-    new_password: str = Field(min_length=8, max_length=256)
+    current_password: ExistingPassword
+    new_password: NewPassword
 
 
 class AdminPasswordReset(BaseModel):
-    new_password: str = Field(min_length=8, max_length=256)
+    new_password: NewPassword
 
 
 class UserOut(BaseModel):
