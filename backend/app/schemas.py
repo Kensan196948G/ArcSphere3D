@@ -76,15 +76,18 @@ _NO_NUL_PATTERN = r"^[^\x00]+$"
 # ---- Projects ----
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
+    description: str | None = Field(default=None, max_length=500, pattern=_NO_NUL_PATTERN)
 
 
 class ProjectUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
+    description: str | None = Field(default=None, max_length=500, pattern=_NO_NUL_PATTERN)
 
 
 class ProjectOut(BaseModel):
     id: UUID
     name: str
+    description: str | None = None
     owner_id: UUID
     created_at: datetime
 

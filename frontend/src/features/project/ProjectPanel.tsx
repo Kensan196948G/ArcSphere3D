@@ -25,9 +25,11 @@ export default function ProjectPanel() {
   const log = useSceneStore((s) => s.log);
 
   const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDesc, setNewProjectDesc] = useState("");
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState("");
+  const [renameDescInput, setRenameDescInput] = useState("");
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
@@ -64,8 +66,9 @@ export default function ProjectPanel() {
     e.preventDefault();
     if (!newProjectName.trim()) return;
     setCreating(true);
-    await createProject(token, newProjectName.trim());
+    await createProject(token, newProjectName.trim(), newProjectDesc.trim() || undefined);
     setNewProjectName("");
+    setNewProjectDesc("");
     setCreating(false);
   }
 
@@ -114,9 +117,10 @@ export default function ProjectPanel() {
   async function handleRenameProject(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedProjectId || !renameInput.trim()) return;
-    await renameProject(token, selectedProjectId, renameInput.trim());
+    await renameProject(token, selectedProjectId, renameInput.trim(), renameDescInput || null);
     setRenaming(false);
     setRenameInput("");
+    setRenameDescInput("");
     log(`[project] プロジェクト名を変更しました`);
   }
 
@@ -203,6 +207,14 @@ export default function ProjectPanel() {
             <span title="メンバー数">👥 {stats.member_count}</span>
           </div>
         )}
+        {selectedProjectId && (() => {
+          const p = projects.find((x) => x.id === selectedProjectId);
+          return p?.description ? (
+            <p className="mt-1 text-[10px] italic text-slate-400 dark:text-slate-500">
+              {p.description}
+            </p>
+          ) : null;
+        })()}
         {selectedProjectId && !renaming && (
           <div className="mt-1 flex gap-1">
             <button
@@ -210,6 +222,7 @@ export default function ProjectPanel() {
               onClick={() => {
                 const p = projects.find((x) => x.id === selectedProjectId);
                 setRenameInput(p?.name ?? "");
+                setRenameDescInput(p?.description ?? "");
                 setRenaming(true);
               }}
               data-testid="project-rename-btn"
@@ -230,51 +243,71 @@ export default function ProjectPanel() {
         {selectedProjectId && renaming && (
           <form
             onSubmit={(e) => void handleRenameProject(e)}
-            className="mt-1 flex gap-1"
+            className="mt-1 flex flex-col gap-1"
           >
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                autoFocus
+                data-testid="project-rename-input"
+                className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+              />
+              <button
+                type="submit"
+                disabled={!renameInput.trim()}
+                data-testid="project-rename-save"
+                className="rounded bg-arc-accent/70 px-2 py-0.5 text-[10px] text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={() => setRenaming(false)}
+                className="rounded border border-slate-300 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600"
+              >
+                取消
+              </button>
+            </div>
             <input
               type="text"
-              value={renameInput}
-              onChange={(e) => setRenameInput(e.target.value)}
-              autoFocus
-              data-testid="project-rename-input"
-              className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+              value={renameDescInput}
+              onChange={(e) => setRenameDescInput(e.target.value)}
+              placeholder="説明（任意）"
+              maxLength={500}
+              className="rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-400"
             />
-            <button
-              type="submit"
-              disabled={!renameInput.trim()}
-              data-testid="project-rename-save"
-              className="rounded bg-arc-accent/70 px-2 py-0.5 text-[10px] text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
-            >
-              保存
-            </button>
-            <button
-              type="button"
-              onClick={() => setRenaming(false)}
-              className="rounded border border-slate-300 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600"
-            >
-              取消
-            </button>
           </form>
         )}
       </div>
 
       {/* プロジェクト作成 */}
-      <form onSubmit={handleCreateProject} className="flex gap-1">
+      <form onSubmit={handleCreateProject} className="flex flex-col gap-1">
+        <div className="flex gap-1">
+          <input
+            type="text"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            placeholder="新しいプロジェクト名"
+            className="flex-1 rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+          />
+          <button
+            type="submit"
+            disabled={creating || !newProjectName.trim()}
+            className="rounded bg-arc-accent/70 px-2 py-1 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+          >
+            +
+          </button>
+        </div>
         <input
           type="text"
-          value={newProjectName}
-          onChange={(e) => setNewProjectName(e.target.value)}
-          placeholder="新しいプロジェクト名"
-          className="flex-1 rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+          value={newProjectDesc}
+          onChange={(e) => setNewProjectDesc(e.target.value)}
+          placeholder="説明（任意）"
+          maxLength={500}
+          className="rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-400"
         />
-        <button
-          type="submit"
-          disabled={creating || !newProjectName.trim()}
-          className="rounded bg-arc-accent/70 px-2 py-1 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
-        >
-          +
-        </button>
       </form>
 
       {error && <p className="text-rose-500 dark:text-rose-400">{error}</p>}
