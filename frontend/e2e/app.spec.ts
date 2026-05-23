@@ -2689,3 +2689,59 @@ test.describe("PropertiesPanel", () => {
     ).toBeVisible();
   });
 });
+
+// ---- File Rename UI (Issue #174) ---------------------------------------------
+
+test.describe("ProjectPanel: File Rename UI", () => {
+  test("rename ボタンが各ファイル行に表示される (Issue #174)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.selectOption("select", MOCK_PROJECT.id);
+    await expect(
+      page.getByTestId(`file-rename-btn-${MOCK_FILE.id}`),
+    ).toBeVisible();
+  });
+
+  test("rename input でファイル名を編集して保存できる (Issue #174)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.route(`**/api/files/${MOCK_FILE.id}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ...MOCK_FILE, filename: "renamed.stl" }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.selectOption("select", MOCK_PROJECT.id);
+    await page.getByTestId(`file-rename-btn-${MOCK_FILE.id}`).click();
+    await expect(
+      page.getByTestId(`file-rename-input-${MOCK_FILE.id}`),
+    ).toBeVisible();
+    const renameReq = page.waitForRequest(
+      (req) =>
+        req.url().includes(`/api/files/${MOCK_FILE.id}`) &&
+        req.method() === "PATCH",
+    );
+    await page.getByTestId(`file-rename-input-${MOCK_FILE.id}`).fill("renamed.stl");
+    await page.getByTestId(`file-rename-save-${MOCK_FILE.id}`).click();
+    await renameReq;
+  });
+});

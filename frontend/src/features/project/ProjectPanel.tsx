@@ -4,7 +4,8 @@ import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
 import MultipartUploader from "@/features/viewport/MultipartUploader";
-import { getProjectStats, type ProjectStats } from "@/lib/api";
+import { getProjectStats, renameFile, type ProjectStats } from "@/lib/api";
+import { notifyError, notifySuccess } from "@/state/notificationStore";
 
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
@@ -27,6 +28,8 @@ export default function ProjectPanel() {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState("");
+  const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
+  const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +115,34 @@ export default function ProjectPanel() {
       return;
     await deleteProject(token, selectedProjectId);
     log(`[project] プロジェクトを削除しました`);
+  }
+
+  function startRenameFile(fileId: string, currentName: string) {
+    setRenamingFileId(fileId);
+    setRenameFileInput(currentName);
+  }
+
+  function cancelRenameFile() {
+    setRenamingFileId(null);
+    setRenameFileInput("");
+  }
+
+  async function handleRenameFile(fileId: string) {
+    const newName = renameFileInput.trim();
+    if (!newName) return;
+    try {
+      await renameFile(token, fileId, newName);
+      notifySuccess("ファイル名を変更しました");
+      setRenamingFileId(null);
+      setRenameFileInput("");
+      if (selectedProjectId) {
+        await useProjectStore
+          .getState()
+          .selectProject(token, selectedProjectId);
+      }
+    } catch (e) {
+      notifyError(e instanceof Error ? e.message : String(e));
+    }
   }
 
   return (
@@ -264,34 +295,93 @@ export default function ProjectPanel() {
             </p>
           ) : (
             <ul className="space-y-1">
-              {files.map((f) => (
-                <li
-                  key={f.id}
-                  className="flex items-center justify-between rounded bg-slate-100/80 px-2 py-1 dark:bg-slate-800/60"
-                >
-                  <span className="flex-1 truncate text-slate-600 dark:text-slate-300">
-                    {f.filename}
-                  </span>
-                  <div className="ml-2 flex shrink-0 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleOpen(f.id, f.filename)}
-                      className="rounded px-1.5 py-0.5 text-arc-accent hover:bg-arc-accent/20"
-                      title="3D ビューアで開く"
-                    >
-                      3D
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(f.id, f.filename)}
-                      className="rounded px-1.5 py-0.5 text-rose-500 hover:bg-rose-400/20 dark:text-rose-400"
-                      title="ファイルを削除"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
-              ))}
+              {files.map((f) => {
+                const isRenaming = renamingFileId === f.id;
+                return (
+                  <li
+                    key={f.id}
+                    className="flex items-center justify-between rounded bg-slate-100/80 px-2 py-1 dark:bg-slate-800/60"
+                  >
+                    {isRenaming ? (
+                      <input
+                        type="text"
+                        value={renameFileInput}
+                        onChange={(e) => setRenameFileInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            if (e.nativeEvent.isComposing) return;
+                            e.preventDefault();
+                            void handleRenameFile(f.id);
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelRenameFile();
+                          }
+                        }}
+                        autoFocus
+                        data-testid={`file-rename-input-${f.id}`}
+                        className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+                      />
+                    ) : (
+                      <span className="flex-1 truncate text-slate-600 dark:text-slate-300">
+                        {f.filename}
+                      </span>
+                    )}
+                    <div className="ml-2 flex shrink-0 gap-1">
+                      {isRenaming ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void handleRenameFile(f.id)}
+                            disabled={!renameFileInput.trim()}
+                            data-testid={`file-rename-save-${f.id}`}
+                            className="rounded bg-arc-accent/70 px-1.5 py-0.5 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+                            title="ファイル名を保存"
+                          >
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelRenameFile}
+                            data-testid={`file-rename-cancel-${f.id}`}
+                            className="rounded border border-slate-300 px-1.5 py-0.5 text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                            title="キャンセル"
+                          >
+                            取消
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpen(f.id, f.filename)}
+                            className="rounded px-1.5 py-0.5 text-arc-accent hover:bg-arc-accent/20"
+                            title="3D ビューアで開く"
+                          >
+                            3D
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(f.id, f.filename)}
+                            className="rounded px-1.5 py-0.5 text-rose-500 hover:bg-rose-400/20 dark:text-rose-400"
+                            title="ファイルを削除"
+                          >
+                            ✕
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startRenameFile(f.id, f.filename)}
+                            data-testid={`file-rename-btn-${f.id}`}
+                            className="rounded px-1.5 py-0.5 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+                            title="ファイル名を変更"
+                          >
+                            ✏️
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
