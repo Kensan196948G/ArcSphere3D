@@ -105,17 +105,38 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 75  | 📤 シーン GLTF (.glb) エクスポート — ViewportToolbar (Issue #175)                  | ✅ Done        |
 | 76  | 🎛️ オブジェクトプロパティパネル — 位置/回転/拡縮の数値入力 (Issue #176)           | ✅ Done        |
 | 77  | 📚 README 大幅刷新 — 表・アイコン・Mermaid ダイアグラム (Issue #168)               | ✅ Done        |
-| 78  | 🔑 JWT subject に immutable user.id を使う (Issue #180, CodeRabbit 提案)          | 🚧 WIP         |
-| 79  | 🖱️ ProjectPanel ファイルリネーム UI (Issue #174)                                  | 🚧 WIP         |
-| 80  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 81  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
-| 82  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 78  | 🔑 JWT subject に immutable user.id を使う (Issue #180, PR #183)                  | ✅ Done        |
+| 79  | 🖱️ ProjectPanel ファイルリネーム UI (Issue #174, PR #182)                         | ✅ Done        |
+| 80  | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188, PR #190)                 | ✅ Done        |
+| 81  | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189, PR #190)                  | ✅ Done        |
+| 82  | 🔍 ProjectPanel プロジェクト検索フィルター                                        | ✅ Done        |
+| 83  | 📏 ファイルサイズ表示 (B/KB/MB)                                                   | ✅ Done        |
+| 84  | 🔍 AdminUsersPanel ユーザー検索フィルター                                          | ✅ Done        |
+| 85  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 86  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
+| 87  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
 > 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
 
 ---
 
-## 🆕 直近のリリース (Session 2026-05-22)
+## 🆕 直近のリリース (Session 2026-05-23)
+
+| PR    | コミット   | 内容                                                                           | 種別        |
+| ----- | ---------- | ------------------------------------------------------------------------------ | ----------- |
+| #182  | `0916857`  | 🖱️ ProjectPanel ファイルリネーム UI — inline 編集 (Issue #174)                 | 🖼️ UI       |
+| #183  | `e5f4068`  | 🔑 JWT subject = immutable user.id UUID (Issue #180, セキュリティ強化)         | 🛡️ Security |
+| #184  | `13a0dab`  | 📦 minor/patch deps bump (frontend)                                            | 🔧 Chore    |
+| #190  | WIP        | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188)                       | 🖼️ UI       |
+| #190  | WIP        | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189)                        | 🖼️ UI       |
+| —     | `a250716`  | 🔍 ProjectPanel プロジェクト検索フィルター + 📏 ファイルサイズ表示             | 🖼️ UI       |
+| —     | `61cd225`  | 🔍 AdminUsersPanel ユーザー検索フィルター                                      | 🖼️ UI       |
+
+> 🛡️ **Security ハイライト (PR #183)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。email 変更後も既存トークンが有効になり、audit log の追跡性が向上。`refresh` エンドポイントも DB から user.id で再取得するよう更新。
+
+---
+
+### 📋 過去のリリース (Session 2026-05-22)
 
 | PR    | コミット   | 内容                                                                | 種別        |
 | ----- | ---------- | ------------------------------------------------------------------- | ----------- |
@@ -124,12 +145,8 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | #170  | `69d6cd1`  | 🎛️ AdminUsersPanel ロール変更・パスワードリセット UI (Issue #164)   | 🖼️ UI       |
 | #171  | `7593b95`  | 🐳 docker-compose にフロントエンド nginx サービスを追加 (Issue #167) | 🛠️ Infra    |
 | #172  | `da0c91b`  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165, 対抗レビュー)   | 🛡️ Security |
-| #173  | `342fad7`  | 📚 README 大幅刷新 — 表・アイコン・Mermaid ダイアグラム (Issue #168) | 📝 Docs     |
 | #177  | `e9ceb76`  | 📤 シーン GLTF (.glb) エクスポートボタン (Issue #175)               | ⚙️ Feature  |
 | #178  | `40142e6`  | 🎛️ オブジェクトプロパティパネル — 位置/回転/拡縮 (Issue #176)       | 🖼️ UI       |
-| #179  | `21efd80`  | 🔑 パスワード制約を bcrypt 72-byte 上限と整合                       | 🛡️ Security |
-
-> 🛡️ **Security ハイライト**: PR #172 では JWT リフレッシュ時に DB から最新ロールを再取得し、降格直後の管理者権限残存を防止 (Codex 対抗レビュー実施)。フォローアップとして Issue #180 で JWT subject を immutable な `user.id` に切り替えることを計画。
 
 ---
 
