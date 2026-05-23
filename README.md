@@ -112,9 +112,12 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 82  | 🔍 ProjectPanel プロジェクト検索フィルター                                        | ✅ Done        |
 | 83  | 📏 ファイルサイズ表示 (B/KB/MB)                                                   | ✅ Done        |
 | 84  | 🔍 AdminUsersPanel ユーザー検索フィルター                                          | ✅ Done        |
-| 85  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 86  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
-| 87  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 85  | 📝 プロジェクト説明フィールド (description) — DB migration 0009 (PR #190)         | ✅ Done        |
+| 86  | 👁️ 監査ログ アクター email 表示 — AuditLogPanel にユーザー列 (Issue #191, PR #193) | ✅ Done        |
+| 87  | 🧪 project description バックエンドテスト 7件 (Issue #192, PR #193)               | ✅ Done        |
+| 88  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 89  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
+| 90  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
 > 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
 
@@ -122,17 +125,16 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 
 ## 🆕 直近のリリース (Session 2026-05-23)
 
-| PR    | コミット   | 内容                                                                           | 種別        |
-| ----- | ---------- | ------------------------------------------------------------------------------ | ----------- |
-| #182  | `0916857`  | 🖱️ ProjectPanel ファイルリネーム UI — inline 編集 (Issue #174)                 | 🖼️ UI       |
-| #183  | `e5f4068`  | 🔑 JWT subject = immutable user.id UUID (Issue #180, セキュリティ強化)         | 🛡️ Security |
-| #184  | `13a0dab`  | 📦 minor/patch deps bump (frontend)                                            | 🔧 Chore    |
-| #190  | WIP        | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188)                       | 🖼️ UI       |
-| #190  | WIP        | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189)                        | 🖼️ UI       |
-| —     | `a250716`  | 🔍 ProjectPanel プロジェクト検索フィルター + 📏 ファイルサイズ表示             | 🖼️ UI       |
-| —     | `61cd225`  | 🔍 AdminUsersPanel ユーザー検索フィルター                                      | 🖼️ UI       |
+| PR    | コミット   | 内容                                                                              | 種別        |
+| ----- | ---------- | --------------------------------------------------------------------------------- | ----------- |
+| #190  | `ca68bf6`  | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188)                          | 🖼️ UI       |
+| #190  | `ca68bf6`  | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189)                           | 🖼️ UI       |
+| #190  | `ca68bf6`  | 🔍 ProjectPanel プロジェクト検索フィルター + 📏 ファイルサイズ表示               | 🖼️ UI       |
+| #190  | `ca68bf6`  | 📝 プロジェクト説明フィールド (description) — migration 0009                     | ⚙️ Feature  |
+| #193  | `e269a03`  | 👁️ 監査ログ actor_email 追加 — 誰がいつ何をしたか可視化 (Issue #191)             | ⚙️ Feature  |
+| #193  | `e269a03`  | 🧪 project description バックエンドテスト 7件 (Issue #192)                       | 🧪 Test     |
 
-> 🛡️ **Security ハイライト (PR #183)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。email 変更後も既存トークンが有効になり、audit log の追跡性が向上。`refresh` エンドポイントも DB から user.id で再取得するよう更新。
+> 🛡️ **Security ハイライト (PR #183, 2026-05-23)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。`refresh` エンドポイントも DB から再取得するよう更新。
 
 ---
 
