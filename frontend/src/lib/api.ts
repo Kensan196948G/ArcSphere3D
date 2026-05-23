@@ -585,6 +585,26 @@ export async function resetAdminUserPassword(
   }
 }
 
+// ---- Admin: Create User ---------------------------------------------------
+
+export interface UserCreateRequest {
+  email: string;
+  password: string;
+  role: "viewer" | "editor" | "admin";
+}
+
+export async function createAdminUser(
+  token: string,
+  data: UserCreateRequest,
+): Promise<UserOut> {
+  const res = await fetch(`${BASE}/admin/users`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<UserOut>(res);
+}
+
 // ---- Project stats --------------------------------------------------------
 
 export interface ProjectStats {

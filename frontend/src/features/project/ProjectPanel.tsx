@@ -95,6 +95,15 @@ export default function ProjectPanel() {
     log(`[project] ${filename} を削除`);
   }
 
+  async function handleDownload(fileId: string, filename: string) {
+    const result = await getDownloadUrl(token, fileId);
+    if (!result) return;
+    const a = document.createElement("a");
+    a.href = result.url;
+    a.download = filename;
+    a.click();
+  }
+
   async function handleRenameProject(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedProjectId || !renameInput.trim()) return;
@@ -361,11 +370,12 @@ export default function ProjectPanel() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(f.id, f.filename)}
-                            className="rounded px-1.5 py-0.5 text-rose-500 hover:bg-rose-400/20 dark:text-rose-400"
-                            title="ファイルを削除"
+                            onClick={() => void handleDownload(f.id, f.filename)}
+                            data-testid={`file-download-btn-${f.id}`}
+                            className="rounded px-1.5 py-0.5 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+                            title="ファイルをダウンロード"
                           >
-                            ✕
+                            ⬇
                           </button>
                           <button
                             type="button"
@@ -375,6 +385,14 @@ export default function ProjectPanel() {
                             title="ファイル名を変更"
                           >
                             ✏️
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(f.id, f.filename)}
+                            className="rounded px-1.5 py-0.5 text-rose-500 hover:bg-rose-400/20 dark:text-rose-400"
+                            title="ファイルを削除"
+                          >
+                            ✕
                           </button>
                         </>
                       )}
