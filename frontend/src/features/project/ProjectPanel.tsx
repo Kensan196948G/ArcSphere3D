@@ -31,7 +31,14 @@ export default function ProjectPanel() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
+  const [projectFilter, setProjectFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredProjects = projectFilter.trim()
+    ? projects.filter((p) =>
+        p.name.toLowerCase().includes(projectFilter.trim().toLowerCase()),
+      )
+    : projects;
 
   useEffect(() => {
     fetchProjects(token);
@@ -161,6 +168,16 @@ export default function ProjectPanel() {
         <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           プロジェクト
         </label>
+        {projects.length > 4 && (
+          <input
+            type="search"
+            placeholder="🔍 プロジェクトを検索…"
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            data-testid="project-filter-input"
+            className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+          />
+        )}
         <select
           value={selectedProjectId ?? ""}
           onChange={(e) => handleSelectProject(e.target.value)}
@@ -169,7 +186,7 @@ export default function ProjectPanel() {
           <option value="" disabled>
             — プロジェクトを選択 —
           </option>
-          {projects.map((p) => (
+          {filteredProjects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
@@ -331,9 +348,18 @@ export default function ProjectPanel() {
                         className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
                       />
                     ) : (
-                      <span className="flex-1 truncate text-slate-600 dark:text-slate-300">
-                        {f.filename}
-                      </span>
+                      <div className="flex flex-1 flex-col overflow-hidden">
+                        <span className="truncate text-slate-600 dark:text-slate-300">
+                          {f.filename}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500">
+                          {f.size_bytes < 1024
+                            ? `${f.size_bytes} B`
+                            : f.size_bytes < 1024 * 1024
+                              ? `${(f.size_bytes / 1024).toFixed(1)} KB`
+                              : `${(f.size_bytes / (1024 * 1024)).toFixed(1)} MB`}
+                        </span>
+                      </div>
                     )}
                     <div className="ml-2 flex shrink-0 gap-1">
                       {isRenaming ? (
