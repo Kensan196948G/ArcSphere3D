@@ -115,9 +115,10 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 85  | 📝 プロジェクト説明フィールド (description) — DB migration 0009 (PR #190)         | ✅ Done        |
 | 86  | 👁️ 監査ログ アクター email 表示 — AuditLogPanel にユーザー列 (Issue #191, PR #193) | ✅ Done        |
 | 87  | 🧪 project description バックエンドテスト 7件 (Issue #192, PR #193)               | ✅ Done        |
-| 88  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 89  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
-| 90  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 88  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195, PR #196)                 | ✅ Done        |
+| 89  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 90  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
+| 91  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
 > 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
 
@@ -131,8 +132,10 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | #190  | `ca68bf6`  | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189)                           | 🖼️ UI       |
 | #190  | `ca68bf6`  | 🔍 ProjectPanel プロジェクト検索フィルター + 📏 ファイルサイズ表示               | 🖼️ UI       |
 | #190  | `ca68bf6`  | 📝 プロジェクト説明フィールド (description) — migration 0009                     | ⚙️ Feature  |
-| #193  | `e269a03`  | 👁️ 監査ログ actor_email 追加 — 誰がいつ何をしたか可視化 (Issue #191)             | ⚙️ Feature  |
-| #193  | `e269a03`  | 🧪 project description バックエンドテスト 7件 (Issue #192)                       | 🧪 Test     |
+| #193  | `40ba6f2`  | 👁️ 監査ログ actor_email 追加 — 誰がいつ何をしたか可視化 (Issue #191)             | ⚙️ Feature  |
+| #193  | `40ba6f2`  | 🧪 project description バックエンドテスト 7件 (Issue #192)                       | 🧪 Test     |
+| #193  | `40ba6f2`  | 🔷 ファイルタイプアイコン + Toast通知 + ファイル検索フィルター (Issue #194)       | 🖼️ UI       |
+| #196  | `4b50cb8`  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195)                          | 🛡️ Security |
 
 > 🛡️ **Security ハイライト (PR #183, 2026-05-23)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。`refresh` エンドポイントも DB から再取得するよう更新。
 
