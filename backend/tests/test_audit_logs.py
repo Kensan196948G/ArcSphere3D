@@ -117,3 +117,17 @@ def test_audit_logs_filter_by_action() -> None:
     assert res.status_code == 200
     for log in res.json():
         assert log["action"] == "login_success"
+
+
+def test_audit_logs_include_actor_email() -> None:
+    token = _admin_token()
+    res = client.get(
+        "/api/admin/audit-logs?action=login_success",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    logs = res.json()
+    assert len(logs) > 0
+    assert "actor_email" in logs[0]
+    emails = [log["actor_email"] for log in logs if log["actor_email"] is not None]
+    assert any("arcsphere3d.dev" in e for e in emails)

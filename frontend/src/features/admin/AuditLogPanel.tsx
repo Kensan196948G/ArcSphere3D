@@ -117,6 +117,7 @@ export default function AuditLogPanel() {
             <thead>
               <tr className="text-left text-slate-500 dark:text-slate-400">
                 <th className="pb-1 pr-2 font-semibold">日時</th>
+                <th className="pb-1 pr-2 font-semibold">ユーザー</th>
                 <th className="pb-1 pr-2 font-semibold">アクション</th>
                 <th className="pb-1 pr-2 font-semibold">リソース</th>
                 <th className="pb-1 pr-2 font-semibold">IP</th>
@@ -135,6 +136,9 @@ export default function AuditLogPanel() {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
+                  </td>
+                  <td className="max-w-[8rem] truncate py-0.5 pr-2 text-slate-600 dark:text-slate-300">
+                    {log.actor_email ?? "—"}
                   </td>
                   <td className="py-0.5 pr-2">
                     <span

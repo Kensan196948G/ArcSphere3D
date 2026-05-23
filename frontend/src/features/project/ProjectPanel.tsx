@@ -7,6 +7,25 @@ import MultipartUploader from "@/features/viewport/MultipartUploader";
 import { getProjectStats, renameFile, type ProjectStats } from "@/lib/api";
 import { notifyError, notifySuccess } from "@/state/notificationStore";
 
+const FILE_ICONS: Record<string, string> = {
+  stl: "🔷",
+  obj: "🟦",
+  gltf: "🟩",
+  glb: "🟩",
+  ifc: "🏗️",
+  step: "⚙️",
+  stp: "⚙️",
+  iges: "⚙️",
+  igs: "⚙️",
+  las: "☁️",
+  laz: "☁️",
+};
+
+function fileIcon(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  return FILE_ICONS[ext] ?? "📄";
+}
+
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
   const { projects, selectedProjectId, files, loading, error } =
@@ -34,6 +53,7 @@ export default function ProjectPanel() {
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [projectFilter, setProjectFilter] = useState("");
+  const [fileFilter, setFileFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProjects = projectFilter.trim()
@@ -41,6 +61,12 @@ export default function ProjectPanel() {
         p.name.toLowerCase().includes(projectFilter.trim().toLowerCase()),
       )
     : projects;
+
+  const filteredFiles = fileFilter.trim()
+    ? files.filter((f) =>
+        f.filename.toLowerCase().includes(fileFilter.trim().toLowerCase()),
+      )
+    : files;
 
   useEffect(() => {
     fetchProjects(token);
@@ -67,8 +93,14 @@ export default function ProjectPanel() {
     if (!newProjectName.trim()) return;
     setCreating(true);
     await createProject(token, newProjectName.trim(), newProjectDesc.trim() || undefined);
-    setNewProjectName("");
-    setNewProjectDesc("");
+    const { error: storeErr } = useProjectStore.getState();
+    if (storeErr) {
+      notifyError(storeErr);
+    } else {
+      notifySuccess(`プロジェクト「${newProjectName.trim()}」を作成しました`);
+      setNewProjectName("");
+      setNewProjectDesc("");
+    }
     setCreating(false);
   }
 
@@ -118,10 +150,16 @@ export default function ProjectPanel() {
     e.preventDefault();
     if (!selectedProjectId || !renameInput.trim()) return;
     await renameProject(token, selectedProjectId, renameInput.trim(), renameDescInput || null);
-    setRenaming(false);
-    setRenameInput("");
-    setRenameDescInput("");
-    log(`[project] プロジェクト名を変更しました`);
+    const { error: storeErr } = useProjectStore.getState();
+    if (storeErr) {
+      notifyError(storeErr);
+    } else {
+      notifySuccess("プロジェクト名を変更しました");
+      setRenaming(false);
+      setRenameInput("");
+      setRenameDescInput("");
+      log(`[project] プロジェクト名を変更しました`);
+    }
   }
 
   async function handleDeleteProject() {
@@ -133,8 +171,15 @@ export default function ProjectPanel() {
       )
     )
       return;
+    const name = project?.name ?? selectedProjectId;
     await deleteProject(token, selectedProjectId);
-    log(`[project] プロジェクトを削除しました`);
+    const { error: storeErr } = useProjectStore.getState();
+    if (storeErr) {
+      notifyError(storeErr);
+    } else {
+      notifySuccess(`プロジェクト「${name}」を削除しました`);
+      log(`[project] プロジェクトを削除しました`);
+    }
   }
 
   function startRenameFile(fileId: string, currentName: string) {
@@ -348,13 +393,24 @@ export default function ProjectPanel() {
             <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
           )}
 
+          {files.length > 10 && (
+            <input
+              type="search"
+              placeholder="🔍 ファイルを検索…"
+              value={fileFilter}
+              onChange={(e) => setFileFilter(e.target.value)}
+              data-testid="file-filter-input"
+              className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+            />
+          )}
+
           {files.length === 0 && !loading ? (
             <p className="text-slate-400 dark:text-slate-500">
               ファイルなし — モデルをアップロードしてください。
             </p>
           ) : (
             <ul className="space-y-1">
-              {files.map((f) => {
+              {filteredFiles.map((f) => {
                 const isRenaming = renamingFileId === f.id;
                 return (
                   <li
@@ -381,17 +437,22 @@ export default function ProjectPanel() {
                         className="flex-1 rounded bg-slate-100 px-2 py-0.5 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
                       />
                     ) : (
-                      <div className="flex flex-1 flex-col overflow-hidden">
-                        <span className="truncate text-slate-600 dark:text-slate-300">
-                          {f.filename}
+                      <div className="flex flex-1 items-center gap-1.5 overflow-hidden">
+                        <span className="shrink-0 text-sm" title={f.filename.split(".").pop()?.toUpperCase()}>
+                          {fileIcon(f.filename)}
                         </span>
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500">
-                          {f.size_bytes < 1024
-                            ? `${f.size_bytes} B`
-                            : f.size_bytes < 1024 * 1024
-                              ? `${(f.size_bytes / 1024).toFixed(1)} KB`
-                              : `${(f.size_bytes / (1024 * 1024)).toFixed(1)} MB`}
-                        </span>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="truncate text-slate-600 dark:text-slate-300">
+                            {f.filename}
+                          </span>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500">
+                            {f.size_bytes < 1024
+                              ? `${f.size_bytes} B`
+                              : f.size_bytes < 1024 * 1024
+                                ? `${(f.size_bytes / 1024).toFixed(1)} KB`
+                                : `${(f.size_bytes / (1024 * 1024)).toFixed(1)} MB`}
+                          </span>
+                        </div>
                       </div>
                     )}
                     <div className="ml-2 flex shrink-0 gap-1">
