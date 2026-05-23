@@ -23,6 +23,8 @@ const ACTION_OPTIONS = [
   "file_deleted",
   "file_renamed",
   "user_created",
+  "member_added",
+  "member_removed",
 ];
 
 export default function AuditLogPanel() {
