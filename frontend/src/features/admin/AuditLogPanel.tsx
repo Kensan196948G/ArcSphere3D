@@ -16,6 +16,13 @@ const ACTION_OPTIONS = [
   "login_failed",
   "password_changed",
   "token_refreshed",
+  "project_created",
+  "project_updated",
+  "project_deleted",
+  "file_uploaded",
+  "file_deleted",
+  "file_renamed",
+  "user_created",
 ];
 
 export default function AuditLogPanel() {
