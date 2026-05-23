@@ -37,6 +37,13 @@ export default function AdminUsersPanel() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState<UserCreateRequest>(INIT_CREATE);
   const [creating, setCreating] = useState(false);
+  const [userFilter, setUserFilter] = useState("");
+
+  const filteredUsers = userFilter.trim()
+    ? users.filter((u) =>
+        u.email.toLowerCase().includes(userFilter.trim().toLowerCase()),
+      )
+    : users;
 
   const role = token ? (parseJwtPayload(token)?.role ?? "") : "";
   const myEmail = token ? (parseJwtPayload(token)?.email ?? "") : "";
@@ -197,13 +204,27 @@ export default function AdminUsersPanel() {
         )}
       </div>
 
+      {/* ユーザー検索 */}
+      {users.length > 0 && (
+        <input
+          type="search"
+          placeholder="🔍 メールで検索…"
+          value={userFilter}
+          onChange={(e) => setUserFilter(e.target.value)}
+          data-testid="user-filter-input"
+          className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+        />
+      )}
+
       {loading ? (
         <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
-      ) : users.length === 0 ? (
-        <p className="text-slate-400 dark:text-slate-500">ユーザーなし</p>
+      ) : filteredUsers.length === 0 ? (
+        <p className="text-slate-400 dark:text-slate-500">
+          {userFilter ? "該当ユーザーなし" : "ユーザーなし"}
+        </p>
       ) : (
         <ul className="space-y-1" data-testid="admin-users-list">
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <li
               key={u.id}
               className="flex flex-col gap-1 rounded bg-slate-100/80 px-2 py-1.5 dark:bg-slate-800/60"
