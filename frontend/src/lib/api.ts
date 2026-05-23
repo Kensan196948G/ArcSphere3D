@@ -609,6 +609,29 @@ export async function createAdminUser(
   return handleResponse<UserOut>(res);
 }
 
+// ---- Project export -------------------------------------------------------
+
+export async function exportProjectZip(
+  token: string,
+  projectId: string,
+  projectName: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}/export`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${projectName}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ---- Project stats --------------------------------------------------------
 
 export interface ProjectStats {

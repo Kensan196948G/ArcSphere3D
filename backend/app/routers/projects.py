@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import io
+import zipfile
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
+from app.s3 import get_object
 from app.schemas import CurrentUser, ProjectCreate, ProjectOut, ProjectStats, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -52,6 +56,7 @@ async def create_project(
         resource_id=str(project.id),
         detail=project.name,
     )
+    await session.commit()
     return project
 
 
@@ -65,8 +70,11 @@ async def get_project(
     p = await crud.get_project(session, project_id, db_user.id)
     if p is not None:
         return ProjectOut(
-            id=p.id, name=p.name, description=p.description,
-            owner_id=p.owner_id, created_at=p.created_at,
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            owner_id=p.owner_id,
+            created_at=p.created_at,
         )
     role = await crud.get_member_role(session, project_id, db_user.id)
     if role is None:
@@ -75,8 +83,11 @@ async def get_project(
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return ProjectOut(
-        id=p.id, name=p.name, description=p.description,
-        owner_id=p.owner_id, created_at=p.created_at,
+        id=p.id,
+        name=p.name,
+        description=p.description,
+        owner_id=p.owner_id,
+        created_at=p.created_at,
     )
 
 
@@ -109,9 +120,13 @@ async def update_project(
         resource_id=str(project_id),
         detail=body.name,
     )
+    await session.commit()
     return ProjectOut(
-        id=p.id, name=p.name, description=p.description,
-        owner_id=p.owner_id, created_at=p.created_at,
+        id=p.id,
+        name=p.name,
+        description=p.description,
+        owner_id=p.owner_id,
+        created_at=p.created_at,
     )
 
 
@@ -144,6 +159,7 @@ async def delete_project(
         resource_type="project",
         resource_id=str(project_id),
     )
+    await session.commit()
 
 
 @router.get(
@@ -162,3 +178,54 @@ async def get_project_stats(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return await crud.get_project_stats(session, project_id)
+
+
+@router.get(
+    "/{project_id}/export",
+    responses={**_401, **_403, **_404},
+    response_class=StreamingResponse,
+)
+async def export_project(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> StreamingResponse:
+    """Export all project files as a ZIP archive. Any member (viewer+) may call this."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+
+    project = await crud.get_project_by_id(session, project_id)
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+
+    file_models = await crud.list_file_models(session, project_id)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in file_models:
+            try:
+                data = await get_object(f.s3_key)
+            except Exception:  # noqa: BLE001, S112
+                continue  # skip files that fail to fetch from S3
+            zf.writestr(f.filename, data)
+
+    buf.seek(0)
+
+    safe_name = project.name.replace('"', "").replace("\\", "").replace("\n", "")
+    await crud.log_audit_event(
+        session,
+        action="project_exported",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project_id),
+        detail=f"{len(file_models)} files",
+    )
+    await session.commit()
+
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}.zip"'},
+    )
