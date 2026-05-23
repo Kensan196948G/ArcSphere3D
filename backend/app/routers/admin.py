@@ -22,13 +22,70 @@ from app.schemas import (
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-def _require_admin(current: CurrentUser = CurrentUserDep) -> CurrentUser:
-    if current.role != "admin":
+async def _require_admin(
+    db: DbDep,
+    current: CurrentUser = CurrentUserDep,
+) -> CurrentUser:
+    """Admin gate that authorizes from *live* DB state.
+
+    Issue #180 round-4 hardening: a stateless JWT's `role` claim cannot reflect
+    revocation — a token minted while the user was an admin remains valid (and
+    self-asserts `role=admin`) until `exp`, so a deleted or demoted admin could
+    otherwise keep calling admin endpoints for the rest of the access-token
+    lifetime. By re-loading the actor row on every protected request and
+    authorizing from `db_user.role`, revocation takes effect immediately for
+    read-only admin endpoints (list_users, get_admin_stats, list_audit_logs).
+
+    Mutation handlers (delete_user, update_user_role, reset_user_password)
+    additionally re-check the actor under a row lock taken in UUID order with
+    the target row — see `crud.lock_user_pair_for_update`. That second check
+    is what closes the TOCTOU window for privileged writes; the gate alone is
+    "best-effort live", and intentionally takes no lock here to avoid a cross-
+    admin deadlock (round 6: locking actor-first in the dep then target-later
+    in the handler creates a circular wait when two admins act on each other).
+    """
+    db_user = await crud.get_user_by_id(db, UUID(current.sub))
+    if db_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user no longer exists",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if db_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return current
+    # Reflect live role on the dependency object so handlers see authoritative
+    # state (defense in depth — handlers should not check role separately, but
+    # if they do, they read the DB value, not the token).
+    return CurrentUser(sub=current.sub, email=current.email, role=db_user.role)
 
 
 AdminDep = Depends(_require_admin)
+
+
+def _ensure_admin_under_lock(actor: object) -> None:
+    """Re-validate the actor's admin role **after** taking the per-request row lock.
+
+    Issue #180 round-6: ``_require_admin`` performs a best-effort live check without
+    a row lock (locking there caused a cross-admin deadlock — see
+    ``crud.lock_user_pair_for_update``). Mutation handlers therefore re-take the
+    actor row under ``FOR UPDATE`` (paired with the target row in UUID order) and
+    re-check the role here, *inside* the request's transaction. Combined with the
+    row lock, this re-check makes the gate atomic with the write: a concurrent
+    admin who demotes or deletes this actor will be serialized behind the lock and
+    observed here as ``role != "admin"`` or ``actor is None``, causing the
+    privileged mutation to abort before it commits.
+    """
+    if actor is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user no longer exists",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if getattr(actor, "role", None) != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="admin role required",
+        )
 
 
 @router.get(
@@ -141,21 +198,22 @@ async def delete_user(
     current: Annotated[CurrentUser, AdminDep],
 ) -> None:
     """Delete a user by ID. Admin cannot delete themselves."""
-    target = await crud.get_user_by_id(db, user_id)
+    actor, target = await crud.lock_user_pair_for_update(
+        db, actor_id=UUID(current.sub), target_id=user_id
+    )
+    _ensure_admin_under_lock(actor)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
-    if target.email == current.sub:
+    if str(target.id) == current.sub:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="cannot delete your own account",
         )
-    deleted = await crud.delete_user(db, user_id)
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    await db.delete(target)
     await crud.log_audit_event(
         db,
         action="user_deleted",
-        user_id=None,
+        user_id=UUID(current.sub),
         resource_type="user",
         resource_id=str(user_id),
     )
@@ -179,10 +237,13 @@ async def update_user_role(
     current: Annotated[CurrentUser, AdminDep],
 ) -> UserOut:
     """Change a user's role. Admin cannot demote themselves."""
-    target = await crud.get_user_by_id(db, user_id)
+    actor, target = await crud.lock_user_pair_for_update(
+        db, actor_id=UUID(current.sub), target_id=user_id
+    )
+    _ensure_admin_under_lock(actor)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
-    if target.email == current.sub and body.role != "admin":
+    if str(target.id) == current.sub and body.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="cannot demote your own admin role",
@@ -193,6 +254,7 @@ async def update_user_role(
     await crud.log_audit_event(
         db,
         action="user_role_changed",
+        user_id=UUID(current.sub),
         resource_type="user",
         resource_id=str(user_id),
         detail=f"role changed to {body.role}",
@@ -220,7 +282,10 @@ async def reset_user_password(
     """Reset any user's password. Admin only — no current-password check."""
     from app.security import hash_password
 
-    target = await crud.get_user_by_id(db, user_id)
+    actor, target = await crud.lock_user_pair_for_update(
+        db, actor_id=UUID(current.sub), target_id=user_id
+    )
+    _ensure_admin_under_lock(actor)
     if target is None or not target.password_hash:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -231,9 +296,9 @@ async def reset_user_password(
     await crud.log_audit_event(
         db,
         action="password_reset_by_admin",
-        user_id=None,
+        user_id=UUID(current.sub),
         resource_type="user",
         resource_id=str(user_id),
-        detail=f"reset by admin {current.sub}",
+        detail=f"reset by admin {current.email or current.sub}",
     )
     await db.commit()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,18 +43,35 @@ from app.schemas import (
 
 
 async def upsert_user(session: AsyncSession, current: CurrentUser) -> User:
-    """Return the DB row for *current*, inserting it on first login."""
-    result = await session.execute(select(User).where(User.sub == current.sub))
+    """Return the DB row for the JWT-authenticated *current* user.
+
+    Post Issue #180 `current.sub` is guaranteed to be a UUID — `get_current_user`
+    rejects non-UUID subjects centrally — so this function does a pure primary
+    key lookup and no longer creates rows from JWT context. Row creation
+    belongs in registration paths (password signup, admin user creation, SSO
+    bootstrap) where identity is established before a token is issued.
+
+    Failing closed on a malformed sub (defense in depth) and on a missing row
+    (deleted user with a still-valid token) closes the email-fallback bypass
+    surfaced by adversarial review and removes the SELECT-then-INSERT race
+    that the previous dual-lookup widened.
+    """
+    try:
+        user_uuid = UUID(current.sub)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="token subject is not a user UUID",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+    result = await session.execute(select(User).where(User.id == user_uuid))
     db_user = result.scalar_one_or_none()
     if db_user is None:
-        db_user = User(
-            sub=current.sub,
-            email=current.email or current.sub,
-            role=current.role,
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user no longer exists",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        session.add(db_user)
-        await session.commit()
-        await session.refresh(db_user)
     return db_user
 
 
@@ -716,6 +734,65 @@ async def get_user_by_id(session: AsyncSession, user_id: UUID) -> User | None:
     """Return the DB row for *user_id*, or None if not found."""
     result = await session.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
+
+
+async def get_user_by_id_for_update(session: AsyncSession, user_id: UUID) -> User | None:
+    """Return the DB row for *user_id* under a row-level lock (``SELECT ... FOR UPDATE``).
+
+    Issue #180 round-5 hardening: closes a TOCTOU race between the admin gate and the
+    privileged write. ``_require_admin`` reloads the actor row to validate role, but a
+    plain ``SELECT`` does not prevent a concurrent admin from demoting/deleting that
+    actor before the handler's ``UPDATE``/``DELETE`` commits. Acquiring ``FOR UPDATE``
+    on the actor row holds an exclusive lock for the lifetime of the request
+    transaction (DbDep is request-scoped, one session per request), so any concurrent
+    role change or deletion of this actor blocks until the current admin mutation
+    commits — making revocation effective immediately, not "eventually consistent".
+    """
+    result = await session.execute(select(User).where(User.id == user_id).with_for_update())
+    return result.scalar_one_or_none()
+
+
+async def lock_user_pair_for_update(
+    session: AsyncSession,
+    *,
+    actor_id: UUID,
+    target_id: UUID,
+) -> tuple[User | None, User | None]:
+    """Lock the actor and target ``users`` rows for the current transaction in UUID order.
+
+    Returns ``(actor, target)`` (either may be ``None`` if the row no longer exists).
+    When ``actor_id == target_id`` the same row is returned in both slots (one lock).
+
+    Issue #180 round-6 hardening: prevents cross-admin deadlock. The round-5 fix took
+    ``FOR UPDATE`` on the actor row inside the dependency, then handlers later updated
+    or deleted the target row. PostgreSQL row locks under that scheme establish a
+    request-specific lock order ``(actor, target)``, so two admins acting on each
+    other (A demotes/deletes B while B demotes/deletes A concurrently) form a cycle:
+    request 1 holds A waits B; request 2 holds B waits A — Postgres aborts one with
+    ``40P01 deadlock_detected``.
+
+    Locking both rows together in **UUID order** (a total order across all
+    transactions) makes the lock-acquisition graph acyclic by construction: every
+    admin mutation, regardless of who the actor or target is, takes the row with the
+    smaller UUID first, so two concurrent admin-on-admin requests serialize through
+    the lower-UUID row instead of deadlocking. Self-mutations (``actor_id ==
+    target_id``) take a single lock — there is no second row to deadlock against.
+
+    Callers (admin mutation handlers) must re-check ``actor.role == "admin"`` *after*
+    this returns: that re-check under the lock is what makes the gate atomic with the
+    write, since ``_require_admin`` itself no longer locks (it cannot, without
+    re-introducing the deadlock).
+    """
+    if actor_id == target_id:
+        row = await get_user_by_id_for_update(session, actor_id)
+        return row, row
+
+    first_id, second_id = sorted([actor_id, target_id])
+    first_row = await get_user_by_id_for_update(session, first_id)
+    second_row = await get_user_by_id_for_update(session, second_id)
+    if actor_id == first_id:
+        return first_row, second_row
+    return second_row, first_row
 
 
 async def delete_user(session: AsyncSession, user_id: UUID) -> bool:

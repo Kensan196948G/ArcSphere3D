@@ -54,6 +54,7 @@ docker/volumes/
 .claude/local/
 .claude/cache/
 .claude/logs/
+.claude/worktrees/
 .claude/CLAUDE.md
 .claude/agents/
 .claude/commands/
