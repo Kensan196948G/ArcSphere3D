@@ -116,7 +116,8 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 86  | 👁️ 監査ログ アクター email 表示 — AuditLogPanel にユーザー列 (Issue #191, PR #193) | ✅ Done        |
 | 87  | 🧪 project description バックエンドテスト 7件 (Issue #192, PR #193)               | ✅ Done        |
 | 88  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195, PR #196)                 | ✅ Done        |
-| 89  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 89  | 👥 メンバー操作の監査ログ記録 (Issue #197, PR #198)                               | ✅ Done        |
+| 90  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
 | 90  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
 | 91  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
@@ -136,6 +137,7 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | #193  | `40ba6f2`  | 🧪 project description バックエンドテスト 7件 (Issue #192)                       | 🧪 Test     |
 | #193  | `40ba6f2`  | 🔷 ファイルタイプアイコン + Toast通知 + ファイル検索フィルター (Issue #194)       | 🖼️ UI       |
 | #196  | `4b50cb8`  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195)                          | 🛡️ Security |
+| #198  | `d42b399`  | 👥 メンバー操作監査ログ + ファイル操作テスト (Issue #197)                         | 🛡️ Security |
 
 > 🛡️ **Security ハイライト (PR #183, 2026-05-23)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。`refresh` エンドポイントも DB から再取得するよう更新。
 
