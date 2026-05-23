@@ -131,3 +131,42 @@ def test_audit_logs_include_actor_email() -> None:
     assert "actor_email" in logs[0]
     emails = [log["actor_email"] for log in logs if log["actor_email"] is not None]
     assert any("arcsphere3d.dev" in e for e in emails)
+
+
+def test_audit_logs_project_created() -> None:
+    token = _admin_token()
+    client.post(
+        "/api/projects",
+        json={"name": "Audit Test Project"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    res = client.get(
+        "/api/admin/audit-logs?action=project_created",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    logs = res.json()
+    assert any(log["action"] == "project_created" for log in logs)
+    assert any(log["resource_type"] == "project" for log in logs)
+
+
+def test_audit_logs_project_deleted() -> None:
+    token = _admin_token()
+    res = client.post(
+        "/api/projects",
+        json={"name": "Delete Audit Project"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    project_id = res.json()["id"]
+    client.delete(
+        f"/api/projects/{project_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    audit = client.get(
+        "/api/admin/audit-logs?action=project_deleted",
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()
+    assert any(
+        log["action"] == "project_deleted" and log["resource_id"] == project_id
+        for log in audit
+    )
