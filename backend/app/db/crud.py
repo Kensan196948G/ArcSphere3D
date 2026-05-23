@@ -711,7 +711,13 @@ async def list_audit_logs(
     action: str | None = None,
 ) -> list[AuditLogOut]:
     """Return audit log entries, newest first. Owner/admin only — callers must check RBAC."""
-    stmt = select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit)
+    stmt = (
+        select(AuditLog, User.email)
+        .outerjoin(User, AuditLog.user_id == User.id)
+        .order_by(AuditLog.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
     if user_id is not None:
         stmt = stmt.where(AuditLog.user_id == user_id)
     if action is not None:
@@ -721,6 +727,7 @@ async def list_audit_logs(
         AuditLogOut(
             id=r.id,
             user_id=r.user_id,
+            actor_email=email,
             action=r.action,
             resource_type=r.resource_type,
             resource_id=r.resource_id,
@@ -728,7 +735,7 @@ async def list_audit_logs(
             detail=r.detail,
             created_at=r.created_at,
         )
-        for r in result.scalars().all()
+        for r, email in result.all()
     ]
 
 

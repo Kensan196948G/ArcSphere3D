@@ -1,4 +1,4 @@
-"""Integration tests for PUT /api/projects/{id} (project rename) and GET /stats."""
+"""Integration tests for PUT /api/projects/{id} (rename + description) and GET /stats."""
 
 from __future__ import annotations
 
@@ -197,3 +197,90 @@ def test_stats_viewer_can_access() -> None:
     res = client.get(f"/api/projects/{project_id}/stats", headers=_auth(viewer))
     assert res.status_code == 200
     assert res.json()["member_count"] == 2  # owner + viewer
+
+
+# ---- description field (migration 0009) -------------------------------------
+
+
+def test_create_project_with_description() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.post(
+        "/api/projects",
+        json={"name": "Desc Project", "description": "Road design Q1 2026"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["description"] == "Road design Q1 2026"
+
+
+def test_create_project_without_description() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.post("/api/projects", json={"name": "No Desc"}, headers=_auth(token))
+    assert res.status_code == 201
+    assert res.json()["description"] is None
+
+
+def test_update_project_description() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, "Update Desc")
+    res = client.put(
+        f"/api/projects/{project_id}",
+        json={"name": "Update Desc", "description": "New description"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    assert res.json()["description"] == "New description"
+
+
+def test_update_project_description_to_null() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.post(
+        "/api/projects",
+        json={"name": "Clear Desc", "description": "Will be cleared"},
+        headers=_auth(token),
+    )
+    project_id = res.json()["id"]
+    res2 = client.put(
+        f"/api/projects/{project_id}",
+        json={"name": "Clear Desc", "description": None},
+        headers=_auth(token),
+    )
+    assert res2.status_code == 200
+    assert res2.json()["description"] is None
+
+
+def test_list_projects_includes_description() -> None:
+    token = _login(DEMO_CREDS)
+    client.post(
+        "/api/projects",
+        json={"name": "List Desc", "description": "Listed desc"},
+        headers=_auth(token),
+    )
+    res = client.get("/api/projects", headers=_auth(token))
+    assert res.status_code == 200
+    projects = res.json()
+    assert any(p["description"] == "Listed desc" for p in projects)
+
+
+def test_description_max_length_rejected() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.post(
+        "/api/projects",
+        json={"name": "Too Long Desc", "description": "x" * 501},
+        headers=_auth(token),
+    )
+    assert res.status_code == 422
+
+
+def test_get_project_includes_description() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.post(
+        "/api/projects",
+        json={"name": "Get Desc", "description": "Detail here"},
+        headers=_auth(token),
+    )
+    project_id = res.json()["id"]
+    res2 = client.get(f"/api/projects/{project_id}", headers=_auth(token))
+    assert res2.status_code == 200
+    assert res2.json()["description"] == "Detail here"

@@ -516,6 +516,7 @@ export async function deleteAdminUser(token: string, userId: string): Promise<vo
 export interface AuditLogOut {
   id: string;
   user_id: string | null;
+  actor_email: string | null;
   action: string;
   resource_type: string | null;
   resource_id: string | null;
