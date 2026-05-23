@@ -53,6 +53,7 @@ export default function ProjectPanel() {
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [projectFilter, setProjectFilter] = useState("");
+  const [fileFilter, setFileFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProjects = projectFilter.trim()
@@ -60,6 +61,12 @@ export default function ProjectPanel() {
         p.name.toLowerCase().includes(projectFilter.trim().toLowerCase()),
       )
     : projects;
+
+  const filteredFiles = fileFilter.trim()
+    ? files.filter((f) =>
+        f.filename.toLowerCase().includes(fileFilter.trim().toLowerCase()),
+      )
+    : files;
 
   useEffect(() => {
     fetchProjects(token);
@@ -386,13 +393,24 @@ export default function ProjectPanel() {
             <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
           )}
 
+          {files.length > 10 && (
+            <input
+              type="search"
+              placeholder="🔍 ファイルを検索…"
+              value={fileFilter}
+              onChange={(e) => setFileFilter(e.target.value)}
+              data-testid="file-filter-input"
+              className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+            />
+          )}
+
           {files.length === 0 && !loading ? (
             <p className="text-slate-400 dark:text-slate-500">
               ファイルなし — モデルをアップロードしてください。
             </p>
           ) : (
             <ul className="space-y-1">
-              {files.map((f) => {
+              {filteredFiles.map((f) => {
                 const isRenaming = renamingFileId === f.id;
                 return (
                   <li
