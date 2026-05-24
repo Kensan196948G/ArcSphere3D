@@ -43,7 +43,16 @@ async def create_project(
     user: CurrentUser = CurrentUserDep,
 ) -> ProjectOut:
     db_user = await crud.upsert_user(session, user)
-    return await crud.create_project(session, db_user.id, body)
+    project = await crud.create_project(session, db_user.id, body)
+    await crud.log_audit_event(
+        session,
+        action="project_created",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project.id),
+        detail=project.name,
+    )
+    return project
 
 
 @router.get("/{project_id}", response_model=ProjectOut, responses={**_401, **_403, **_404})
@@ -55,14 +64,20 @@ async def get_project(
     db_user = await crud.upsert_user(session, user)
     p = await crud.get_project(session, project_id, db_user.id)
     if p is not None:
-        return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
+        return ProjectOut(
+            id=p.id, name=p.name, description=p.description,
+            owner_id=p.owner_id, created_at=p.created_at,
+        )
     role = await crud.get_member_role(session, project_id, db_user.id)
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     p = await crud.get_project_by_id(session, project_id)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
-    return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
+    return ProjectOut(
+        id=p.id, name=p.name, description=p.description,
+        owner_id=p.owner_id, created_at=p.created_at,
+    )
 
 
 @router.put(
@@ -83,10 +98,21 @@ async def update_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     if role == "viewer":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="editor or owner only")
-    p = await crud.update_project_name(session, project_id, body.name)
+    p = await crud.update_project(session, project_id, body.name, body.description)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
-    return ProjectOut(id=p.id, name=p.name, owner_id=p.owner_id, created_at=p.created_at)
+    await crud.log_audit_event(
+        session,
+        action="project_updated",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project_id),
+        detail=body.name,
+    )
+    return ProjectOut(
+        id=p.id, name=p.name, description=p.description,
+        owner_id=p.owner_id, created_at=p.created_at,
+    )
 
 
 @router.delete(
@@ -112,6 +138,13 @@ async def delete_project(
     if role != "owner":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
     await crud.delete_project(session, project_id, db_user.id)
+    await crud.log_audit_event(
+        session,
+        action="project_deleted",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project_id),
+    )
 
 
 @router.get(

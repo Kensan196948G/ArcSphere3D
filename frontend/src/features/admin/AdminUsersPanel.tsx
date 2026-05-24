@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/state/authStore";
 import {
+  createAdminUser,
   deleteAdminUser,
   listAdminUsers,
   parseJwtPayload,
   resetAdminUserPassword,
   updateUserRole,
+  type UserCreateRequest,
   type UserOut,
 } from "@/lib/api";
 import { useNotificationStore } from "@/state/notificationStore";
@@ -21,6 +23,8 @@ interface PwResetState {
   submitting: boolean;
 }
 
+const INIT_CREATE: UserCreateRequest = { email: "", password: "", role: "viewer" };
+
 export default function AdminUsersPanel() {
   const token = useAuthStore((s) => s.token);
   const addNotification = useNotificationStore((s) => s.addNotification);
@@ -30,6 +34,16 @@ export default function AdminUsersPanel() {
   const [error, setError] = useState<string | null>(null);
   const [pwReset, setPwReset] = useState<PwResetState | null>(null);
   const pwInputRef = useRef<HTMLInputElement>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState<UserCreateRequest>(INIT_CREATE);
+  const [creating, setCreating] = useState(false);
+  const [userFilter, setUserFilter] = useState("");
+
+  const filteredUsers = userFilter.trim()
+    ? users.filter((u) =>
+        u.email.toLowerCase().includes(userFilter.trim().toLowerCase()),
+      )
+    : users;
 
   const role = token ? (parseJwtPayload(token)?.role ?? "") : "";
   const myEmail = token ? (parseJwtPayload(token)?.email ?? "") : "";
@@ -101,17 +115,116 @@ export default function AdminUsersPanel() {
     }
   }
 
+  async function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setCreating(true);
+    try {
+      await createAdminUser(token, createForm);
+      addNotification("success", `ユーザー「${createForm.email}」を作成しました`);
+      setCreateForm(INIT_CREATE);
+      setShowCreateForm(false);
+      fetchUsers();
+    } catch (err: unknown) {
+      addNotification("error", String(err));
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2 text-xs" data-testid="admin-users-panel">
       {error && <p className="text-rose-500">{error}</p>}
 
+      {/* 新規ユーザー作成 */}
+      <div>
+        <button
+          type="button"
+          data-testid="create-user-toggle"
+          onClick={() => setShowCreateForm((v) => !v)}
+          className="w-full rounded border border-arc-accent/50 py-1 text-[10px] font-semibold text-arc-accent hover:bg-arc-accent/10"
+        >
+          {showCreateForm ? "▲ 閉じる" : "＋ 新規ユーザー作成"}
+        </button>
+        {showCreateForm && (
+          <form
+            data-testid="create-user-form"
+            onSubmit={(e) => void handleCreateUser(e)}
+            className="mt-1 flex flex-col gap-1.5 rounded border border-slate-200 bg-slate-50/80 p-2 dark:border-slate-700 dark:bg-slate-800/60"
+          >
+            <input
+              type="email"
+              required
+              placeholder="メールアドレス"
+              data-testid="create-user-email"
+              value={createForm.email}
+              onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            />
+            <input
+              type="password"
+              required
+              minLength={8}
+              placeholder="パスワード (8文字以上)"
+              data-testid="create-user-password"
+              value={createForm.password}
+              onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            />
+            <select
+              data-testid="create-user-role"
+              value={createForm.role}
+              onChange={(e) =>
+                setCreateForm((f) => ({ ...f, role: e.target.value as UserCreateRequest["role"] }))
+              }
+              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <div className="flex gap-1">
+              <button
+                type="submit"
+                data-testid="create-user-submit"
+                disabled={creating || !createForm.email || !createForm.password}
+                className="rounded bg-arc-accent/80 px-3 py-1 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+              >
+                {creating ? "作成中…" : "作成"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCreateForm(false); setCreateForm(INIT_CREATE); }}
+                className="rounded border border-slate-300 px-2 py-1 text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+              >
+                キャンセル
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* ユーザー検索 */}
+      {users.length > 0 && (
+        <input
+          type="search"
+          placeholder="🔍 メールで検索…"
+          value={userFilter}
+          onChange={(e) => setUserFilter(e.target.value)}
+          data-testid="user-filter-input"
+          className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+        />
+      )}
+
       {loading ? (
         <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
-      ) : users.length === 0 ? (
-        <p className="text-slate-400 dark:text-slate-500">ユーザーなし</p>
+      ) : filteredUsers.length === 0 ? (
+        <p className="text-slate-400 dark:text-slate-500">
+          {userFilter ? "該当ユーザーなし" : "ユーザーなし"}
+        </p>
       ) : (
         <ul className="space-y-1" data-testid="admin-users-list">
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <li
               key={u.id}
               className="flex flex-col gap-1 rounded bg-slate-100/80 px-2 py-1.5 dark:bg-slate-800/60"

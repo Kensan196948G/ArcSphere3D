@@ -21,11 +21,12 @@ interface ProjectState {
 
   fetchProjects: (token: string) => Promise<void>;
   selectProject: (token: string, projectId: string) => Promise<void>;
-  createProject: (token: string, name: string) => Promise<void>;
+  createProject: (token: string, name: string, description?: string) => Promise<void>;
   renameProject: (
     token: string,
     projectId: string,
     name: string,
+    description?: string | null,
   ) => Promise<void>;
   deleteProject: (token: string, projectId: string) => Promise<void>;
   uploadFile: (token: string, file: File) => Promise<FileMetadata | null>;
@@ -63,10 +64,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
   },
 
-  createProject: async (token, name) => {
+  createProject: async (token, name, description) => {
     set({ loading: true, error: null });
     try {
-      const project = await apiCreateProject(token, name);
+      const project = await apiCreateProject(token, name, description);
       set((s) => ({
         projects: [...s.projects, project],
         selectedProjectId: project.id,
@@ -78,10 +79,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
   },
 
-  renameProject: async (token, projectId, name) => {
+  renameProject: async (token, projectId, name, description) => {
     set({ loading: true, error: null });
     try {
-      const updated = await apiUpdateProject(token, projectId, name);
+      const updated = await apiUpdateProject(token, projectId, name, description);
       set((s) => ({
         projects: s.projects.map((p) => (p.id === projectId ? updated : p)),
         loading: false,

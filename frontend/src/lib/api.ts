@@ -19,6 +19,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 export interface ProjectOut {
   id: string;
   name: string;
+  description: string | null;
   owner_id: string;
   created_at: string;
 }
@@ -73,11 +74,12 @@ export async function listProjects(
 export async function createProject(
   token: string,
   name: string,
+  description?: string,
 ): Promise<ProjectOut> {
   const res = await fetch(`${BASE}/projects`, {
     method: "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, description: description ?? null }),
   });
   return handleResponse<ProjectOut>(res);
 }
@@ -449,11 +451,12 @@ export async function updateProject(
   token: string,
   projectId: string,
   name: string,
+  description?: string | null,
 ): Promise<ProjectOut> {
   const res = await fetch(`${BASE}/projects/${projectId}`, {
     method: "PUT",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, description: description ?? null }),
   });
   return handleResponse<ProjectOut>(res);
 }
@@ -513,6 +516,7 @@ export async function deleteAdminUser(token: string, userId: string): Promise<vo
 export interface AuditLogOut {
   id: string;
   user_id: string | null;
+  actor_email: string | null;
   action: string;
   resource_type: string | null;
   resource_id: string | null;
@@ -583,6 +587,26 @@ export async function resetAdminUserPassword(
     const body = await res.text().catch(() => "");
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
   }
+}
+
+// ---- Admin: Create User ---------------------------------------------------
+
+export interface UserCreateRequest {
+  email: string;
+  password: string;
+  role: "viewer" | "editor" | "admin";
+}
+
+export async function createAdminUser(
+  token: string,
+  data: UserCreateRequest,
+): Promise<UserOut> {
+  const res = await fetch(`${BASE}/admin/users`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<UserOut>(res);
 }
 
 // ---- Project stats --------------------------------------------------------

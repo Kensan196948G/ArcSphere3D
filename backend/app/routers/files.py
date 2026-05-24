@@ -146,6 +146,14 @@ async def upload(
         s3_key=s3_key,
         sha256=sha256_bytes,
     )
+    await crud.log_audit_event(
+        session,
+        action="file_uploaded",
+        user_id=db_user.id,
+        resource_type="file",
+        resource_id=str(db_file.id),
+        detail=safe_name,
+    )
     return FileMetadata(
         id=db_file.id,
         project_id=db_file.project_id,
@@ -319,6 +327,14 @@ async def delete_file(
     s3_key = db_file.s3_key
     # DB deletion is transactional; S3 deletion is best-effort.
     await crud.delete_file(session, file_id)
+    await crud.log_audit_event(
+        session,
+        action="file_deleted",
+        user_id=db_user.id,
+        resource_type="file",
+        resource_id=str(file_id),
+        detail=db_file.filename,
+    )
     try:
         await delete_object(s3_key)
     except Exception as exc:
@@ -351,9 +367,18 @@ async def rename_file(
     if db_file is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
     await _require_project(db_file.project_id, session, db_user.id, min_role="editor")
+    old_name = db_file.filename
     db_file.filename = body.filename
     await session.commit()
     await session.refresh(db_file)
+    await crud.log_audit_event(
+        session,
+        action="file_renamed",
+        user_id=db_user.id,
+        resource_type="file",
+        resource_id=str(file_id),
+        detail=f"{old_name} -> {body.filename}",
+    )
     return FileMetadata(
         id=db_file.id,
         project_id=db_file.project_id,

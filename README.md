@@ -1,6 +1,6 @@
 # ArcSphere3D
 
-> **AI Native Web 3D CAD Platform** — フルブラウザ型 3D CAD / BIM / Digital Twin。JWT 認証 + S3 ストレージ + 管理者パネル + Undo/Redo 完備。
+> **AI Native Web 3D CAD Platform** — フルブラウザ型 3D CAD / BIM / Digital Twin。JWT 認証 + S3 ストレージ + 管理者パネル + Undo/Redo + GLTF エクスポート + プロパティ編集 完備。
 
 [![CI](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml/badge.svg)](https://github.com/Kensan196948G/ArcSphere3D/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Proprietary-blue)]()
@@ -97,16 +97,63 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 67  | 👤 管理者ユーザー管理パネル — AdminPanel タブ UI                                  | ✅ Done        |
 | 68  | 🔔 グローバル Toast 通知システム                                                  | ✅ Done        |
 | 69  | 🔐 管理者パスワードリセット — POST /api/admin/users/{id}/reset-password (Issue #156) | ✅ Done     |
-| 70  | ↩️ Undo / Redo — Command Pattern (sceneStore, Issue #162)                         | 🟡 PR #163     |
-| 71  | 🎛️ AdminUsersPanel ロール変更 + パスワードリセット UI (Issue #164)                | 🟡 PR #170     |
-| 72  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165)                              | 🟡 PR #172     |
-| 73  | ✏️ renameFile() フロントエンド関数 (Issue #166)                                   | 🟡 PR #169     |
-| 74  | 🐳 docker-compose frontend nginx サービス追加 (Issue #167)                       | 🟡 PR #171     |
-| 75  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 76  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
-| 77  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 70  | ↩️ Undo / Redo — Command Pattern (sceneStore, Issue #162)                         | ✅ Done        |
+| 71  | 🎛️ AdminUsersPanel ロール変更 + パスワードリセット UI (Issue #164)                | ✅ Done        |
+| 72  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165, 対抗レビュー済)              | ✅ Done        |
+| 73  | ✏️ renameFile() フロントエンド関数 + PATCH /api/files/{id} (Issue #166)           | ✅ Done        |
+| 74  | 🐳 docker-compose frontend nginx サービス追加 (Issue #167)                        | ✅ Done        |
+| 75  | 📤 シーン GLTF (.glb) エクスポート — ViewportToolbar (Issue #175)                  | ✅ Done        |
+| 76  | 🎛️ オブジェクトプロパティパネル — 位置/回転/拡縮の数値入力 (Issue #176)           | ✅ Done        |
+| 77  | 📚 README 大幅刷新 — 表・アイコン・Mermaid ダイアグラム (Issue #168)               | ✅ Done        |
+| 78  | 🔑 JWT subject に immutable user.id を使う (Issue #180, PR #183)                  | ✅ Done        |
+| 79  | 🖱️ ProjectPanel ファイルリネーム UI (Issue #174, PR #182)                         | ✅ Done        |
+| 80  | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188, PR #190)                 | ✅ Done        |
+| 81  | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189, PR #190)                  | ✅ Done        |
+| 82  | 🔍 ProjectPanel プロジェクト検索フィルター                                        | ✅ Done        |
+| 83  | 📏 ファイルサイズ表示 (B/KB/MB)                                                   | ✅ Done        |
+| 84  | 🔍 AdminUsersPanel ユーザー検索フィルター                                          | ✅ Done        |
+| 85  | 📝 プロジェクト説明フィールド (description) — DB migration 0009 (PR #190)         | ✅ Done        |
+| 86  | 👁️ 監査ログ アクター email 表示 — AuditLogPanel にユーザー列 (Issue #191, PR #193) | ✅ Done        |
+| 87  | 🧪 project description バックエンドテスト 7件 (Issue #192, PR #193)               | ✅ Done        |
+| 88  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195, PR #196)                 | ✅ Done        |
+| 89  | 👥 メンバー操作の監査ログ記録 (Issue #197, PR #198)                               | ✅ Done        |
+| 90  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 90  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
+| 91  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
-> 🟡 **PR審査中** = CI green 確認後に merge 予定
+> 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
+
+---
+
+## 🆕 直近のリリース (Session 2026-05-23)
+
+| PR    | コミット   | 内容                                                                              | 種別        |
+| ----- | ---------- | --------------------------------------------------------------------------------- | ----------- |
+| #190  | `ca68bf6`  | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188)                          | 🖼️ UI       |
+| #190  | `ca68bf6`  | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189)                           | 🖼️ UI       |
+| #190  | `ca68bf6`  | 🔍 ProjectPanel プロジェクト検索フィルター + 📏 ファイルサイズ表示               | 🖼️ UI       |
+| #190  | `ca68bf6`  | 📝 プロジェクト説明フィールド (description) — migration 0009                     | ⚙️ Feature  |
+| #193  | `40ba6f2`  | 👁️ 監査ログ actor_email 追加 — 誰がいつ何をしたか可視化 (Issue #191)             | ⚙️ Feature  |
+| #193  | `40ba6f2`  | 🧪 project description バックエンドテスト 7件 (Issue #192)                       | 🧪 Test     |
+| #193  | `40ba6f2`  | 🔷 ファイルタイプアイコン + Toast通知 + ファイル検索フィルター (Issue #194)       | 🖼️ UI       |
+| #196  | `4b50cb8`  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195)                          | 🛡️ Security |
+| #198  | `d42b399`  | 👥 メンバー操作監査ログ + ファイル操作テスト (Issue #197)                         | 🛡️ Security |
+
+> 🛡️ **Security ハイライト (PR #183, 2026-05-23)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。`refresh` エンドポイントも DB から再取得するよう更新。
+
+---
+
+### 📋 過去のリリース (Session 2026-05-22)
+
+| PR    | コミット   | 内容                                                                | 種別        |
+| ----- | ---------- | ------------------------------------------------------------------- | ----------- |
+| #163  | `a40a507`  | ↩️ Ctrl+Z / Ctrl+Y で Undo / Redo — シーン操作履歴 (Issue #162)     | ⚙️ Feature  |
+| #169  | `94e250e`  | ✏️ PATCH /api/files/{id} ファイル名変更 API (Issue #166)            | ⚙️ Backend  |
+| #170  | `69d6cd1`  | 🎛️ AdminUsersPanel ロール変更・パスワードリセット UI (Issue #164)   | 🖼️ UI       |
+| #171  | `7593b95`  | 🐳 docker-compose にフロントエンド nginx サービスを追加 (Issue #167) | 🛠️ Infra    |
+| #172  | `da0c91b`  | 🔒 JWT refresh でロールを DB から再取得 (Issue #165, 対抗レビュー)   | 🛡️ Security |
+| #177  | `e9ceb76`  | 📤 シーン GLTF (.glb) エクスポートボタン (Issue #175)               | ⚙️ Feature  |
+| #178  | `40142e6`  | 🎛️ オブジェクトプロパティパネル — 位置/回転/拡縮 (Issue #176)       | 🖼️ UI       |
 
 ---
 
@@ -375,9 +422,10 @@ gantt
 
     section Build
     Admin Panel + RBAC              :done,    b1, 2026-05-20, 14d
-    Undo/Redo + Security hardening  :active,  b2, 2026-05-22, 14d
-    glTF / OBJ / STL Loaders       :         b3, 2026-06-15, 14d
-    Entra ID (OAuth2)               :         b4, 2026-06-22, 21d
+    Undo/Redo + Security hardening  :done,    b2, 2026-05-22, 7d
+    GLTF Export + Properties Panel  :done,    b3, 2026-05-22, 3d
+    glTF / OBJ / STL Loaders        :active,  b4, 2026-06-01, 14d
+    Entra ID (OAuth2)               :         b5, 2026-06-22, 21d
 
     section Quality
     Integration test coverage       :         q1, 2026-07-15, 21d

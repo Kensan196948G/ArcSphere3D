@@ -144,13 +144,19 @@ async def list_projects(
         .limit(limit)
     )
     return [
-        ProjectOut(id=r.id, name=r.name, owner_id=r.owner_id, created_at=r.created_at)
+        ProjectOut(
+            id=r.id,
+            name=r.name,
+            description=r.description,
+            owner_id=r.owner_id,
+            created_at=r.created_at,
+        )
         for r in result.scalars().all()
     ]
 
 
 async def create_project(session: AsyncSession, owner_id: UUID, body: ProjectCreate) -> ProjectOut:
-    project = Project(name=body.name, owner_id=owner_id)
+    project = Project(name=body.name, description=body.description, owner_id=owner_id)
     session.add(project)
     await session.flush()  # get project.id before adding member row
     owner_member = ProjectMember(project_id=project.id, user_id=owner_id, role="owner")
@@ -160,6 +166,7 @@ async def create_project(session: AsyncSession, owner_id: UUID, body: ProjectCre
     return ProjectOut(
         id=project.id,
         name=project.name,
+        description=project.description,
         owner_id=project.owner_id,
         created_at=project.created_at,
     )
@@ -185,6 +192,20 @@ async def update_project_name(session: AsyncSession, project_id: UUID, name: str
     if p is None:
         return None
     p.name = name
+    await session.commit()
+    await session.refresh(p)
+    return p
+
+
+async def update_project(
+    session: AsyncSession, project_id: UUID, name: str, description: str | None
+) -> Project | None:
+    """Update name and description of a project. Returns None if not found."""
+    p = await get_project_by_id(session, project_id)
+    if p is None:
+        return None
+    p.name = name
+    p.description = description
     await session.commit()
     await session.refresh(p)
     return p
@@ -690,7 +711,13 @@ async def list_audit_logs(
     action: str | None = None,
 ) -> list[AuditLogOut]:
     """Return audit log entries, newest first. Owner/admin only — callers must check RBAC."""
-    stmt = select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit)
+    stmt = (
+        select(AuditLog, User.email)
+        .outerjoin(User, AuditLog.user_id == User.id)
+        .order_by(AuditLog.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
     if user_id is not None:
         stmt = stmt.where(AuditLog.user_id == user_id)
     if action is not None:
@@ -700,6 +727,7 @@ async def list_audit_logs(
         AuditLogOut(
             id=r.id,
             user_id=r.user_id,
+            actor_email=email,
             action=r.action,
             resource_type=r.resource_type,
             resource_id=r.resource_id,
@@ -707,7 +735,7 @@ async def list_audit_logs(
             detail=r.detail,
             created_at=r.created_at,
         )
-        for r in result.scalars().all()
+        for r, email in result.all()
     ]
 
 

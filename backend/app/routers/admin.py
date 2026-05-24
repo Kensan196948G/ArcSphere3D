@@ -210,10 +210,6 @@ async def delete_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="cannot delete your own account",
         )
-    # Route the delete through the shared CRUD helper (passing the already-locked
-    # row to avoid a redundant SELECT) so any future contract change to user
-    # deletion — soft-delete flag, GDPR scrub, audit backfill — automatically
-    # takes effect on this admin path. Round 8 hardening (Issue #180).
     await crud.delete_user(db, user_id, locked_user=target)
     await crud.log_audit_event(
         db,

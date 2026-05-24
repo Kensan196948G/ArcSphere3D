@@ -16,6 +16,15 @@ const ACTION_OPTIONS = [
   "login_failed",
   "password_changed",
   "token_refreshed",
+  "project_created",
+  "project_updated",
+  "project_deleted",
+  "file_uploaded",
+  "file_deleted",
+  "file_renamed",
+  "user_created",
+  "member_added",
+  "member_removed",
 ];
 
 export default function AuditLogPanel() {
@@ -24,6 +33,8 @@ export default function AuditLogPanel() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [page, setPage] = useState(0);
   const [actionFilter, setActionFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +56,18 @@ export default function AuditLogPanel() {
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [token, role, page, actionFilter]);
+
+  const filteredLogs = logs.filter((log) => {
+    if (dateFrom) {
+      const from = new Date(dateFrom).getTime();
+      if (new Date(log.created_at).getTime() < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo).getTime() + 86_400_000; // inclusive end of day
+      if (new Date(log.created_at).getTime() > to) return false;
+    }
+    return true;
+  });
 
   if (!token || role !== "admin") {
     return (
@@ -100,13 +123,43 @@ export default function AuditLogPanel() {
         </select>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          期間
+        </label>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+          data-testid="audit-date-from"
+          className="rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+        />
+        <span className="text-[10px] text-slate-400">〜</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+          data-testid="audit-date-to"
+          className="rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+        />
+        {(dateFrom || dateTo) && (
+          <button
+            type="button"
+            onClick={() => { setDateFrom(""); setDateTo(""); setPage(0); }}
+            className="text-[10px] text-arc-accent hover:underline"
+          >
+            クリア
+          </button>
+        )}
+      </div>
+
       {error && <p className="text-rose-500">{error}</p>}
 
       {loading ? (
         <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
-      ) : logs.length === 0 ? (
+      ) : filteredLogs.length === 0 ? (
         <p className="text-slate-400 dark:text-slate-500">
-          記録なし
+          {dateFrom || dateTo ? "期間内に記録なし" : "記録なし"}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -117,13 +170,14 @@ export default function AuditLogPanel() {
             <thead>
               <tr className="text-left text-slate-500 dark:text-slate-400">
                 <th className="pb-1 pr-2 font-semibold">日時</th>
+                <th className="pb-1 pr-2 font-semibold">ユーザー</th>
                 <th className="pb-1 pr-2 font-semibold">アクション</th>
                 <th className="pb-1 pr-2 font-semibold">リソース</th>
                 <th className="pb-1 pr-2 font-semibold">IP</th>
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
+              {filteredLogs.map((log) => (
                 <tr
                   key={log.id}
                   className="border-t border-slate-200 dark:border-slate-700"
@@ -135,6 +189,9 @@ export default function AuditLogPanel() {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
+                  </td>
+                  <td className="max-w-[8rem] truncate py-0.5 pr-2 text-slate-600 dark:text-slate-300">
+                    {log.actor_email ?? "—"}
                   </td>
                   <td className="py-0.5 pr-2">
                     <span
