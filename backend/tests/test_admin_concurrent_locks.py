@@ -205,6 +205,6 @@ async def test_actor_first_locking_does_deadlock(admin_trio: list[UserOut]) -> N
         timeout=_GATHER_TIMEOUT_S,
     )
     errors = [r for r in results if isinstance(r, Exception)]
-    assert any(
-        "40P01" in str(e) or "deadlock detected" in str(e).lower() for e in errors
-    ), f"expected deadlock (40P01) but got: {errors}"
+    assert any("40P01" in str(e) or "deadlock detected" in str(e).lower() for e in errors), (
+        f"expected deadlock (40P01) but got: {errors}"
+    )

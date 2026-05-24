@@ -375,9 +375,9 @@ def test_demoted_admin_token_cannot_keep_calling_admin_routes() -> None:
         "/api/admin/users",
         headers={"Authorization": f"Bearer {forged_admin}"},
     )
-    assert (
-        res.status_code == 403
-    ), f"stale JWT role claim authorized admin route: {res.status_code} {res.text}"
+    assert res.status_code == 403, (
+        f"stale JWT role claim authorized admin route: {res.status_code} {res.text}"
+    )
 
 
 def test_deleted_user_token_is_rejected_on_admin_routes() -> None:
@@ -465,18 +465,18 @@ def test_admin_mutation_locks_actor_and_target_in_uuid_order() -> None:
         f"admin mutation must call lock_user_pair_for_update exactly once; "
         f"called {pair_spy.call_count} times"
     )
-    assert (
-        len(locked_ids) == 2
-    ), f"pair lock must acquire two row locks (actor, target); got {locked_ids}"
+    assert len(locked_ids) == 2, (
+        f"pair lock must acquire two row locks (actor, target); got {locked_ids}"
+    )
     # UUID order invariant — the smaller UUID is locked first regardless of which
     # role (actor vs target) it plays. This is what kills the deadlock cycle.
-    assert locked_ids == sorted(
-        locked_ids
-    ), f"row locks must be acquired in UUID order to avoid deadlock; got {locked_ids}"
+    assert locked_ids == sorted(locked_ids), (
+        f"row locks must be acquired in UUID order to avoid deadlock; got {locked_ids}"
+    )
     # Sanity: the pair must include both admin and target.
-    assert {admin_id, target_id} == set(
-        locked_ids
-    ), f"pair lock must cover both actor and target; got {locked_ids}"
+    assert {admin_id, target_id} == set(locked_ids), (
+        f"pair lock must cover both actor and target; got {locked_ids}"
+    )
 
 
 def test_get_user_by_id_for_update_compiles_with_for_update_clause() -> None:
