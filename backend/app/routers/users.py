@@ -16,7 +16,6 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 class UserOut(BaseModel):
     id: UUID
-    sub: str
     email: str
     role: str
 
@@ -33,7 +32,7 @@ async def get_me(
 ) -> UserOut:
     """Return the authenticated user's DB record (includes UUID)."""
     db_user = await crud.upsert_user(session, user)
-    return UserOut(id=db_user.id, sub=db_user.sub, email=db_user.email, role=db_user.role)
+    return UserOut(id=db_user.id, email=db_user.email, role=db_user.role)
 
 
 @router.get(

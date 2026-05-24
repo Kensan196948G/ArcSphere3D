@@ -165,7 +165,7 @@ async def refresh(db: DbDep, current: CurrentUser = CurrentUserDep) -> TokenResp
     )
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def logout() -> None:
     # Stateless JWT — client just discards the token.
     return None
@@ -174,6 +174,7 @@ def logout() -> None:
 @router.post(
     "/password",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     responses={
         400: {"description": "new password too short or malformed"},
         401: {"description": "missing or invalid token, or wrong current password"},

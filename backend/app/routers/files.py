@@ -108,7 +108,7 @@ async def upload(
         total += len(chunk)
         if total > MAX_BYTES:
             raise HTTPException(
-                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"file exceeds {MAX_BYTES} bytes",
             )
         digest.update(chunk)
@@ -253,6 +253,7 @@ async def multipart_complete(
 @router.post(
     "/multipart/abort",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     responses={
         **_400,
         **_401,
@@ -300,7 +301,10 @@ async def download_url(
 
 
 @router.delete(
-    "/{file_id}", status_code=status.HTTP_204_NO_CONTENT, responses={**_401, **_403, **_404}
+    "/{file_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+    responses={**_401, **_403, **_404},
 )
 async def delete_file(
     file_id: UUID,

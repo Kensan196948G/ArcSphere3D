@@ -18,7 +18,6 @@ class User(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
-    sub: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     role: Mapped[str] = mapped_column(String(10), nullable=False, default="viewer")
     # bcrypt hash (cost 12). NULL for SSO-only users who never set a password.
