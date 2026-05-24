@@ -52,6 +52,7 @@ async def create_project(
         resource_id=str(project.id),
         detail=project.name,
     )
+    await session.commit()
     return project
 
 
@@ -115,6 +116,7 @@ async def update_project(
         resource_id=str(project_id),
         detail=body.name,
     )
+    await session.commit()
     return ProjectOut(
         id=p.id,
         name=p.name,
@@ -154,6 +156,7 @@ async def delete_project(
         resource_type="project",
         resource_id=str(project_id),
     )
+    await session.commit()
 
 
 @router.get(

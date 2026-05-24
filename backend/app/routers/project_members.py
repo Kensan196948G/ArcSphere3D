@@ -88,6 +88,7 @@ async def add_member(
         resource_id=str(project_id),
         detail=f"user_id={body.user_id} role={body.role}",
     )
+    await session.commit()
     return member
 
 
@@ -122,3 +123,4 @@ async def remove_member(
         resource_id=str(project_id),
         detail=f"user_id={user_id}",
     )
+    await session.commit()

@@ -154,6 +154,7 @@ async def upload(
         resource_id=str(db_file.id),
         detail=safe_name,
     )
+    await session.commit()
     return FileMetadata(
         id=db_file.id,
         project_id=db_file.project_id,
@@ -335,6 +336,7 @@ async def delete_file(
         resource_id=str(file_id),
         detail=db_file.filename,
     )
+    await session.commit()
     try:
         await delete_object(s3_key)
     except Exception as exc:
