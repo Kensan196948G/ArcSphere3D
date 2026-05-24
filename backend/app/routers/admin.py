@@ -186,6 +186,7 @@ async def create_user(
 @router.delete(
     "/users/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     responses={
         401: {"description": "missing bearer token"},
         403: {"description": "admin role required or attempting self-deletion"},
@@ -209,7 +210,7 @@ async def delete_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="cannot delete your own account",
         )
-    await db.delete(target)
+    await crud.delete_user(db, user_id, locked_user=target)
     await crud.log_audit_event(
         db,
         action="user_deleted",
@@ -266,6 +267,7 @@ async def update_user_role(
 @router.post(
     "/users/{user_id}/reset-password",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     responses={
         400: {"description": "malformed request body"},
         401: {"description": "missing bearer token"},

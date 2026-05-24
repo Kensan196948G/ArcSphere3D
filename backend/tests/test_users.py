@@ -37,7 +37,6 @@ def test_get_me_returns_user_info() -> None:
     data = res.json()
     assert data["email"] == "demo@arcsphere3d.dev"
     assert "id" in data
-    assert "sub" in data
     assert "role" in data
 
 

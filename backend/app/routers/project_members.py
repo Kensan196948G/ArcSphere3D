@@ -95,6 +95,7 @@ async def add_member(
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
     responses={**_401, **_403, **_404, **_409},
 )
 async def remove_member(

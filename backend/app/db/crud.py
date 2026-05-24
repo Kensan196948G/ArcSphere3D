@@ -89,7 +89,7 @@ async def create_user_with_password(
     role: str = "viewer",
 ) -> UserOut:
     """Create a new DB-backed user with a bcrypt password hash."""
-    user = User(sub=email, email=email, role=role, password_hash=password_hash)
+    user = User(email=email, role=role, password_hash=password_hash)
     session.add(user)
     await session.commit()
     await session.refresh(user)
@@ -106,7 +106,7 @@ async def get_or_create_db_user(
     """Upsert a DB user by email — idempotent, safe under concurrent calls."""
     stmt = (
         pg_insert(User)
-        .values(sub=email, email=email, role=role, password_hash=password_hash)
+        .values(email=email, role=role, password_hash=password_hash)
         .on_conflict_do_update(
             index_elements=["email"],
             set_={"password_hash": password_hash, "role": role},
@@ -829,9 +829,26 @@ async def lock_user_pair_for_update(
     return second_row, first_row
 
 
-async def delete_user(session: AsyncSession, user_id: UUID) -> bool:
-    """Delete *user_id* and all their data. Returns False if user not found."""
-    user = await get_user_by_id(session, user_id)
+async def delete_user(
+    session: AsyncSession,
+    user_id: UUID,
+    *,
+    locked_user: User | None = None,
+) -> bool:
+    """Delete *user_id* and all their data. Returns False if user not found.
+
+    Related-data cleanup is enforced by SQLAlchemy relationship cascades and
+    DB-level ``ON DELETE CASCADE`` (projects → files / project_members /
+    alignments → ip_points / verticals → vips, audit_logs). All admin-driven
+    user deletions must go through this function so that any future contract
+    change (soft-delete flag, GDPR scrub, audit backfill) takes effect on every
+    privileged path automatically.
+
+    Pass ``locked_user`` when the caller has already loaded the row under
+    ``SELECT ... FOR UPDATE`` (see ``lock_user_pair_for_update``) to skip a
+    redundant SELECT and keep the deletion within the same lock scope.
+    """
+    user = locked_user if locked_user is not None else await get_user_by_id(session, user_id)
     if user is None:
         return False
     await session.delete(user)
