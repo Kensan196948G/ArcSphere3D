@@ -1,7 +1,7 @@
 """drop legacy users.sub column
 
 Revision ID: 0009_drop_users_sub_column
-Revises: 0008_add_user_password_hash
+Revises: 0009_add_project_description
 Create Date: 2026-05-23
 
 Issue #180 follow-up. Pre-#180 the application stored an email-derived
@@ -26,7 +26,7 @@ from collections.abc import Sequence
 from alembic import op
 
 revision: str = "0009_drop_users_sub_column"
-down_revision: str | None = "0008_add_user_password_hash"
+down_revision: str | None = "0009_add_project_description"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
