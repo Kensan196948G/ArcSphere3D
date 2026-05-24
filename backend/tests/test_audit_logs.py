@@ -167,8 +167,7 @@ def test_audit_logs_project_deleted() -> None:
         headers={"Authorization": f"Bearer {token}"},
     ).json()
     assert any(
-        log["action"] == "project_deleted" and log["resource_id"] == project_id
-        for log in audit
+        log["action"] == "project_deleted" and log["resource_id"] == project_id for log in audit
     )
 
 
@@ -181,6 +180,7 @@ def test_audit_logs_file_uploaded() -> None:
     )
     project_id = res.json()["id"]
     import io
+
     client.post(
         f"/api/files/upload?project_id={project_id}",
         files={"upload_file": ("model.stl", io.BytesIO(b"solid test\nendsolid"), "model/stl")},
@@ -202,6 +202,7 @@ def test_audit_logs_file_deleted() -> None:
     )
     project_id = res.json()["id"]
     import io
+
     up = client.post(
         f"/api/files/upload?project_id={project_id}",
         files={"upload_file": ("del.stl", io.BytesIO(b"solid del\nendsolid"), "model/stl")},
@@ -216,7 +217,4 @@ def test_audit_logs_file_deleted() -> None:
         "/api/admin/audit-logs?action=file_deleted",
         headers={"Authorization": f"Bearer {token}"},
     ).json()
-    assert any(
-        log["action"] == "file_deleted" and log["resource_id"] == file_id
-        for log in audit
-    )
+    assert any(log["action"] == "file_deleted" and log["resource_id"] == file_id for log in audit)
