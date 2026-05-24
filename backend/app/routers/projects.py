@@ -65,8 +65,11 @@ async def get_project(
     p = await crud.get_project(session, project_id, db_user.id)
     if p is not None:
         return ProjectOut(
-            id=p.id, name=p.name, description=p.description,
-            owner_id=p.owner_id, created_at=p.created_at,
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            owner_id=p.owner_id,
+            created_at=p.created_at,
         )
     role = await crud.get_member_role(session, project_id, db_user.id)
     if role is None:
@@ -75,8 +78,11 @@ async def get_project(
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return ProjectOut(
-        id=p.id, name=p.name, description=p.description,
-        owner_id=p.owner_id, created_at=p.created_at,
+        id=p.id,
+        name=p.name,
+        description=p.description,
+        owner_id=p.owner_id,
+        created_at=p.created_at,
     )
 
 
@@ -110,8 +116,11 @@ async def update_project(
         detail=body.name,
     )
     return ProjectOut(
-        id=p.id, name=p.name, description=p.description,
-        owner_id=p.owner_id, created_at=p.created_at,
+        id=p.id,
+        name=p.name,
+        description=p.description,
+        owner_id=p.owner_id,
+        created_at=p.created_at,
     )
 
 
