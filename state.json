@@ -5,13 +5,13 @@
     "start_date": "2026-05-14",
     "release_deadline": "2026-11-14",
     "duration_months": 6,
-    "days_remaining": 182,
+    "days_remaining": 173,
     "phase_mode": "development",
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
   },
-  "goal": "セッション 2026-05-23: PR #190/#193/#196 マージ済。監査ログ完全化(actor_email+file/project ops)。次: 新機能計画中",
-  "phase": "Development",
+  "goal": "セッション 2026-05-25: Issue #180 round-8 完了 (PR #203) — JWT sub=UUID固定、users.sub列削除、asyncio deadlock test isolation修正、HTTP_413定数修正。PR #202 ruff format修正。",
+  "phase": "Verify",
   "mvp": {
     "definition": [
       "3D Viewer (Three.js + OrbitControls + GridHelper)",
@@ -50,12 +50,12 @@
     "max_repair": 3,
     "same_error_limit": 2,
     "phase": "Verify",
-    "last_session_summary": "Session 2026-05-23: PR #190/#193/#196マージ。監査ログ完全化(actor_email + file_uploaded/deleted/renamed + project_created/updated/deleted)。ファイルタイプアイコン/Toast通知/ファイル検索フィルター追加。",
-    "current_session_start_at": "2026-05-23T17:05:00.000Z",
-    "session_soft_deadline": "2026-05-23T21:30:00+09:00",
-    "session_hard_deadline": "2026-05-23T22:00:00+09:00",
+    "last_session_summary": "Session 2026-05-25: Issue #180 round-8 完了 — JWT sub=UUID固定、users.sub列削除(Alembic migration)、crud.upsert_user純粋UUID lookup、asyncio deadlock test isolation修正(return_exceptions=True)、HTTP_413定数修正。PR #203 作成 (security/issue-180-jwt-immutable-userid)。PR #202 ruff format 修正プッシュ。",
+    "current_session_start_at": "2026-05-25T02:00:00+09:00",
+    "session_soft_deadline": "2026-05-25T05:30:00+09:00",
+    "session_hard_deadline": "2026-05-25T06:00:00+09:00",
     "last_trigger": "cron",
-    "last_cron_session_id": "20260522-020000-ArcSphere3D",
+    "last_cron_session_id": "20260525-020000-ArcSphere3D",
     "last_stop_at": ""
   },
   "automation": {
@@ -293,20 +293,20 @@
   "github": {
     "repo": null,
     "base_branch": "main",
-    "current_branch": "main",
-    "last_pr": null,
-    "remote_configured": false,
-    "push_blocked_reason": "no remote configured; awaiting user confirmation before creating gh repo"
+    "current_branch": "security/issue-180-jwt-immutable-userid",
+    "last_pr": "#203",
+    "remote_configured": true,
+    "push_blocked_reason": null
   },
   "next_session_hints": {
     "priority_order": [
-      "Improve: member_added/removed 監査ログイベント追加",
-      "Improve: 監査ログ日付レンジフィルター (frontend)",
-      "Test: file operation audit log のテスト追加 (file_uploaded/deleted/renamed)",
-      "Docs: README.md 更新 (PR #196)",
-      "Feature: project export (全ファイルZIPダウンロード)"
+      "Verify: PR #203 (Issue #180 round-8) CI完了後マージ — users.sub列削除・JWT sub UUID固定",
+      "Verify: PR #202 (Issue #201 ZIP export) CI完了後マージ",
+      "Chore: Dependabot PRs #185/#186/#187 (Vite 8/plugin-react 6/eslint 10) — major version migration or close",
+      "Build: Alembic migration 実行 (20260523_0009_drop_users_sub_column) — DROP users.sub",
+      "Feature: 次期機能 Issue 計画 (認証強化 / UI改善)"
     ],
-    "resume_note": "Session 2026-05-23: PR #190/#193/#196マージ完了。監査ログ完全化。次: member操作ログ + 日付フィルター。"
+    "resume_note": "Session 2026-05-25: Issue #180 round-8完了(PR #203)。JWT sub=UUID固定・users.sub列削除・deadlock test修正。PR #202 ruff format修正済。PR #203/#202 CI待ち。Dependabot PRs要対応。"
   },
   "compact": {
     "last_pre_compact_at": "2026-05-18T06:45:30.588Z"
