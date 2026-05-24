@@ -253,6 +253,12 @@ async def list_files(
     ]
 
 
+async def list_file_models(session: AsyncSession, project_id: UUID) -> list[File]:
+    """Return all File ORM objects for *project_id* (includes s3_key — for internal use only)."""
+    result = await session.execute(select(File).where(File.project_id == project_id))
+    return list(result.scalars().all())
+
+
 async def get_file_by_sha256(session: AsyncSession, project_id: UUID, sha256: bytes) -> File | None:
     """Return existing file row if the same content was already uploaded to this project."""
     result = await session.execute(

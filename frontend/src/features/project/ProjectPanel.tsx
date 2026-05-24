@@ -4,7 +4,7 @@ import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
 import MultipartUploader from "@/features/viewport/MultipartUploader";
-import { getProjectStats, renameFile, type ProjectStats } from "@/lib/api";
+import { exportProjectZip, getProjectStats, renameFile, type ProjectStats } from "@/lib/api";
 import { notifyError, notifySuccess } from "@/state/notificationStore";
 
 const FILE_ICONS: Record<string, string> = {
@@ -46,6 +46,7 @@ export default function ProjectPanel() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDesc, setNewProjectDesc] = useState("");
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState("");
   const [renameDescInput, setRenameDescInput] = useState("");
@@ -144,6 +145,20 @@ export default function ProjectPanel() {
     a.href = result.url;
     a.download = filename;
     a.click();
+  }
+
+  async function handleExportZip() {
+    if (!selectedProjectId) return;
+    const project = projects.find((p) => p.id === selectedProjectId);
+    const name = project?.name ?? "project";
+    setExporting(true);
+    try {
+      await exportProjectZip(token, selectedProjectId, name);
+    } catch (e) {
+      notifyError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleRenameProject(e: React.FormEvent) {
@@ -360,18 +375,30 @@ export default function ProjectPanel() {
       {/* ファイル一覧 */}
       {selectedProjectId && (
         <div>
-          <div className="mb-1 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between gap-1">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               ファイル
             </span>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
-              className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 disabled:opacity-40 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-            >
-              アップロード
-            </button>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => void handleExportZip()}
+                disabled={exporting || files.length === 0}
+                data-testid="project-export-btn"
+                className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 disabled:opacity-40 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                title="全ファイルをZIPでダウンロード"
+              >
+                {exporting ? "…" : "⬇ ZIP"}
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                className="rounded bg-slate-200 px-2 py-0.5 text-slate-600 hover:bg-slate-300 disabled:opacity-40 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+              >
+                アップロード
+              </button>
+            </div>
             <input
               ref={fileInputRef}
               type="file"

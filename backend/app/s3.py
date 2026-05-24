@@ -77,6 +77,16 @@ async def delete_object(key: str) -> None:
     await asyncio.to_thread(_delete_sync, key)
 
 
+def _get_sync(key: str) -> bytes:
+    resp = _client.get_object(Bucket=_bucket, Key=key)
+    return resp["Body"].read()  # type: ignore[no-any-return]
+
+
+async def get_object(key: str) -> bytes:
+    """Download and return the bytes at *key* from the configured S3 bucket."""
+    return await asyncio.to_thread(_get_sync, key)
+
+
 def _presign_sync(key: str, expires: int) -> str:
     return _client.generate_presigned_url(  # type: ignore[no-any-return]
         "get_object",
