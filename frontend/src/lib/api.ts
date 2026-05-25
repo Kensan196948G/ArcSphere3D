@@ -58,6 +58,29 @@ export async function login(email: string, password: string): Promise<string> {
   return data.access_token;
 }
 
+// ---- Users / Profile -------------------------------------------------------
+
+export interface UserOut {
+  id: string;
+  email: string;
+  role: string;
+}
+
+export interface ProfilePatch {
+  email?: string;
+  current_password?: string;
+  new_password?: string;
+}
+
+export async function patchUserMe(token: string, patch: ProfilePatch): Promise<UserOut> {
+  const res = await fetch(`${BASE}/users/me`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify(patch),
+  });
+  return handleResponse<UserOut>(res);
+}
+
 // ---- Projects -------------------------------------------------------------
 
 export async function listProjects(

@@ -5,7 +5,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { useUiStore } from "@/state/uiStore";
 import LoginModal from "@/features/auth/LoginModal";
 import { parseJwtPayload } from "@/lib/api";
-import { notifyInfo } from "@/state/notificationStore";
+import { notifyInfo, useNotificationStore } from "@/state/notificationStore";
 
 export default function Header() {
   const objectCount = useSceneStore((s) => s.objects.length);
@@ -15,6 +15,8 @@ export default function Header() {
   const setActivePanel = useUiStore((s) => s.setActivePanel);
   const [showLogin, setShowLogin] = useState(false);
 
+  const wsUnreadCount = useNotificationStore((s) => s.wsUnreadCount);
+  const clearWsUnread = useNotificationStore((s) => s.clearWsUnread);
   const userEmail = token ? (parseJwtPayload(token)?.email ?? null) : null;
 
   function handleLogout() {
@@ -54,6 +56,32 @@ export default function Header() {
 
           {token ? (
             <>
+              {/* 通知ベル */}
+              <button
+                type="button"
+                onClick={clearWsUnread}
+                title="通知"
+                className="relative rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+                aria-label="通知"
+              >
+                🔔
+                {wsUnreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold text-white">
+                    {wsUnreadCount > 99 ? "99+" : wsUnreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* プロフィール */}
+              <button
+                type="button"
+                onClick={() => setActivePanel("profile")}
+                title="プロフィール"
+                className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                👤
+              </button>
+
               {userEmail && (
                 <span
                   data-testid="user-email"

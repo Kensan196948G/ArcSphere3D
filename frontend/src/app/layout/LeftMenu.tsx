@@ -17,6 +17,7 @@ const items: { id: PanelId; icon: string; label: string }[] = [
   { id: "members", icon: "👥", label: "メンバー" },
   { id: "admin", icon: "🛡️", label: "管理" },
   { id: "ai", icon: "🤖", label: "AI アシスト" },
+  { id: "profile", icon: "👤", label: "プロフィール" },
   { id: "settings", icon: "⚙️", label: "設定" },
 ];
 

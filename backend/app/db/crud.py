@@ -131,6 +131,21 @@ async def update_user_password(
     )
 
 
+async def update_user_email(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    new_email: str,
+) -> None:
+    """Update email for *user_id*. Raises 409 if email is already taken. Caller commits."""
+    existing = await session.execute(
+        select(User).where(User.email == new_email, User.id != user_id)
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email already in use")
+    await session.execute(update(User).where(User.id == user_id).values(email=new_email))
+
+
 async def list_projects(
     session: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 50
 ) -> list[ProjectOut]:

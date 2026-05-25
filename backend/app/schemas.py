@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 # Password constraints: bcrypt rejects inputs > 72 bytes (security.py raises ValueError
 # rather than silently truncating, since two distinct passwords sharing the same 72-byte
@@ -54,6 +54,20 @@ class PasswordChangeRequest(BaseModel):
 
 class AdminPasswordReset(BaseModel):
     new_password: NewPassword
+
+
+class ProfilePatchRequest(BaseModel):
+    """PATCH /api/users/me — all optional; current_password required when new_password is set."""
+
+    email: EmailStr | None = None
+    current_password: ExistingPassword | None = None
+    new_password: NewPassword | None = None
+
+    @model_validator(mode="after")
+    def _password_fields_consistent(self) -> ProfilePatchRequest:
+        if self.new_password is not None and self.current_password is None:
+            raise ValueError("current_password is required when new_password is provided")
+        return self
 
 
 class UserOut(BaseModel):
