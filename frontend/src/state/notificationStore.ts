@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type NotificationType = "success" | "error" | "info";
+export type NotificationType = "success" | "error" | "info" | "warning";
 
 export interface Notification {
   id: string;
@@ -39,4 +39,8 @@ export function notifyError(message: string) {
 
 export function notifyInfo(message: string) {
   useNotificationStore.getState().addNotification("info", message);
+}
+
+export function notifyWarning(message: string) {
+  useNotificationStore.getState().addNotification("warning", message);
 }

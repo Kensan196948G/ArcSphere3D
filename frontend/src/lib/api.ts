@@ -670,3 +670,23 @@ export function parseJwtPayload(token: string): JwtPayload | null {
     return null;
   }
 }
+
+// ---- User profile ---------------------------------------------------------
+
+export interface UserProfileUpdate {
+  email?: string;
+  current_password?: string;
+  new_password?: string;
+}
+
+export async function patchUserMe(
+  token: string,
+  patch: UserProfileUpdate,
+): Promise<{ id: string; email: string; role: string }> {
+  const res = await fetch(`${BASE}/users/me`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  return handleResponse<{ id: string; email: string; role: string }>(res);
+}

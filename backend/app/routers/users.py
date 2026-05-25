@@ -9,7 +9,8 @@ from pydantic import BaseModel, EmailStr
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import CurrentUser
+from app.schemas import CurrentUser, UserProfileUpdate
+from app.security import hash_password, verify_password
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -33,6 +34,33 @@ async def get_me(
     """Return the authenticated user's DB record (includes UUID)."""
     db_user = await crud.upsert_user(session, user)
     return UserOut(id=db_user.id, email=db_user.email, role=db_user.role)
+
+
+@router.patch(
+    "/me",
+    response_model=UserOut,
+    responses={
+        400: {"description": "current_password incorrect"},
+        401: {"description": "not authenticated"},
+        409: {"description": "email already in use"},
+        422: {"description": "validation error"},
+    },
+)
+async def patch_me(
+    patch: UserProfileUpdate,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> UserOut:
+    """Update the authenticated user's email and/or password."""
+    db_user = await crud.upsert_user(session, user)
+    updated = await crud.update_user_profile(
+        session,
+        db_user,
+        patch,
+        verify_password_fn=verify_password,
+        hash_password_fn=hash_password,
+    )
+    return UserOut(id=updated.id, email=updated.email, role=updated.role)
 
 
 @router.get(

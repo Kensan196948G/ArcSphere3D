@@ -35,6 +35,7 @@ from app.schemas import (
     ProjectOut,
     ProjectStats,
     UserOut,
+    UserProfileUpdate,
     VerticalAlignmentCreate,
     VerticalAlignmentOut,
     VipCreate,
@@ -79,6 +80,46 @@ async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
     """Return the DB row for a user with *email*, or None if not found."""
     result = await session.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+
+async def update_user_profile(
+    session: AsyncSession,
+    user: User,
+    patch: UserProfileUpdate,
+    *,
+    verify_password_fn: object,
+    hash_password_fn: object,
+) -> User:
+    """Apply email/password changes for the authenticated user."""
+    from fastapi import HTTPException, status
+
+    if patch.new_password is not None:
+        if not patch.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="current_password is required to change password",
+            )
+        if not user.password_hash or not verify_password_fn(  # type: ignore[operator]
+            patch.current_password, user.password_hash
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="current_password is incorrect",
+            )
+        user.password_hash = hash_password_fn(patch.new_password)  # type: ignore[operator]
+
+    if patch.email is not None and patch.email != user.email:
+        conflict = await get_user_by_email(session, patch.email)
+        if conflict is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="email already in use",
+            )
+        user.email = patch.email
+
+    await session.commit()
+    await session.refresh(user)
+    return user
 
 
 async def create_user_with_password(
