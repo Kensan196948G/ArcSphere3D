@@ -28,7 +28,7 @@ function fileIcon(filename: string): string {
 
 export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
-  const { projects, selectedProjectId, files, loading, error } =
+  const { projects, selectedProjectId, files, activity, loading, error } =
     useProjectStore();
   const {
     fetchProjects,
@@ -39,6 +39,7 @@ export default function ProjectPanel() {
     uploadFile,
     deleteFile,
     getDownloadUrl,
+    fetchActivity,
   } = useProjectStore.getState();
   const addObject = useSceneStore((s) => s.addObject);
   const log = useSceneStore((s) => s.log);
@@ -47,6 +48,7 @@ export default function ProjectPanel() {
   const [newProjectDesc, setNewProjectDesc] = useState("");
   const [creating, setCreating] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"files" | "activity">("files");
   const [renaming, setRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState("");
   const [renameDescInput, setRenameDescInput] = useState("");
@@ -88,6 +90,13 @@ export default function ProjectPanel() {
   }, [token, fetchProjects]);
 
   useEffect(() => {
+    if (!selectedProjectId) return;
+    if (activeTab === "activity") {
+      void fetchActivity(token);
+    }
+  }, [token, selectedProjectId, activeTab, fetchActivity]);
+
+  useEffect(() => {
     if (!selectedProjectId) {
       setStats(null);
       return;
@@ -122,6 +131,7 @@ export default function ProjectPanel() {
   async function handleSelectProject(id: string) {
     setFileSearch("");
     setFileExtFilter("");
+    setActiveTab("files");
     await selectProject(token, id);
   }
 
@@ -386,8 +396,29 @@ export default function ProjectPanel() {
 
       {error && <p className="text-rose-500 dark:text-rose-400">{error}</p>}
 
-      {/* ファイル一覧 */}
+      {/* タブ切り替え */}
       {selectedProjectId && (
+        <div className="flex gap-0.5 rounded bg-slate-100 p-0.5 dark:bg-slate-800" data-testid="project-tabs">
+          {(["files", "activity"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              data-testid={`project-tab-${tab}`}
+              className={`flex-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                activeTab === tab
+                  ? "bg-white text-slate-700 shadow-sm dark:bg-slate-700 dark:text-slate-200"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              }`}
+            >
+              {tab === "files" ? "ファイル" : "アクティビティ"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ファイル一覧 */}
+      {selectedProjectId && activeTab === "files" && (
         <div>
           <div className="mb-1 flex items-center justify-between gap-1">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -582,6 +613,49 @@ export default function ProjectPanel() {
               })}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* アクティビティフィード */}
+      {selectedProjectId && activeTab === "activity" && (
+        <div data-testid="activity-feed">
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            最近のアクティビティ
+          </span>
+          {loading && (
+            <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
+          )}
+          {!loading && activity.length === 0 && (
+            <p className="text-slate-400 dark:text-slate-500">アクティビティはありません。</p>
+          )}
+          <ul className="space-y-1">
+            {activity.map((ev) => (
+              <li
+                key={ev.id}
+                className="rounded bg-slate-100/80 px-2 py-1 dark:bg-slate-800/60"
+                data-testid="activity-item"
+              >
+                <div className="flex items-baseline justify-between gap-1">
+                  <span className="truncate font-medium text-slate-600 dark:text-slate-300">
+                    {ev.action}
+                  </span>
+                  <span className="shrink-0 text-[9px] text-slate-400 dark:text-slate-500">
+                    {new Date(ev.created_at).toLocaleString("ja-JP", {
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                {ev.actor_email && (
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500">
+                    {ev.actor_email}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

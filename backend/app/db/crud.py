@@ -6,7 +6,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import Text, cast, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -798,6 +798,45 @@ async def log_audit_event(
         detail=detail,
     )
     session.add(entry)
+
+
+async def get_project_activity(
+    session: AsyncSession,
+    project_id: UUID,
+    *,
+    limit: int = 20,
+) -> list[AuditLogOut]:
+    """Return recent audit events for *project_id* (project + file + member events)."""
+    pid_str = str(project_id)
+    file_id_strs = select(cast(File.id, Text).label("fid")).where(File.project_id == project_id)
+    stmt = (
+        select(AuditLog, User.email)
+        .outerjoin(User, AuditLog.user_id == User.id)
+        .where(
+            or_(
+                (AuditLog.resource_type == "project") & (AuditLog.resource_id == pid_str),
+                (AuditLog.resource_type == "file") & AuditLog.resource_id.in_(file_id_strs),
+                (AuditLog.resource_type == "member") & (AuditLog.resource_id == pid_str),
+            )
+        )
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return [
+        AuditLogOut(
+            id=r.id,
+            user_id=r.user_id,
+            actor_email=email,
+            action=r.action,
+            resource_type=r.resource_type,
+            resource_id=r.resource_id,
+            ip_address=r.ip_address,
+            detail=r.detail,
+            created_at=r.created_at,
+        )
+        for r, email in result.all()
+    ]
 
 
 async def list_audit_logs(
