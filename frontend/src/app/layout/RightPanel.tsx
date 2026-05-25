@@ -18,6 +18,7 @@ import AlignmentPanel from "@/features/alignment/AlignmentPanel";
 import CadPanel from "@/features/cad/CadPanel";
 import MembersPanel from "@/features/members/MembersPanel";
 import AdminPanel from "@/features/admin/AdminPanel";
+import ProfilePanel from "@/features/profile/ProfilePanel";
 
 const PANEL_TITLES: Record<string, string> = {
   project: "プロジェクト",
@@ -37,6 +38,7 @@ const PANEL_TITLES: Record<string, string> = {
   cad: "CAD 読み込み",
   members: "メンバー管理",
   admin: "管理",
+  profile: "プロフィール編集",
 };
 
 export default function RightPanel() {
@@ -85,6 +87,8 @@ export default function RightPanel() {
         return <MembersPanel />;
       case "admin":
         return <AdminPanel />;
+      case "profile":
+        return <ProfilePanel />;
       default:
         return null;
     }

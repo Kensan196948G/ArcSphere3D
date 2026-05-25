@@ -651,6 +651,26 @@ export async function getProjectStats(
   return handleResponse<ProjectStats>(res);
 }
 
+// ---- User profile ---------------------------------------------------------
+
+export interface ProfilePatchRequest {
+  email?: string;
+  current_password?: string;
+  new_password?: string;
+}
+
+export async function patchUserMe(
+  token: string,
+  body: ProfilePatchRequest,
+): Promise<UserOut> {
+  const res = await fetch(`${BASE}/users/me`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handleResponse<UserOut>(res);
+}
+
 // ---- JWT utils (client-side payload decode, no signature check) -----------
 
 export interface JwtPayload {
