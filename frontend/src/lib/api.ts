@@ -711,3 +711,17 @@ export async function patchUserMe(
   });
   return handleResponse<{ id: string; email: string; role: string }>(res);
 }
+
+// ---- Project activity feed ------------------------------------------------
+
+export async function getProjectActivity(
+  token: string,
+  projectId: string,
+  limit = 20,
+): Promise<AuditLogOut[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  const res = await fetch(`${BASE}/projects/${projectId}/activity?${params}`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<AuditLogOut[]>(res);
+}

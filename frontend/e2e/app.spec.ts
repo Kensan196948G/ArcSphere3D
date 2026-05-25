@@ -80,6 +80,26 @@ async function setupApiMocks(
     });
   });
 
+  await page.route(`**/api/projects/${MOCK_PROJECT.id}/activity**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          id: "act-001",
+          user_id: MOCK_PROJECT.owner_id,
+          actor_email: "demo@arcsphere3d.dev",
+          action: "project_created",
+          resource_type: "project",
+          resource_id: MOCK_PROJECT.id,
+          ip_address: null,
+          detail: null,
+          created_at: "2026-05-16T00:00:00Z",
+        },
+      ]),
+    });
+  });
+
   await page.route("**/api/projects*", async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({
@@ -2848,5 +2868,39 @@ test.describe("Issue #217: Viewport ビュー切り替えボタン", () => {
     }
     // エラーダイアログが出ないことを確認
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
+});
+
+// ---- アクティビティフィード (Issue #221) ----------------------------------------
+test.describe("Issue #221: プロジェクトアクティビティフィード", () => {
+  async function loginAndSelectProject(page: import("@playwright/test").Page) {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.selectOption("select", MOCK_PROJECT.id);
+  }
+
+  test("プロジェクト選択後にタブが表示される", async ({ page }) => {
+    await loginAndSelectProject(page);
+    await expect(page.getByTestId("project-tabs")).toBeVisible();
+    await expect(page.getByTestId("project-tab-files")).toBeVisible();
+    await expect(page.getByTestId("project-tab-activity")).toBeVisible();
+  });
+
+  test("アクティビティタブをクリックするとフィードが表示される", async ({ page }) => {
+    await loginAndSelectProject(page);
+    await page.getByTestId("project-tab-activity").click();
+    await expect(page.getByTestId("activity-feed")).toBeVisible();
+    await expect(page.getByTestId("activity-item").first()).toBeVisible();
+  });
+
+  test("アクティビティイベントに action が含まれる", async ({ page }) => {
+    await loginAndSelectProject(page);
+    await page.getByTestId("project-tab-activity").click();
+    await expect(page.getByText("project_created")).toBeVisible();
   });
 });

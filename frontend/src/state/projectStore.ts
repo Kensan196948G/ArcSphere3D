@@ -4,10 +4,12 @@ import {
   deleteFile as apiDeleteFile,
   deleteProject as apiDeleteProject,
   getDownloadUrl,
+  getProjectActivity as apiGetProjectActivity,
   listFiles,
   listProjects,
   updateProject as apiUpdateProject,
   uploadFile as apiUploadFile,
+  type AuditLogOut,
   type FileMetadata,
   type ProjectOut,
 } from "@/lib/api";
@@ -16,12 +18,14 @@ interface ProjectState {
   projects: ProjectOut[];
   selectedProjectId: string | null;
   files: FileMetadata[];
+  activity: AuditLogOut[];
   loading: boolean;
   error: string | null;
 
   fetchProjects: (token: string, q?: string) => Promise<void>;
   selectProject: (token: string, projectId: string) => Promise<void>;
   fetchFiles: (token: string, search?: string, ext?: string) => Promise<void>;
+  fetchActivity: (token: string) => Promise<void>;
   createProject: (token: string, name: string, description?: string) => Promise<void>;
   renameProject: (
     token: string,
@@ -42,6 +46,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   selectedProjectId: null,
   files: [],
+  activity: [],
   loading: false,
   error: null,
 
@@ -72,6 +77,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     try {
       const files = await listFiles(token, selectedProjectId, 0, 50, search, ext);
       set({ files, loading: false });
+    } catch (e) {
+      set({ loading: false, error: String(e) });
+    }
+  },
+
+  fetchActivity: async (token) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) return;
+    set({ loading: true, error: null });
+    try {
+      const activity = await apiGetProjectActivity(token, selectedProjectId);
+      set({ activity, loading: false });
     } catch (e) {
       set({ loading: false, error: String(e) });
     }

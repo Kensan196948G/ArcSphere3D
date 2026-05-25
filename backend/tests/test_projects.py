@@ -335,3 +335,44 @@ def test_search_projects_q_too_long_rejected() -> None:
     token = _login(DEMO_CREDS)
     res = client.get(f"/api/projects?q={'x' * 129}", headers=_auth(token))
     assert res.status_code == 422
+
+
+# ---- GET /api/projects/{id}/activity (Issue #221) ----------------------------
+
+
+def test_activity_returns_project_event() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, name="ActivityProject")
+    res = client.get(f"/api/projects/{project_id}/activity", headers=_auth(token))
+    assert res.status_code == 200
+    events = res.json()
+    assert isinstance(events, list)
+    actions = [e["action"] for e in events]
+    assert "project_created" in actions
+
+
+def test_activity_non_member_gets_404() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, name="ActivityNonMemberProject")
+    other_token = _login(OTHER_CREDS)
+    res = client.get(f"/api/projects/{project_id}/activity", headers=_auth(other_token))
+    assert res.status_code == 404
+
+
+def test_activity_viewer_can_access() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, name="ActivityViewerProject")
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    _add_member(token, project_id, other_id, role="viewer")
+    res = client.get(f"/api/projects/{project_id}/activity", headers=_auth(other_token))
+    assert res.status_code == 200
+    assert isinstance(res.json(), list)
+
+
+def test_activity_limit_param() -> None:
+    token = _login(DEMO_CREDS)
+    project_id = _create_project(token, name="ActivityLimitProject")
+    res = client.get(f"/api/projects/{project_id}/activity?limit=1", headers=_auth(token))
+    assert res.status_code == 200
+    assert len(res.json()) <= 1

@@ -13,7 +13,14 @@ from fastapi.responses import StreamingResponse
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
 from app.s3 import get_object
-from app.schemas import CurrentUser, ProjectCreate, ProjectOut, ProjectStats, ProjectUpdate
+from app.schemas import (
+    AuditLogOut,
+    CurrentUser,
+    ProjectCreate,
+    ProjectOut,
+    ProjectStats,
+    ProjectUpdate,
+)
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -231,3 +238,22 @@ async def export_project(
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}.zip"'},
     )
+
+
+@router.get(
+    "/{project_id}/activity",
+    response_model=list[AuditLogOut],
+    responses={**_401, **_403, **_404},
+)
+async def get_project_activity(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+    limit: int = Query(default=20, ge=1, le=50),
+) -> list[AuditLogOut]:
+    """Return recent audit events for the project (viewer+ role required)."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    return await crud.get_project_activity(session, project_id, limit=limit)
