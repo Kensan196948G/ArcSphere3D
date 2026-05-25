@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -490,3 +491,43 @@ def test_update_role_invalid_role_returns_400() -> None:
         headers=_auth(token),
     )
     assert res.status_code in (400, 422)
+
+
+# ---- Invite email (Issue #223) -----------------------------------------------
+
+
+def test_add_member_triggers_invite_email() -> None:
+    """send_member_invite must be called as a background task when a member is added."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    pid = _create_project(token, name="InviteEmailProject")
+
+    mock_fn = MagicMock()
+    with patch("app.routers.project_members.send_member_invite", mock_fn):
+        res = client.post(
+            f"/api/projects/{pid}/members",
+            json={"user_id": other_id, "role": "editor"},
+            headers=_auth(token),
+        )
+    assert res.status_code == 201
+    mock_fn.assert_called_once()
+    call_kwargs = mock_fn.call_args.kwargs
+    assert call_kwargs["to_email"] == "other@arcsphere3d.dev"
+    assert call_kwargs["role"] == "editor"
+    assert "InviteEmailProject" in call_kwargs["project_name"]
+
+
+def test_add_member_succeeds_when_smtp_disabled() -> None:
+    """SMTP not configured must not block member addition (graceful skip)."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    other_id = _get_user_id(other_token)
+    pid = _create_project(token, name="NoSMTPProject")
+
+    res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "viewer"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 201

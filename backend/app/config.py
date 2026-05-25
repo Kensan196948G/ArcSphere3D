@@ -40,6 +40,16 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO")
 
+    smtp_host: str = Field(default="")
+    smtp_port: int = Field(default=587)
+    smtp_user: str = Field(default="")
+    smtp_password: str = Field(default="")
+    smtp_from: str = Field(default="noreply@arcsphere3d.dev")
+
+    @property
+    def smtp_enabled(self) -> bool:
+        return bool(self.smtp_host)
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
