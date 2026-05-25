@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
+from app.email import send_member_invite
 from app.schemas import CurrentUser, MemberAdd, MemberOut, MemberRoleUpdate
 
 router = APIRouter(
@@ -71,6 +72,7 @@ async def list_members(
 async def add_member(
     project_id: UUID,
     body: MemberAdd,
+    background_tasks: BackgroundTasks,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
 ) -> MemberOut:
@@ -89,6 +91,14 @@ async def add_member(
         detail=f"user_id={body.user_id} role={body.role}",
     )
     await session.commit()
+    project = await crud.get_project_by_id(session, project_id)
+    background_tasks.add_task(
+        send_member_invite,
+        to_email=member.email,
+        project_name=project.name if project else str(project_id),
+        role=body.role,
+        invited_by_email=db_user.email,
+    )
     return member
 
 
