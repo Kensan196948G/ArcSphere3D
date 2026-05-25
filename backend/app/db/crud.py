@@ -147,9 +147,7 @@ async def list_projects(
     )
     if q:
         pattern = f"%{q}%"
-        stmt = stmt.where(
-            or_(Project.name.ilike(pattern), Project.description.ilike(pattern))
-        )
+        stmt = stmt.where(or_(Project.name.ilike(pattern), Project.description.ilike(pattern)))
     result = await session.execute(stmt.offset(skip).limit(limit))
     return [
         ProjectOut(

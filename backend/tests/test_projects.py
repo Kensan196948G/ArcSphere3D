@@ -310,9 +310,7 @@ def test_search_projects_by_description() -> None:
     res = client.get("/api/projects?q=UniqueDescKeyword", headers=_auth(token))
     assert res.status_code == 200
     projects = res.json()
-    assert any(
-        p.get("description") and "UniqueDescKeyword" in p["description"] for p in projects
-    )
+    assert any(p.get("description") and "UniqueDescKeyword" in p["description"] for p in projects)
 
 
 def test_search_projects_no_match_returns_empty() -> None:
