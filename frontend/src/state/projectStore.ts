@@ -19,7 +19,7 @@ interface ProjectState {
   loading: boolean;
   error: string | null;
 
-  fetchProjects: (token: string) => Promise<void>;
+  fetchProjects: (token: string, q?: string) => Promise<void>;
   selectProject: (token: string, projectId: string) => Promise<void>;
   createProject: (token: string, name: string, description?: string) => Promise<void>;
   renameProject: (
@@ -44,10 +44,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchProjects: async (token) => {
+  fetchProjects: async (token, q) => {
     set({ loading: true, error: null });
     try {
-      const projects = await listProjects(token);
+      const projects = await listProjects(token, 0, 50, q);
       set({ projects, loading: false });
     } catch (e) {
       set({ loading: false, error: String(e) });

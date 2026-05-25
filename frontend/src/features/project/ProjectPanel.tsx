@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/state/authStore";
 import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
@@ -53,21 +53,29 @@ export default function ProjectPanel() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
-  const [projectFilter, setProjectFilter] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
   const [fileFilter, setFileFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const filteredProjects = projectFilter.trim()
-    ? projects.filter((p) =>
-        p.name.toLowerCase().includes(projectFilter.trim().toLowerCase()),
-      )
-    : projects;
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filteredFiles = fileFilter.trim()
     ? files.filter((f) =>
         f.filename.toLowerCase().includes(fileFilter.trim().toLowerCase()),
       )
-    : files;
+    : projects.length > 0
+      ? files
+      : files;
+
+  const handleProjectSearchChange = useCallback(
+    (value: string) => {
+      setProjectSearch(value);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => {
+        void fetchProjects(token, value.trim() || undefined);
+      }, 300);
+    },
+    [token, fetchProjects],
+  );
 
   useEffect(() => {
     fetchProjects(token);
@@ -232,16 +240,14 @@ export default function ProjectPanel() {
         <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           プロジェクト
         </label>
-        {projects.length > 4 && (
-          <input
-            type="search"
-            placeholder="🔍 プロジェクトを検索…"
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-            data-testid="project-filter-input"
-            className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
-          />
-        )}
+        <input
+          type="search"
+          placeholder="🔍 プロジェクトを検索…"
+          value={projectSearch}
+          onChange={(e) => handleProjectSearchChange(e.target.value)}
+          data-testid="project-search-input"
+          className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+        />
         <select
           value={selectedProjectId ?? ""}
           onChange={(e) => handleSelectProject(e.target.value)}
@@ -250,7 +256,7 @@ export default function ProjectPanel() {
           <option value="" disabled>
             — プロジェクトを選択 —
           </option>
-          {filteredProjects.map((p) => (
+          {projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>

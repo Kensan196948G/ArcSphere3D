@@ -64,8 +64,11 @@ export async function listProjects(
   token: string,
   skip = 0,
   limit = 50,
+  q?: string,
 ): Promise<ProjectOut[]> {
-  const res = await fetch(`${BASE}/projects?skip=${skip}&limit=${limit}`, {
+  const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+  if (q) params.set("q", q);
+  const res = await fetch(`${BASE}/projects?${params}`, {
     headers: authHeaders(token),
   });
   return handleResponse<ProjectOut[]>(res);
