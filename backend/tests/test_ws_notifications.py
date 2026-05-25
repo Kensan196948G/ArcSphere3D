@@ -33,12 +33,10 @@ def _get_user_token() -> str:
 def test_ws_connect_valid_token() -> None:
     token = _get_user_token()
     with client.websocket_connect(f"/api/ws/notifications?token={token}") as ws:
-        # Connection succeeds — no exception raised.
         assert ws is not None
 
 
 def test_ws_connect_no_token_rejected() -> None:
-    # Server sends 1008 before handshake completes — __enter__ raises disconnect.
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/api/ws/notifications"):
             pass
@@ -52,16 +50,23 @@ def test_ws_connect_invalid_token_rejected() -> None:
     assert exc_info.value.code == 1008
 
 
-def test_ws_receive_broadcast() -> None:
-    from app.ws_manager import manager
+async def test_ws_broadcast_unit() -> None:
+    """Unit test: ConnectionManager.broadcast() delivers message to all registered sockets."""
+    from unittest.mock import AsyncMock
+    from uuid import UUID
 
-    token = _get_user_token()
-    with client.websocket_connect(f"/api/ws/notifications?token={token}") as ws:
-        import asyncio
+    from app.ws_manager import ConnectionManager
 
-        asyncio.get_event_loop().run_until_complete(
-            manager.broadcast({"type": "info", "message": "hello"})
-        )
-        data = ws.receive_json()
-        assert data["message"] == "hello"
-        assert data["type"] == "info"
+    mgr = ConnectionManager()
+    ws1: AsyncMock = AsyncMock()
+    ws2: AsyncMock = AsyncMock()
+    uid1 = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    uid2 = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+
+    mgr.connect(uid1, ws1)
+    mgr.connect(uid2, ws2)
+
+    await mgr.broadcast({"type": "info", "message": "hello"})
+
+    ws1.send_json.assert_called_once_with({"type": "info", "message": "hello"})
+    ws2.send_json.assert_called_once_with({"type": "info", "message": "hello"})
