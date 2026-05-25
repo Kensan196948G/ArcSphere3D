@@ -52,6 +52,12 @@ class PasswordChangeRequest(BaseModel):
     new_password: NewPassword
 
 
+class UserProfileUpdate(BaseModel):
+    email: EmailStr | None = None
+    current_password: ExistingPassword | None = None
+    new_password: NewPassword | None = None
+
+
 class AdminPasswordReset(BaseModel):
     new_password: NewPassword
 

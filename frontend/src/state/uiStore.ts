@@ -17,7 +17,8 @@ export type PanelId =
   | "alignment"
   | "cad"
   | "members"
-  | "admin";
+  | "admin"
+  | "profile";
 
 interface UiState {
   activePanel: PanelId;

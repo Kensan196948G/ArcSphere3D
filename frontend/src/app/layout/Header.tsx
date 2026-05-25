@@ -5,7 +5,7 @@ import { useThemeStore } from "@/state/themeStore";
 import { useUiStore } from "@/state/uiStore";
 import LoginModal from "@/features/auth/LoginModal";
 import { parseJwtPayload } from "@/lib/api";
-import { notifyInfo } from "@/state/notificationStore";
+import { notifyInfo, useNotificationStore } from "@/state/notificationStore";
 
 export default function Header() {
   const objectCount = useSceneStore((s) => s.objects.length);
@@ -14,6 +14,7 @@ export default function Header() {
   const { theme, toggle } = useThemeStore();
   const setActivePanel = useUiStore((s) => s.setActivePanel);
   const [showLogin, setShowLogin] = useState(false);
+  const unreadCount = useNotificationStore((s) => s.notifications.length);
 
   const userEmail = token ? (parseJwtPayload(token)?.email ?? null) : null;
 
@@ -52,6 +53,27 @@ export default function Header() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
+          {/* 通知ベル */}
+          {token && (
+            <button
+              type="button"
+              data-testid="notification-bell"
+              onClick={() => {}}
+              title="通知"
+              className="relative rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  data-testid="notification-badge"
+                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white"
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {token ? (
             <>
               {userEmail && (
@@ -63,6 +85,14 @@ export default function Header() {
                   {userEmail}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setActivePanel("profile")}
+                className="rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+                title="プロフィール編集"
+              >
+                ✏️
+              </button>
               <button
                 type="button"
                 onClick={handleLogout}
