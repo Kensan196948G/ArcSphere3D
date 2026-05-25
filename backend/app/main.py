@@ -17,6 +17,7 @@ from app.routers import (
     auth,
     files,
     health,
+    notifications,
     project_members,
     projects,
     users,
@@ -64,6 +65,7 @@ def create_app() -> FastAPI:
     app.include_router(alignments.router)
     app.include_router(verticals.router)
     app.include_router(project_members.router)
+    app.include_router(notifications.router)
 
     return app
 
