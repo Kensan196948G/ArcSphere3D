@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
-from app.schemas import CurrentUser, MemberAdd, MemberOut
+from app.schemas import CurrentUser, MemberAdd, MemberOut, MemberRoleUpdate
 
 router = APIRouter(
     prefix="/api/projects/{project_id}/members",
@@ -90,6 +90,41 @@ async def add_member(
     )
     await session.commit()
     return member
+
+
+@router.patch(
+    "/{user_id}",
+    response_model=MemberOut,
+    responses={**_400, **_401, **_403, **_404, **_409},
+)
+async def update_member_role(
+    project_id: UUID,
+    user_id: UUID,
+    body: MemberRoleUpdate,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> MemberOut:
+    """Update an existing member's role. Only the project owner may call this."""
+    await _require_owner(project_id, session, user)
+    db_user = await crud.upsert_user(session, user)
+    result = await crud.update_member_role(session, project_id, user_id, body.role)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="cannot demote the last owner",
+        )
+    if result is False:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="member not found")
+    await crud.log_audit_event(
+        session,
+        action="member_role_updated",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project_id),
+        detail=f"user_id={user_id} new_role={body.role}",
+    )
+    await session.commit()
+    return result
 
 
 @router.delete(

@@ -344,3 +344,149 @@ def test_transfer_ownership_then_remove_original_owner() -> None:
     # original owner removed, new owner still present
     assert owner_id not in roles or roles[owner_id] != "owner"
     assert roles.get(other_id) == "owner"
+
+
+# ---- PATCH /members/{user_id} (Issue #215) ----
+
+
+def test_update_member_role_returns_200() -> None:
+    """Owner can change an editor's role to viewer and get updated MemberOut."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add other user as editor
+    add_res = client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+    assert add_res.status_code == 201
+
+    # Owner changes role to viewer
+    res = client.patch(
+        f"/api/projects/{pid}/members/{other_id}",
+        json={"role": "viewer"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["user_id"] == other_id
+    assert data["role"] == "viewer"
+    assert data["project_id"] == pid
+
+
+def test_update_member_role_to_owner() -> None:
+    """Owner can promote an editor to owner role."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+
+    res = client.patch(
+        f"/api/projects/{pid}/members/{other_id}",
+        json={"role": "owner"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    assert res.json()["role"] == "owner"
+
+
+def test_update_nonexistent_member_role_returns_404() -> None:
+    """Patching a user_id that has no membership returns 404."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+    # other_id is NOT added as member
+
+    res = client.patch(
+        f"/api/projects/{pid}/members/{other_id}",
+        json={"role": "viewer"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 404
+
+
+def test_update_role_last_owner_returns_409() -> None:
+    """Demoting the sole owner must return 409 Conflict."""
+    token = _login(DEMO_CREDS)
+    owner_id = _get_user_id(token)
+    pid = _create_project(token)
+
+    res = client.patch(
+        f"/api/projects/{pid}/members/{owner_id}",
+        json={"role": "editor"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 409
+    assert "last owner" in res.text.lower()
+
+
+def test_update_role_with_two_owners_demotes_ok() -> None:
+    """When 2 owners exist, demoting one succeeds (no 409)."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Promote other user to owner
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "owner"},
+        headers=_auth(token),
+    )
+
+    # Now demote other user back to editor — 2 owners, so allowed
+    res = client.patch(
+        f"/api/projects/{pid}/members/{other_id}",
+        json={"role": "editor"},
+        headers=_auth(token),
+    )
+    assert res.status_code == 200
+    assert res.json()["role"] == "editor"
+
+
+def test_non_owner_cannot_update_role_returns_403() -> None:
+    """Editor may not call PATCH /members/{user_id} — owner only."""
+    token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    owner_id = _get_user_id(token)
+    pid = _create_project(token)
+    other_id = _get_user_id(other_token)
+
+    # Add other user as editor
+    client.post(
+        f"/api/projects/{pid}/members",
+        json={"user_id": other_id, "role": "editor"},
+        headers=_auth(token),
+    )
+
+    # Editor tries to change owner's role — must be 403
+    res = client.patch(
+        f"/api/projects/{pid}/members/{owner_id}",
+        json={"role": "viewer"},
+        headers=_auth(other_token),
+    )
+    assert res.status_code == 403
+
+
+def test_update_role_invalid_role_returns_400() -> None:
+    """Body validation: unknown role string must return 400."""
+    token = _login(DEMO_CREDS)
+    owner_id = _get_user_id(token)
+    pid = _create_project(token)
+
+    res = client.patch(
+        f"/api/projects/{pid}/members/{owner_id}",
+        json={"role": "superadmin"},
+        headers=_auth(token),
+    )
+    assert res.status_code in (400, 422)
