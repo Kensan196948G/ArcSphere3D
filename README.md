@@ -121,8 +121,10 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 91  | 📦 プロジェクト ZIP エクスポート (Issue #201, PR #202)                            | ✅ Done        |
 | 92  | 🔔 WebSocket push通知システム — ベル + ドロップダウン (Issue #206)                | ✅ Done        |
 | 93  | 👤 ユーザープロフィール編集 — メール/パスワード変更 (Issue #207)                  | ✅ Done        |
-| 94  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 95  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 94  | ☸️ Kubernetes manifest 初期構成 — StatefulSet/Deployment/Ingress (ADR-0003)       | ✅ Done        |
+| 95  | 🧪 PATCH /api/users/me property-based テスト (hypothesis + invariants)            | ✅ Done        |
+| 96  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 97  | 🤖 AI アシスト CAD コマンド (Claude API 統合)                                     | 🔮 Planned     |
 
 > 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
 
@@ -134,6 +136,8 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | ---------- | ------------------------------------------------------------------------------------- | ----------- |
 | `904a00d`  | 🔔 WebSocket push通知 — `/api/ws/notifications`, ConnectionManager, ベルUI (Issue #206) | ⚙️ Feature  |
 | `7c82f51`  | 👤 プロフィール編集 — `PATCH /api/users/me` メール/PW変更 + ProfilePanel (Issue #207) | ⚙️ Feature  |
+| `dda7a97`  | 🧪 schemathesis property-based テスト追加 — `PATCH /api/users/me` 不変量           | 🧪 Test     |
+| `e825184`  | ☸️ Kubernetes manifest 初期構成 + ADR-0003 (StatefulSet/Deployment/Ingress/WS)     | 🛠️ Infra    |
 
 ### 📋 Session 2026-05-25 (PR #202, #203)
 
