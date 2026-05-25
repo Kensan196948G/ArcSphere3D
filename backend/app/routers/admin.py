@@ -102,7 +102,7 @@ async def get_audit_logs(
     skip: int = Query(default=0, ge=0, le=2_147_483_647),
     limit: int = Query(default=100, ge=1, le=500),
     user_id: UUID | None = Query(default=None),
-    action: str | None = Query(default=None),
+    action: str | None = Query(default=None, max_length=128, pattern=r"^[^\x00]*$"),
 ) -> list[AuditLogOut]:
     """Return audit log entries (newest first). Admin only."""
     return await crud.list_audit_logs(db, skip=skip, limit=limit, user_id=user_id, action=action)
