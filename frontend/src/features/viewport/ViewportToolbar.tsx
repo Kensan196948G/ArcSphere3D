@@ -32,11 +32,42 @@ function ToolBtn({ label, title, active, testId, onClick }: ToolBtnProps) {
   );
 }
 
-const PRESETS: { preset: CameraPreset; label: string; title: string }[] = [
-  { preset: "perspective", label: "🔭 3D", title: "パース（3D）ビュー" },
-  { preset: "top", label: "⬆ 上", title: "平面図ビュー（真上）" },
-  { preset: "front", label: "正面", title: "正面ビュー" },
-  { preset: "side", label: "側面", title: "側面ビュー（右）" },
+const PRESETS: {
+  preset: CameraPreset;
+  label: string;
+  title: string;
+  testId: string;
+}[] = [
+  {
+    preset: "perspective",
+    label: "🔭 3D",
+    title: "パース（3D）ビュー",
+    testId: "view-perspective-btn",
+  },
+  {
+    preset: "top",
+    label: "⬆ 上",
+    title: "平面図ビュー（真上）",
+    testId: "view-top-btn",
+  },
+  {
+    preset: "front",
+    label: "正面",
+    title: "正面ビュー",
+    testId: "view-front-btn",
+  },
+  {
+    preset: "side",
+    label: "側面",
+    title: "側面ビュー（右）",
+    testId: "view-side-btn",
+  },
+  {
+    preset: "isometric",
+    label: "等角",
+    title: "アイソメトリックビュー",
+    testId: "view-isometric-btn",
+  },
 ];
 
 const SHORTCUTS = [
@@ -135,16 +166,18 @@ export default function ViewportToolbar() {
       <ToolBtn
         label="カメラリセット"
         title="カメラ位置をリセット"
+        testId="camera-reset-btn"
         onClick={resetCamera}
       />
 
       <div className="mx-1 h-4 w-px bg-slate-600" />
 
-      {PRESETS.map(({ preset, label, title }) => (
+      {PRESETS.map(({ preset, label, title, testId }) => (
         <ToolBtn
           key={preset}
           label={label}
           title={title}
+          testId={testId}
           onClick={() => setCameraPreset(preset)}
         />
       ))}

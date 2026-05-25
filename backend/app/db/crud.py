@@ -173,17 +173,23 @@ async def update_user_password(
 
 
 async def list_projects(
-    session: AsyncSession, user_id: UUID, skip: int = 0, limit: int = 50
+    session: AsyncSession,
+    user_id: UUID,
+    skip: int = 0,
+    limit: int = 50,
+    q: str | None = None,
 ) -> list[ProjectOut]:
     """Return projects owned by *user_id* OR where *user_id* is a member."""
-    result = await session.execute(
+    stmt = (
         select(Project)
         .outerjoin(ProjectMember, ProjectMember.project_id == Project.id)
         .where(or_(Project.owner_id == user_id, ProjectMember.user_id == user_id))
         .distinct()
-        .offset(skip)
-        .limit(limit)
     )
+    if q:
+        pattern = f"%{q}%"
+        stmt = stmt.where(or_(Project.name.ilike(pattern), Project.description.ilike(pattern)))
+    result = await session.execute(stmt.offset(skip).limit(limit))
     return [
         ProjectOut(
             id=r.id,

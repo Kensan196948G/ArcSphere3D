@@ -2888,3 +2888,49 @@ test.describe("ProfilePanel", () => {
     await expect(page.getByTestId("profile-new-email")).toBeVisible();
   });
 });
+
+// ---- Viewport ビュー切り替えボタン (Issue #217) --------------------------------
+
+test.describe("Issue #217: Viewport ビュー切り替えボタン", () => {
+  async function loginAndOpenViewport(page: import("@playwright/test").Page) {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  }
+
+  test("標準ビューボタン群が表示される", async ({ page }) => {
+    await loginAndOpenViewport(page);
+    await expect(page.getByTestId("view-perspective-btn")).toBeVisible();
+    await expect(page.getByTestId("view-top-btn")).toBeVisible();
+    await expect(page.getByTestId("view-front-btn")).toBeVisible();
+    await expect(page.getByTestId("view-side-btn")).toBeVisible();
+    await expect(page.getByTestId("view-isometric-btn")).toBeVisible();
+  });
+
+  test("カメラリセットボタンが表示される", async ({ page }) => {
+    await loginAndOpenViewport(page);
+    await expect(page.getByTestId("camera-reset-btn")).toBeVisible();
+  });
+
+  test("ビュー切り替えボタンをクリックしてもエラーにならない", async ({
+    page,
+  }) => {
+    await loginAndOpenViewport(page);
+    for (const testId of [
+      "view-top-btn",
+      "view-front-btn",
+      "view-side-btn",
+      "view-isometric-btn",
+      "view-perspective-btn",
+      "camera-reset-btn",
+    ]) {
+      await page.getByTestId(testId).click();
+    }
+    // エラーダイアログが出ないことを確認
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  });
+});
