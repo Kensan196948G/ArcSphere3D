@@ -2807,6 +2807,151 @@ test.describe("ProjectPanel: File Rename UI", () => {
   });
 });
 
+// ---- ProfilePanel (Issue #211) -----------------------------------------------
+
+test.describe("ProfilePanel", () => {
+  test("未ログイン状態でプロフィールパネルを開くと案内メッセージが表示される (Issue #211)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "プロフィール" }).click();
+    await expect(page.getByText("ログインが必要です。")).toBeVisible();
+  });
+
+  test("左メニューに「プロフィール」ボタンが存在する (Issue #211)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("button", { name: "プロフィール" }),
+    ).toBeVisible();
+  });
+
+  test("ログイン後に左メニューからプロフィールパネルを開ける (Issue #211)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByRole("button", { name: "プロフィール" }).click();
+    await expect(page.getByTestId("profile-new-email")).toBeVisible();
+  });
+
+  test("プロフィールパネル: メールアドレス変更フォームが表示される (Issue #211)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByRole("button", { name: "プロフィール" }).click();
+    await expect(page.getByTestId("profile-new-email")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "変更する" }),
+    ).toBeVisible();
+  });
+
+  test("プロフィールパネル: パスワード変更フォームが表示される (Issue #211)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByRole("button", { name: "プロフィール" }).click();
+    await expect(page.getByTestId("profile-current-pw")).toBeVisible();
+    await expect(page.getByTestId("profile-new-pw")).toBeVisible();
+    await expect(page.getByTestId("profile-confirm-pw")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "パスワード変更" }),
+    ).toBeVisible();
+  });
+
+  test("パスワード不一致でエラートーストが表示される (Issue #211)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByRole("button", { name: "プロフィール" }).click();
+    await page.getByTestId("profile-current-pw").fill("currentpass");
+    await page.getByTestId("profile-new-pw").fill("newpassword1");
+    await page.getByTestId("profile-confirm-pw").fill("differentpass");
+    await page.getByRole("button", { name: "パスワード変更" }).click();
+    await expect(
+      page.locator('[data-testid="toast-item"]').filter({ hasText: "新しいパスワードが一致しません" }),
+    ).toBeVisible();
+  });
+
+  test("メールアドレス変更成功でサクセストーストが表示される (Issue #211)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.route("**/api/users/me", async (route) => {
+      if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            email: "new@arcsphere3d.dev",
+            role: "owner",
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByRole("button", { name: "プロフィール" }).click();
+    const patchReq = page.waitForRequest(
+      (req) =>
+        req.url().includes("/api/users/me") && req.method() === "PATCH",
+    );
+    await page.getByTestId("profile-new-email").fill("new@arcsphere3d.dev");
+    await page.getByRole("button", { name: "変更する" }).click();
+    await patchReq;
+    await expect(
+      page.locator('[data-testid="toast-item"]').filter({ hasText: "メールアドレスを変更しました" }),
+    ).toBeVisible();
+  });
+
+  test("ヘッダーの✏️ボタンからプロフィールパネルを開ける (Issue #211)", async ({
+    page,
+  }) => {
+    await setupApiMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByTitle("プロフィール編集").click();
+    await expect(page.getByTestId("profile-new-email")).toBeVisible();
+  });
+});
+
+// ---- Viewport ビュー切り替えボタン (Issue #217) --------------------------------
+
 test.describe("Issue #217: Viewport ビュー切り替えボタン", () => {
   async function loginAndOpenViewport(page: import("@playwright/test").Page) {
     await setupApiMocks(page);
