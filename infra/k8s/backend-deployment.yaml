@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: arcsphere3d
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/kensan196948g/arcsphere3d-backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: arcsphere3d-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secrets
+                  key: POSTGRES_PASSWORD
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secrets
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secrets
+                  key: S3_SECRET_KEY
+            - name: JWT_PRIVATE_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secrets
+                  key: JWT_PRIVATE_KEY_PEM
+            - name: JWT_PUBLIC_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secrets
+                  key: JWT_PUBLIC_KEY_PEM
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/readyz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: arcsphere3d
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000
