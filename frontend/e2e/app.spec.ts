@@ -2831,9 +2831,9 @@ test.describe("ProfilePanel", () => {
     await page.getByTestId("profile-new-pw").fill("newpassword1");
     await page.getByTestId("profile-confirm-pw").fill("differentpass");
     await page.getByRole("button", { name: "パスワード変更" }).click();
-    await expect(page.locator('[data-testid="toast-item"]')).toContainText(
-      "新しいパスワードが一致しません",
-    );
+    await expect(
+      page.locator('[data-testid="toast-item"]').filter({ hasText: "新しいパスワードが一致しません" }),
+    ).toBeVisible();
   });
 
   test("メールアドレス変更成功でサクセストーストが表示される (Issue #211)", async ({
@@ -2869,9 +2869,9 @@ test.describe("ProfilePanel", () => {
     await page.getByTestId("profile-new-email").fill("new@arcsphere3d.dev");
     await page.getByRole("button", { name: "変更する" }).click();
     await patchReq;
-    await expect(page.locator('[data-testid="toast-item"]')).toContainText(
-      "メールアドレスを変更しました",
-    );
+    await expect(
+      page.locator('[data-testid="toast-item"]').filter({ hasText: "メールアドレスを変更しました" }),
+    ).toBeVisible();
   });
 
   test("ヘッダーの✏️ボタンからプロフィールパネルを開ける (Issue #211)", async ({
