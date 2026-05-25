@@ -2149,9 +2149,12 @@ test("MembersPanel: オーナーはロール変更セレクトで役割を変更
   page,
 }) => {
   await loginAsOwnerAndOpenMembers(page);
-  // editor member の行のロール変更セレクトを選択して "viewer" に変更する
-  const selects = page.getByTestId("member-role-change-select");
-  const editorSelect = selects.filter({ hasText: "編集者" });
+  // editor member の行を email で特定してロール変更セレクトを操作
+  const editorRow = page
+    .getByTestId("members-list")
+    .locator("li")
+    .filter({ hasText: "editor@arcsphere3d.dev" });
+  const editorSelect = editorRow.getByTestId("member-role-change-select");
   await editorSelect.selectOption("viewer");
   // エラーメッセージが出ないことを確認
   await expect(page.getByTestId("members-error")).not.toBeVisible();
