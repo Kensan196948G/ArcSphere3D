@@ -1802,9 +1802,9 @@ test("MembersPanel: メンバー一覧が表示される", async ({ page }) => {
   await expect(
     page.getByTestId("members-list").getByText("editor@arcsphere3d.dev"),
   ).toBeVisible();
-  // members-list内に限定（role-selectの<option>と区別するため）
+  // オーナーとして閲覧するとロール変更セレクトが表示される
   await expect(
-    page.getByTestId("members-list").getByText("編集者"),
+    page.getByTestId("member-role-change-select").first(),
   ).toBeVisible();
 });
 
