@@ -94,11 +94,15 @@ export async function listFiles(
   projectId: string,
   skip = 0,
   limit = 50,
+  search?: string,
+  ext?: string,
 ): Promise<FileMetadata[]> {
-  const res = await fetch(
-    `${BASE}/files/${projectId}?skip=${skip}&limit=${limit}`,
-    { headers: authHeaders(token) },
-  );
+  const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+  if (search) params.set("search", search);
+  if (ext) params.set("ext", ext);
+  const res = await fetch(`${BASE}/files/${projectId}?${params}`, {
+    headers: authHeaders(token),
+  });
   return handleResponse<FileMetadata[]>(res);
 }
 

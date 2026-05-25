@@ -21,6 +21,7 @@ interface ProjectState {
 
   fetchProjects: (token: string, q?: string) => Promise<void>;
   selectProject: (token: string, projectId: string) => Promise<void>;
+  fetchFiles: (token: string, search?: string, ext?: string) => Promise<void>;
   createProject: (token: string, name: string, description?: string) => Promise<void>;
   renameProject: (
     token: string,
@@ -58,6 +59,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ selectedProjectId: projectId, loading: true, error: null });
     try {
       const files = await listFiles(token, projectId);
+      set({ files, loading: false });
+    } catch (e) {
+      set({ loading: false, error: String(e) });
+    }
+  },
+
+  fetchFiles: async (token, search, ext) => {
+    const { selectedProjectId } = get();
+    if (!selectedProjectId) return;
+    set({ loading: true, error: null });
+    try {
+      const files = await listFiles(token, selectedProjectId, 0, 50, search, ext);
       set({ files, loading: false });
     } catch (e) {
       set({ loading: false, error: String(e) });

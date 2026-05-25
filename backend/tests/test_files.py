@@ -504,3 +504,70 @@ def test_rename_empty_filename_rejected() -> None:
         headers=_auth(owner_token),
     )
     assert res.status_code in (400, 422)
+
+
+def _setup_project_with_multiple_files() -> tuple[str, str]:
+    """Return (owner_token, project_id) with robot.stl, wheel.obj, doc.gltf uploaded."""
+    token = _login(DEMO_CREDS)
+    h = _auth(token)
+    res = client.post("/api/projects", json={"name": "Search Filter Project"}, headers=h)
+    assert res.status_code == 201
+    pid = res.json()["id"]
+    for name, content_type in [
+        ("robot.stl", "model/stl"),
+        ("wheel.obj", "model/obj"),
+        ("doc.gltf", "model/gltf+json"),
+    ]:
+        up = client.post(
+            "/api/files/upload",
+            params={"project_id": pid},
+            files={"upload_file": (name, name.encode() + b"unique", content_type)},
+            headers=h,
+        )
+        assert up.status_code in (200, 201)
+    return token, pid
+
+
+def test_list_files_search_by_name() -> None:
+    token, pid = _setup_project_with_multiple_files()
+    res = client.get(f"/api/files/{pid}?search=robot", headers=_auth(token))
+    assert res.status_code == 200
+    names = [f["filename"] for f in res.json()]
+    assert names == ["robot.stl"]
+
+
+def test_list_files_ext_filter() -> None:
+    token, pid = _setup_project_with_multiple_files()
+    res = client.get(f"/api/files/{pid}?ext=obj", headers=_auth(token))
+    assert res.status_code == 200
+    names = [f["filename"] for f in res.json()]
+    assert names == ["wheel.obj"]
+
+
+def test_list_files_ext_filter_with_dot_prefix() -> None:
+    token, pid = _setup_project_with_multiple_files()
+    res = client.get(f"/api/files/{pid}?ext=.gltf", headers=_auth(token))
+    assert res.status_code == 200
+    names = [f["filename"] for f in res.json()]
+    assert names == ["doc.gltf"]
+
+
+def test_list_files_search_and_ext_combined() -> None:
+    token, pid = _setup_project_with_multiple_files()
+    res = client.get(f"/api/files/{pid}?search=ro&ext=stl", headers=_auth(token))
+    assert res.status_code == 200
+    names = [f["filename"] for f in res.json()]
+    assert names == ["robot.stl"]
+
+
+def test_list_files_search_no_match_returns_empty() -> None:
+    token, pid = _setup_project_with_multiple_files()
+    res = client.get(f"/api/files/{pid}?search=nosuchfile", headers=_auth(token))
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+def test_list_files_search_nul_byte_rejected() -> None:
+    token, pid = _setup_project_with_multiple_files()
+    res = client.get(f"/api/files/{pid}?search=%00", headers=_auth(token))
+    assert res.status_code in (400, 422)
