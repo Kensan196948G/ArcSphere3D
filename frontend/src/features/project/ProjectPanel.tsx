@@ -54,17 +54,23 @@ export default function ProjectPanel() {
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [projectSearch, setProjectSearch] = useState("");
-  const [fileFilter, setFileFilter] = useState("");
+  const [fileSearch, setFileSearch] = useState("");
+  const [fileExtFilter, setFileExtFilter] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredFiles = fileFilter.trim()
-    ? files.filter((f) =>
-        f.filename.toLowerCase().includes(fileFilter.trim().toLowerCase()),
-      )
-    : projects.length > 0
-      ? files
-      : files;
+  const { fetchFiles } = useProjectStore.getState();
+
+  const handleFileSearchChange = useCallback(
+    (search: string, ext: string) => {
+      if (fileSearchTimerRef.current) clearTimeout(fileSearchTimerRef.current);
+      fileSearchTimerRef.current = setTimeout(() => {
+        void fetchFiles(token, search.trim() || undefined, ext || undefined);
+      }, 300);
+    },
+    [token, fetchFiles],
+  );
 
   const handleProjectSearchChange = useCallback(
     (value: string) => {
@@ -114,6 +120,8 @@ export default function ProjectPanel() {
   }
 
   async function handleSelectProject(id: string) {
+    setFileSearch("");
+    setFileExtFilter("");
     await selectProject(token, id);
   }
 
@@ -426,16 +434,35 @@ export default function ProjectPanel() {
             <p className="text-slate-400 dark:text-slate-500">読み込み中…</p>
           )}
 
-          {files.length > 10 && (
+          <div className="mb-1 flex gap-1">
             <input
               type="search"
               placeholder="🔍 ファイルを検索…"
-              value={fileFilter}
-              onChange={(e) => setFileFilter(e.target.value)}
+              value={fileSearch}
+              onChange={(e) => {
+                setFileSearch(e.target.value);
+                handleFileSearchChange(e.target.value, fileExtFilter);
+              }}
               data-testid="file-filter-input"
-              className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+              className="min-w-0 flex-1 rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
             />
-          )}
+            <select
+              value={fileExtFilter}
+              onChange={(e) => {
+                setFileExtFilter(e.target.value);
+                handleFileSearchChange(fileSearch, e.target.value);
+              }}
+              data-testid="file-ext-filter-select"
+              className="rounded bg-slate-100 px-1 py-1 text-sm text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+            >
+              <option value="">全形式</option>
+              {Object.keys(FILE_ICONS).map((ext) => (
+                <option key={ext} value={ext}>
+                  {ext.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {files.length === 0 && !loading ? (
             <p className="text-slate-400 dark:text-slate-500">
@@ -443,7 +470,7 @@ export default function ProjectPanel() {
             </p>
           ) : (
             <ul className="space-y-1">
-              {filteredFiles.map((f) => {
+              {files.map((f) => {
                 const isRenaming = renamingFileId === f.id;
                 return (
                   <li

@@ -350,10 +350,14 @@ async def list_files(
     user: CurrentUser = CurrentUserDep,
     skip: int = Query(default=0, ge=0, le=2_147_483_647),
     limit: int = Query(default=50, ge=1, le=200),
+    search: str | None = Query(default=None, max_length=256, pattern=r"^[^\x00]*$"),
+    ext: str | None = Query(default=None, max_length=16, pattern=r"^[^\x00]*$"),
 ) -> list[FileMetadata]:
     db_user = await crud.upsert_user(session, user)
     await _require_project(project_id, session, db_user.id, min_role="viewer")
-    return await crud.list_files(session, project_id, skip=skip, limit=limit)
+    return await crud.list_files(
+        session, project_id, skip=skip, limit=limit, search=search, ext=ext
+    )
 
 
 @router.patch("/{file_id}", response_model=FileMetadata, responses={**_400, **_401, **_403, **_404})

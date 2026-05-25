@@ -283,11 +283,19 @@ async def create_file(
 
 
 async def list_files(
-    session: AsyncSession, project_id: UUID, skip: int = 0, limit: int = 50
+    session: AsyncSession,
+    project_id: UUID,
+    skip: int = 0,
+    limit: int = 50,
+    search: str | None = None,
+    ext: str | None = None,
 ) -> list[FileMetadata]:
-    result = await session.execute(
-        select(File).where(File.project_id == project_id).offset(skip).limit(limit)
-    )
+    q = select(File).where(File.project_id == project_id)
+    if search:
+        q = q.where(File.filename.ilike(f"%{search}%"))
+    if ext:
+        q = q.where(File.filename.ilike(f"%.{ext.lstrip('.')}"))
+    result = await session.execute(q.offset(skip).limit(limit))
     return [
         FileMetadata(
             id=r.id,
