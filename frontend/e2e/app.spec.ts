@@ -3049,3 +3049,84 @@ test.describe("Issue #221: プロジェクトアクティビティフィード",
     await expect(page.getByText("project_created")).toBeVisible();
   });
 });
+
+// ---- Issue #225: プロジェクトアーカイブ機能 ------------------------------------
+
+test.describe("Issue #225: プロジェクトアーカイブ機能", () => {
+  // MOCK_TOKEN sub = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  const OWNER_PROJECT = {
+    id: "aaaaaaaa-0000-0000-0000-000000000225",
+    name: "Owner Project",
+    description: null,
+    owner_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    created_at: "2026-05-26T00:00:00Z",
+    archived_at: null,
+  };
+
+  async function setupArchiveMocks(page: Page) {
+    await setupApiMocks(page);
+    await page.route("**/api/projects*", async (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
+      if (method === "GET" && !url.includes("/archive") && !url.includes("/unarchive")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([OWNER_PROJECT]),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.route(
+      `**/api/projects/${OWNER_PROJECT.id}/archive`,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ...OWNER_PROJECT, archived_at: "2026-05-26T12:00:00Z" }),
+        });
+      },
+    );
+    await page.route(
+      `**/api/projects/${OWNER_PROJECT.id}/unarchive`,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ...OWNER_PROJECT, archived_at: null }),
+        });
+      },
+    );
+  }
+
+  async function loginAndSelect(page: Page) {
+    await setupArchiveMocks(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ログイン" }).click();
+    await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+    await page.getByLabel("パスワード").fill("arcsphere-demo");
+    await page.getByRole("button", { name: "ログイン" }).last().click();
+    await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    await page.getByRole("combobox").selectOption(OWNER_PROJECT.id);
+  }
+
+  test("アーカイブ表示トグルボタンが表示される", async ({ page }) => {
+    await loginAndSelect(page);
+    await expect(page.getByTestId("toggle-archived-btn")).toBeVisible();
+  });
+
+  test("オーナーにはアーカイブボタンが表示される", async ({ page }) => {
+    await loginAndSelect(page);
+    await expect(page.getByTestId("project-archive-btn")).toBeVisible();
+  });
+
+  test("アーカイブボタンを押すとプロジェクトがアーカイブされる", async ({ page }) => {
+    await loginAndSelect(page);
+    page.on("dialog", (dialog) => void dialog.accept());
+    await page.getByTestId("project-archive-btn").click();
+    await expect(
+      page.locator('[data-testid="toast-item"]').filter({ hasText: "アーカイブしました" }),
+    ).toBeVisible();
+  });
+});

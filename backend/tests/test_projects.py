@@ -376,3 +376,87 @@ def test_activity_limit_param() -> None:
     res = client.get(f"/api/projects/{project_id}/activity?limit=1", headers=_auth(token))
     assert res.status_code == 200
     assert len(res.json()) <= 1
+
+
+# ---- Archive / Unarchive ------------------------------------------------
+
+
+def test_archive_project_owner_succeeds() -> None:
+    token = _login(DEMO_CREDS)
+    pid = _create_project(token, "Archive Me")
+
+    res = client.patch(f"/api/projects/{pid}/archive", headers=_auth(token))
+    assert res.status_code == 200
+    data = res.json()
+    assert data["archived_at"] is not None
+
+    # archived project should not appear in default list
+    list_res = client.get("/api/projects", headers=_auth(token))
+    ids = [p["id"] for p in list_res.json()]
+    assert pid not in ids
+
+
+def test_archive_project_hidden_by_default_visible_with_flag() -> None:
+    token = _login(DEMO_CREDS)
+    pid = _create_project(token, "Archive Filter Test")
+
+    client.patch(f"/api/projects/{pid}/archive", headers=_auth(token))
+
+    without_flag = client.get("/api/projects", headers=_auth(token))
+    assert all(p["id"] != pid for p in without_flag.json())
+
+    with_flag = client.get("/api/projects?include_archived=true", headers=_auth(token))
+    assert any(p["id"] == pid for p in with_flag.json())
+
+
+def test_unarchive_project_restores_to_list() -> None:
+    token = _login(DEMO_CREDS)
+    pid = _create_project(token, "Restore Me")
+
+    client.patch(f"/api/projects/{pid}/archive", headers=_auth(token))
+    res = client.patch(f"/api/projects/{pid}/unarchive", headers=_auth(token))
+    assert res.status_code == 200
+    assert res.json()["archived_at"] is None
+
+    list_res = client.get("/api/projects", headers=_auth(token))
+    assert any(p["id"] == pid for p in list_res.json())
+
+
+def test_archive_project_non_owner_gets_403() -> None:
+    demo_token = _login(DEMO_CREDS)
+    other_token = _login(OTHER_CREDS)
+    pid = _create_project(demo_token, "Owner Only Archive")
+    other_id = _get_user_id(other_token)
+    _add_member(demo_token, pid, other_id, role="editor")
+
+    res = client.patch(f"/api/projects/{pid}/archive", headers=_auth(other_token))
+    assert res.status_code == 403
+
+
+def test_archive_nonexistent_project_gets_404() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.patch(
+        "/api/projects/00000000-0000-0000-0000-000000000000/archive",
+        headers=_auth(token),
+    )
+    assert res.status_code == 404
+
+
+def test_archived_project_response_has_archived_at_field() -> None:
+    token = _login(DEMO_CREDS)
+    pid = _create_project(token, "Field Check")
+
+    # Before archive: archived_at is None
+    get_res = client.get(f"/api/projects/{pid}", headers=_auth(token))
+    assert get_res.json().get("archived_at") is None
+
+    client.patch(f"/api/projects/{pid}/archive", headers=_auth(token))
+
+    # After archive: archived_at is set
+    arch_res = client.get(
+        "/api/projects?include_archived=true",
+        headers=_auth(token),
+    )
+    project = next((p for p in arch_res.json() if p["id"] == pid), None)
+    assert project is not None
+    assert project["archived_at"] is not None

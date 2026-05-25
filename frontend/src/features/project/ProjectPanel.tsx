@@ -4,7 +4,7 @@ import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
 import MultipartUploader from "@/features/viewport/MultipartUploader";
-import { exportProjectZip, getProjectStats, renameFile, type ProjectStats } from "@/lib/api";
+import { exportProjectZip, getProjectStats, parseJwtPayload, renameFile, type ProjectStats } from "@/lib/api";
 import { notifyError, notifySuccess } from "@/state/notificationStore";
 
 const FILE_ICONS: Record<string, string> = {
@@ -30,12 +30,16 @@ export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
   const { projects, selectedProjectId, files, activity, loading, error } =
     useProjectStore();
+  const { showArchived } = useProjectStore();
   const {
     fetchProjects,
     selectProject,
     createProject,
     renameProject,
     deleteProject,
+    archiveProject,
+    unarchiveProject,
+    toggleShowArchived,
     uploadFile,
     deleteFile,
     getDownloadUrl,
@@ -43,6 +47,8 @@ export default function ProjectPanel() {
   } = useProjectStore.getState();
   const addObject = useSceneStore((s) => s.addObject);
   const log = useSceneStore((s) => s.log);
+
+  const currentUserId = parseJwtPayload(token)?.sub ?? null;
 
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDesc, setNewProjectDesc] = useState("");
@@ -223,6 +229,30 @@ export default function ProjectPanel() {
     }
   }
 
+  async function handleArchiveProject() {
+    if (!selectedProjectId) return;
+    const project = projects.find((p) => p.id === selectedProjectId);
+    if (!confirm(`プロジェクト「${project?.name ?? selectedProjectId}」をアーカイブしますか？`)) return;
+    await archiveProject(token, selectedProjectId);
+    const { error: storeErr } = useProjectStore.getState();
+    if (storeErr) {
+      notifyError(storeErr);
+    } else {
+      notifySuccess(`プロジェクト「${project?.name ?? ""}」をアーカイブしました`);
+    }
+  }
+
+  async function handleUnarchiveProject() {
+    if (!selectedProjectId) return;
+    await unarchiveProject(token, selectedProjectId);
+    const { error: storeErr } = useProjectStore.getState();
+    if (storeErr) {
+      notifyError(storeErr);
+    } else {
+      notifySuccess("プロジェクトを復元しました");
+    }
+  }
+
   function startRenameFile(fileId: string, currentName: string) {
     setRenamingFileId(fileId);
     setRenameFileInput(currentName);
@@ -255,9 +285,24 @@ export default function ProjectPanel() {
     <div className="flex flex-col gap-3 text-xs">
       {/* プロジェクト選択 */}
       <div>
-        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          プロジェクト
-        </label>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            プロジェクト
+          </label>
+          <button
+            type="button"
+            onClick={() => void toggleShowArchived(token)}
+            data-testid="toggle-archived-btn"
+            className={`rounded px-1.5 py-0.5 text-[9px] ${
+              showArchived
+                ? "bg-amber-200 text-amber-800 dark:bg-amber-800/40 dark:text-amber-300"
+                : "bg-slate-200 text-slate-500 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400"
+            }`}
+            title={showArchived ? "アーカイブを非表示" : "アーカイブを表示"}
+          >
+            {showArchived ? "📦 表示中" : "📦 アーカイブ"}
+          </button>
+        </div>
         <input
           type="search"
           placeholder="🔍 プロジェクトを検索…"
@@ -276,7 +321,7 @@ export default function ProjectPanel() {
           </option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {p.archived_at ? `[Archive] ${p.name}` : p.name}
             </option>
           ))}
         </select>
@@ -299,31 +344,59 @@ export default function ProjectPanel() {
             </p>
           ) : null;
         })()}
-        {selectedProjectId && !renaming && (
-          <div className="mt-1 flex gap-1">
-            <button
-              type="button"
-              onClick={() => {
-                const p = projects.find((x) => x.id === selectedProjectId);
-                setRenameInput(p?.name ?? "");
-                setRenameDescInput(p?.description ?? "");
-                setRenaming(true);
-              }}
-              data-testid="project-rename-btn"
-              className="flex-1 rounded border border-slate-300 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
-            >
-              ✏️ 名前を変更
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleDeleteProject()}
-              data-testid="project-delete-btn"
-              className="flex-1 rounded border border-red-300 py-0.5 text-[10px] text-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
-            >
-              🗑 削除
-            </button>
-          </div>
-        )}
+        {selectedProjectId && !renaming && (() => {
+          const p = projects.find((x) => x.id === selectedProjectId);
+          const isOwner = p?.owner_id === currentUserId;
+          return (
+            <div className="mt-1 flex flex-col gap-1">
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenameInput(p?.name ?? "");
+                    setRenameDescInput(p?.description ?? "");
+                    setRenaming(true);
+                  }}
+                  data-testid="project-rename-btn"
+                  className="flex-1 rounded border border-slate-300 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                >
+                  ✏️ 名前を変更
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteProject()}
+                  data-testid="project-delete-btn"
+                  className="flex-1 rounded border border-red-300 py-0.5 text-[10px] text-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+                >
+                  🗑 削除
+                </button>
+              </div>
+              {isOwner && (
+                <div className="flex gap-1">
+                  {p?.archived_at ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleUnarchiveProject()}
+                      data-testid="project-unarchive-btn"
+                      className="flex-1 rounded border border-amber-300 py-0.5 text-[10px] text-amber-600 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                    >
+                      📤 復元
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleArchiveProject()}
+                      data-testid="project-archive-btn"
+                      className="flex-1 rounded border border-slate-300 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                    >
+                      📦 アーカイブ
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {selectedProjectId && renaming && (
           <form
             onSubmit={(e) => void handleRenameProject(e)}

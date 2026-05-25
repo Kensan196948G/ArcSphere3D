@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import {
+  archiveProject as apiArchiveProject,
   createProject as apiCreateProject,
   deleteFile as apiDeleteFile,
   deleteProject as apiDeleteProject,
@@ -7,6 +8,7 @@ import {
   getProjectActivity as apiGetProjectActivity,
   listFiles,
   listProjects,
+  unarchiveProject as apiUnarchiveProject,
   updateProject as apiUpdateProject,
   uploadFile as apiUploadFile,
   type AuditLogOut,
@@ -21,6 +23,7 @@ interface ProjectState {
   activity: AuditLogOut[];
   loading: boolean;
   error: string | null;
+  showArchived: boolean;
 
   fetchProjects: (token: string, q?: string) => Promise<void>;
   selectProject: (token: string, projectId: string) => Promise<void>;
@@ -34,6 +37,9 @@ interface ProjectState {
     description?: string | null,
   ) => Promise<void>;
   deleteProject: (token: string, projectId: string) => Promise<void>;
+  archiveProject: (token: string, projectId: string) => Promise<void>;
+  unarchiveProject: (token: string, projectId: string) => Promise<void>;
+  toggleShowArchived: (token: string) => Promise<void>;
   uploadFile: (token: string, file: File) => Promise<FileMetadata | null>;
   deleteFile: (token: string, fileId: string) => Promise<void>;
   getDownloadUrl: (
@@ -49,11 +55,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activity: [],
   loading: false,
   error: null,
+  showArchived: false,
 
   fetchProjects: async (token, q) => {
     set({ loading: true, error: null });
     try {
-      const projects = await listProjects(token, 0, 50, q);
+      const { showArchived } = get();
+      const projects = await listProjects(token, 0, 50, q, showArchived);
       set({ projects, loading: false });
     } catch (e) {
       set({ loading: false, error: String(e) });
@@ -136,6 +144,48 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     } catch (e) {
       set({ loading: false, error: String(e) });
     }
+  },
+
+  archiveProject: async (token, projectId) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await apiArchiveProject(token, projectId);
+      const { showArchived } = get();
+      set((s) => ({
+        projects: showArchived
+          ? s.projects.map((p) => (p.id === projectId ? updated : p))
+          : s.projects.filter((p) => p.id !== projectId),
+        selectedProjectId:
+          !showArchived && s.selectedProjectId === projectId
+            ? null
+            : s.selectedProjectId,
+        files:
+          !showArchived && s.selectedProjectId === projectId ? [] : s.files,
+        loading: false,
+      }));
+    } catch (e) {
+      set({ loading: false, error: String(e) });
+    }
+  },
+
+  unarchiveProject: async (token, projectId) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await apiUnarchiveProject(token, projectId);
+      set((s) => ({
+        projects: s.projects.map((p) => (p.id === projectId ? updated : p)),
+        loading: false,
+      }));
+    } catch (e) {
+      set({ loading: false, error: String(e) });
+    }
+  },
+
+  toggleShowArchived: async (token) => {
+    const { showArchived } = get();
+    set({ showArchived: !showArchived });
+    const { fetchProjects } = get();
+    await fetchProjects(token);
   },
 
   uploadFile: async (token, file) => {

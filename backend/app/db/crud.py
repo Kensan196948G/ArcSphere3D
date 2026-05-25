@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -179,6 +180,7 @@ async def list_projects(
     skip: int = 0,
     limit: int = 50,
     q: str | None = None,
+    include_archived: bool = False,
 ) -> list[ProjectOut]:
     """Return projects owned by *user_id* OR where *user_id* is a member."""
     stmt = (
@@ -187,6 +189,8 @@ async def list_projects(
         .where(or_(Project.owner_id == user_id, ProjectMember.user_id == user_id))
         .distinct()
     )
+    if not include_archived:
+        stmt = stmt.where(Project.archived_at.is_(None))
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(or_(Project.name.ilike(pattern), Project.description.ilike(pattern)))
@@ -198,6 +202,7 @@ async def list_projects(
             description=r.description,
             owner_id=r.owner_id,
             created_at=r.created_at,
+            archived_at=r.archived_at,
         )
         for r in result.scalars().all()
     ]
@@ -217,6 +222,7 @@ async def create_project(session: AsyncSession, owner_id: UUID, body: ProjectCre
         description=project.description,
         owner_id=project.owner_id,
         created_at=project.created_at,
+        archived_at=project.archived_at,
     )
 
 
@@ -254,6 +260,32 @@ async def update_project(
         return None
     p.name = name
     p.description = description
+    await session.commit()
+    await session.refresh(p)
+    return p
+
+
+async def archive_project(
+    session: AsyncSession, project_id: UUID, owner_id: UUID
+) -> Project | None:
+    """Set archived_at to now(). Returns None if not found / not owned."""
+    p = await get_project(session, project_id, owner_id)
+    if p is None:
+        return None
+    p.archived_at = datetime.now(tz=UTC)
+    await session.commit()
+    await session.refresh(p)
+    return p
+
+
+async def unarchive_project(
+    session: AsyncSession, project_id: UUID, owner_id: UUID
+) -> Project | None:
+    """Clear archived_at. Returns None if not found / not owned."""
+    p = await get_project(session, project_id, owner_id)
+    if p is None:
+        return None
+    p.archived_at = None
     await session.commit()
     await session.refresh(p)
     return p
