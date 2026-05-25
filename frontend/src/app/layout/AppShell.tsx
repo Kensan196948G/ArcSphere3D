@@ -4,8 +4,11 @@ import RightPanel from "./RightPanel";
 import BottomConsole from "./BottomConsole";
 import Toaster from "./Toaster";
 import Viewport from "@/features/viewport/Viewport";
+import { useNotificationWS } from "@/hooks/useNotificationWS";
 
 export default function AppShell() {
+  useNotificationWS();
+
   return (
     <div className="grid h-full grid-rows-[48px_1fr_160px] grid-cols-[200px_1fr_280px] bg-arc-bg text-slate-800 dark:text-slate-100">
       <header className="col-span-3 row-start-1 row-end-2 border-b border-slate-200 bg-arc-panel dark:border-slate-700">

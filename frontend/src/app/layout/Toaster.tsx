@@ -5,6 +5,7 @@ const TYPE_CLASSES: Record<Notification["type"], string> = {
   success: "bg-emerald-600 text-white",
   error: "bg-rose-600 text-white",
   info: "bg-sky-600 text-white",
+  warning: "bg-amber-500 text-white",
 };
 
 function ToastItem({ n }: { n: Notification }) {
