@@ -808,9 +808,7 @@ async def get_project_activity(
 ) -> list[AuditLogOut]:
     """Return recent audit events for *project_id* (project + file + member events)."""
     pid_str = str(project_id)
-    file_id_strs = select(cast(File.id, Text).label("fid")).where(
-        File.project_id == project_id
-    )
+    file_id_strs = select(cast(File.id, Text).label("fid")).where(File.project_id == project_id)
     stmt = (
         select(AuditLog, User.email)
         .outerjoin(User, AuditLog.user_id == User.id)
