@@ -117,29 +117,42 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 87  | 🧪 project description バックエンドテスト 7件 (Issue #192, PR #193)               | ✅ Done        |
 | 88  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195, PR #196)                 | ✅ Done        |
 | 89  | 👥 メンバー操作の監査ログ記録 (Issue #197, PR #198)                               | ✅ Done        |
-| 90  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 90  | 🌐 リアルタイムコラボレーション (WebSocket)                                       | 🔮 Planned     |
-| 91  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
+| 90  | 📐 監査ログ日付範囲フィルター (Issue #199, PR #200)                               | ✅ Done        |
+| 91  | 📦 プロジェクト ZIP エクスポート (Issue #201, PR #202)                            | ✅ Done        |
+| 92  | 🔔 WebSocket push通知システム — ベル + ドロップダウン (Issue #206)                | ✅ Done        |
+| 93  | 👤 ユーザープロフィール編集 — メール/パスワード変更 (Issue #207)                  | ✅ Done        |
+| 94  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
+| 95  | 🤖 AI アシスト CAD コマンド                                                       | 🔮 Planned     |
 
 > 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
 
 ---
 
-## 🆕 直近のリリース (Session 2026-05-23)
+## 🆕 直近のリリース (Session 2026-05-25)
+
+| コミット   | 内容                                                                                  | 種別        |
+| ---------- | ------------------------------------------------------------------------------------- | ----------- |
+| `904a00d`  | 🔔 WebSocket push通知 — `/api/ws/notifications`, ConnectionManager, ベルUI (Issue #206) | ⚙️ Feature  |
+| `7c82f51`  | 👤 プロフィール編集 — `PATCH /api/users/me` メール/PW変更 + ProfilePanel (Issue #207) | ⚙️ Feature  |
+
+### 📋 Session 2026-05-25 (PR #202, #203)
+
+| PR    | コミット   | 内容                                                                              | 種別        |
+| ----- | ---------- | --------------------------------------------------------------------------------- | ----------- |
+| #202  | `864a503`  | 📦 プロジェクト ZIP エクスポート (Issue #201)                                     | ⚙️ Feature  |
+| #203  | `cddf420`  | 🔐 JWT sub UUID 固定 + users.sub 列削除 (Issue #180)                              | 🛡️ Security |
+
+### 📋 Session 2026-05-23
 
 | PR    | コミット   | 内容                                                                              | 種別        |
 | ----- | ---------- | --------------------------------------------------------------------------------- | ----------- |
 | #190  | `ca68bf6`  | 👤 AdminUsersPanel 新規ユーザー作成フォーム (Issue #188)                          | 🖼️ UI       |
 | #190  | `ca68bf6`  | ⬇️ ProjectPanel ファイルダウンロードボタン (Issue #189)                           | 🖼️ UI       |
-| #190  | `ca68bf6`  | 🔍 ProjectPanel プロジェクト検索フィルター + 📏 ファイルサイズ表示               | 🖼️ UI       |
-| #190  | `ca68bf6`  | 📝 プロジェクト説明フィールド (description) — migration 0009                     | ⚙️ Feature  |
-| #193  | `40ba6f2`  | 👁️ 監査ログ actor_email 追加 — 誰がいつ何をしたか可視化 (Issue #191)             | ⚙️ Feature  |
-| #193  | `40ba6f2`  | 🧪 project description バックエンドテスト 7件 (Issue #192)                       | 🧪 Test     |
-| #193  | `40ba6f2`  | 🔷 ファイルタイプアイコン + Toast通知 + ファイル検索フィルター (Issue #194)       | 🖼️ UI       |
+| #193  | `40ba6f2`  | 👁️ 監査ログ actor_email 追加 (Issue #191)                                         | ⚙️ Feature  |
 | #196  | `4b50cb8`  | 📋 ファイル・プロジェクト操作の監査ログ記録 (Issue #195)                          | 🛡️ Security |
 | #198  | `d42b399`  | 👥 メンバー操作監査ログ + ファイル操作テスト (Issue #197)                         | 🛡️ Security |
 
-> 🛡️ **Security ハイライト (PR #183, 2026-05-23)**: JWT `sub` を mutable な email から immutable な `user.id` (UUID) に変更。`refresh` エンドポイントも DB から再取得するよう更新。
+> 🛡️ **Security ハイライト (PR #203, 2026-05-25)**: JWT `sub` を immutable な `user.id` (UUID) に完全移行。`users.sub` 列削除 + 全 router `session.commit()` 修正 + deadlock 対策。
 
 ---
 
