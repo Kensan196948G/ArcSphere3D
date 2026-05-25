@@ -7,6 +7,7 @@ import {
   lookupUserByEmail,
   parseJwtPayload,
   removeMember,
+  updateMemberRole,
   type MemberOut,
 } from "@/lib/api";
 
@@ -111,6 +112,17 @@ export default function MembersPanel() {
     }
   }
 
+  async function handleRoleChange(memberId: string, newRole: string) {
+    if (!token || !selectedProjectId) return;
+    setError(null);
+    try {
+      await updateMemberRole(token, selectedProjectId, memberId, newRole);
+      await fetchMembers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   if (!token) {
     return (
       <p className="text-xs text-slate-400 dark:text-slate-500">
@@ -155,9 +167,24 @@ export default function MembersPanel() {
                 <span className="flex-1 truncate text-[10px] text-slate-600 dark:text-slate-300">
                   {m.email}
                 </span>
-                <span className="rounded bg-slate-200 px-1 text-[10px] dark:bg-slate-700">
-                  {ROLE_LABELS[m.role] ?? m.role}
-                </span>
+                {isOwner ? (
+                  <select
+                    value={m.role}
+                    onChange={(e) =>
+                      void handleRoleChange(m.user_id, e.target.value)
+                    }
+                    data-testid="member-role-change-select"
+                    className="rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+                  >
+                    <option value="viewer">閲覧者</option>
+                    <option value="editor">編集者</option>
+                    <option value="owner">オーナー</option>
+                  </select>
+                ) : (
+                  <span className="rounded bg-slate-200 px-1 text-[10px] dark:bg-slate-700">
+                    {ROLE_LABELS[m.role] ?? m.role}
+                  </span>
+                )}
                 {isOwner && (
                   <button
                     type="button"

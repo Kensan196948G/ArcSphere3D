@@ -233,6 +233,10 @@ class MemberAdd(BaseModel):
     role: str = Field(pattern="^(owner|editor|viewer)$")
 
 
+class MemberRoleUpdate(BaseModel):
+    role: str = Field(pattern="^(owner|editor|viewer)$")
+
+
 class MemberOut(BaseModel):
     project_id: UUID
     user_id: UUID

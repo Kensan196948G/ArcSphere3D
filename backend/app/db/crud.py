@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -591,6 +592,42 @@ async def remove_member(session: AsyncSession, project_id: UUID, user_id: UUID) 
     await session.delete(member)
     await session.commit()
     return True
+
+
+async def update_member_role(
+    session: AsyncSession, project_id: UUID, user_id: UUID, role: str
+) -> MemberOut | None | Literal[False]:
+    """Update an existing member's role.
+
+    Returns:
+        MemberOut  – updated successfully
+        False      – member not found
+        None       – last-owner protection triggered (caller should return 409)
+    """
+    user_result = await session.execute(select(User).where(User.id == user_id))
+    db_user = user_result.scalar_one_or_none()
+
+    result = await session.execute(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if member is None or db_user is None:
+        return False
+    if member.role == "owner" and role != "owner" and await count_owners(session, project_id) <= 1:
+        return None  # last-owner guard
+    member.role = role
+    await session.commit()
+    await session.refresh(member)
+    return MemberOut(
+        project_id=member.project_id,
+        user_id=member.user_id,
+        email=db_user.email,
+        role=member.role,
+        created_at=member.created_at,
+    )
 
 
 # ---- Vertical Alignment CRUD ----

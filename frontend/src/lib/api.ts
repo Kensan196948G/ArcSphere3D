@@ -432,6 +432,20 @@ export async function removeMember(
   }
 }
 
+export async function updateMemberRole(
+  token: string,
+  projectId: string,
+  userId: string,
+  role: string,
+): Promise<MemberOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}/members/${userId}`, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  return handleResponse<MemberOut>(res);
+}
+
 // ---- Projects (delete) ----------------------------------------------------
 
 export async function deleteProject(

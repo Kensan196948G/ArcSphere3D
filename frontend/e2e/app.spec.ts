@@ -1735,6 +1735,12 @@ async function setupMembersApiMocks(page: Page) {
         });
       } else if (route.request().method() === "DELETE") {
         await route.fulfill({ status: 204 });
+      } else if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ...MOCK_MEMBER_EDITOR, role: "viewer" }),
+        });
       } else {
         await route.continue();
       }
@@ -1796,9 +1802,9 @@ test("MembersPanel: メンバー一覧が表示される", async ({ page }) => {
   await expect(
     page.getByTestId("members-list").getByText("editor@arcsphere3d.dev"),
   ).toBeVisible();
-  // members-list内に限定（role-selectの<option>と区別するため）
+  // オーナーとして閲覧するとロール変更セレクトが表示される
   await expect(
-    page.getByTestId("members-list").getByText("編集者"),
+    page.getByTestId("member-role-change-select").first(),
   ).toBeVisible();
 });
 
@@ -2114,6 +2120,61 @@ test("MembersPanel: editor は追加フォームが非表示になる (Issue #73
   await expect(page.getByTestId("member-add-btn")).not.toBeVisible();
   // 削除ボタンも非表示
   await expect(page.getByTestId("member-remove-btn")).not.toBeVisible();
+});
+
+// ---- MembersPanel: ロール変更 (Issue #215) -----------------------------------
+
+async function loginAsOwnerAndOpenMembers(page: Page) {
+  await setupMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("demo@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("members-list")).toBeVisible();
+}
+
+test("MembersPanel: オーナーはメンバー行にロール変更セレクトが表示される (Issue #215)", async ({
+  page,
+}) => {
+  await loginAsOwnerAndOpenMembers(page);
+  const selects = page.getByTestId("member-role-change-select");
+  await expect(selects.first()).toBeVisible();
+});
+
+test("MembersPanel: オーナーはロール変更セレクトで役割を変更できる (Issue #215)", async ({
+  page,
+}) => {
+  await loginAsOwnerAndOpenMembers(page);
+  // editor member の行を email で特定してロール変更セレクトを操作
+  const editorRow = page
+    .getByTestId("members-list")
+    .locator("li")
+    .filter({ hasText: "editor@arcsphere3d.dev" });
+  const editorSelect = editorRow.getByTestId("member-role-change-select");
+  await editorSelect.selectOption("viewer");
+  // エラーメッセージが出ないことを確認
+  await expect(page.getByTestId("members-error")).not.toBeVisible();
+});
+
+test("MembersPanel: editor はロール変更セレクトが非表示になる (Issue #215)", async ({
+  page,
+}) => {
+  await setupEditorMembersApiMocks(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByLabel("メールアドレス").fill("editor@arcsphere3d.dev");
+  await page.getByLabel("パスワード").fill("arcsphere-demo");
+  await page.getByRole("button", { name: "ログイン" }).last().click();
+  await expect(page.getByRole("button", { name: "ログアウト" })).toBeVisible();
+  await page.selectOption("select", MOCK_PROJECT.id);
+  await page.getByRole("button", { name: "メンバー" }).click();
+  await expect(page.getByTestId("members-list")).toBeVisible();
+  // editor は role-change-select が表示されない
+  await expect(page.getByTestId("member-role-change-select")).not.toBeVisible();
 });
 
 // ---- FileLoader: ファイルアップロード E2E (Issue #81) -----------------------
