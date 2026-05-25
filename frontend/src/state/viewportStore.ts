@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type CameraPreset = "perspective" | "top" | "front" | "side";
+export type CameraPreset = "perspective" | "top" | "front" | "side" | "isometric";
 
 interface ViewportState {
   showGrid: boolean;

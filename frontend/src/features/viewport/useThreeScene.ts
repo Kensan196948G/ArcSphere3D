@@ -267,13 +267,13 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
           top: { pos: [0, 20, 0.001], target: [0, 0, 0] },
           front: { pos: [0, 5, 20], target: [0, 0, 0] },
           side: { pos: [20, 5, 0], target: [0, 0, 0] },
+          isometric: { pos: [12, 12, 12], target: [0, 0, 0] },
         };
         const { pos, target } =
           PRESET_CAM[state._cameraPreset] ?? PRESET_CAM.perspective;
-        camera.position.set(...pos);
-        camera.lookAt(...target);
-        controls.target.set(...target);
-        controls.update();
+        camAnim.toPos.set(...pos);
+        camAnim.toTarget.set(...target);
+        camAnim.active = true;
       }
       if (state._focusCount !== prev._focusCount) {
         const selectedId = useSceneStore.getState().selectedId;
@@ -416,9 +416,28 @@ export function useThreeScene(containerRef: React.RefObject<HTMLDivElement>) {
     const ro = new ResizeObserver(resize);
     ro.observe(container);
 
+    // Camera transition animation state
+    const camAnim = {
+      active: false,
+      toPos: new Vector3(),
+      toTarget: new Vector3(),
+    };
+
     // --- Render loop ---
     let raf = 0;
     const tick = () => {
+      if (camAnim.active) {
+        camera.position.lerp(camAnim.toPos, 0.12);
+        controls.target.lerp(camAnim.toTarget, 0.12);
+        if (
+          camera.position.distanceTo(camAnim.toPos) < 0.01 &&
+          controls.target.distanceTo(camAnim.toTarget) < 0.01
+        ) {
+          camera.position.copy(camAnim.toPos);
+          controls.target.copy(camAnim.toTarget);
+          camAnim.active = false;
+        }
+      }
       controls.update();
       renderer.render(scene, camera);
       raf = requestAnimationFrame(tick);
