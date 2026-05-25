@@ -284,3 +284,56 @@ def test_get_project_includes_description() -> None:
     res2 = client.get(f"/api/projects/{project_id}", headers=_auth(token))
     assert res2.status_code == 200
     assert res2.json()["description"] == "Detail here"
+
+
+# ---- Project search (Issue #212) -----------------------------------------------
+
+
+def test_search_projects_by_name() -> None:
+    token = _login(DEMO_CREDS)
+    _create_project(token, name="UniqueSearchName_Alpha")
+    _create_project(token, name="AnotherProject")
+    res = client.get("/api/projects?q=UniqueSearchName", headers=_auth(token))
+    assert res.status_code == 200
+    projects = res.json()
+    assert all("UniqueSearchName" in p["name"] for p in projects)
+    assert any(p["name"] == "UniqueSearchName_Alpha" for p in projects)
+
+
+def test_search_projects_by_description() -> None:
+    token = _login(DEMO_CREDS)
+    client.post(
+        "/api/projects",
+        json={"name": "SearchDescProject", "description": "UniqueDescKeyword_XYZ"},
+        headers=_auth(token),
+    )
+    res = client.get("/api/projects?q=UniqueDescKeyword", headers=_auth(token))
+    assert res.status_code == 200
+    projects = res.json()
+    assert any(
+        p.get("description") and "UniqueDescKeyword" in p["description"] for p in projects
+    )
+
+
+def test_search_projects_no_match_returns_empty() -> None:
+    token = _login(DEMO_CREDS)
+    _create_project(token, name="NormalProject")
+    res = client.get("/api/projects?q=ZZZ_NOMATCH_999", headers=_auth(token))
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+def test_search_projects_empty_q_returns_all() -> None:
+    token = _login(DEMO_CREDS)
+    _create_project(token, name="ProjectForEmptyQ")
+    res_all = client.get("/api/projects", headers=_auth(token))
+    res_q = client.get("/api/projects?q=", headers=_auth(token))
+    assert res_q.status_code == 200
+    assert res_all.status_code == 200
+    assert len(res_q.json()) == len(res_all.json())
+
+
+def test_search_projects_q_too_long_rejected() -> None:
+    token = _login(DEMO_CREDS)
+    res = client.get(f"/api/projects?q={'x' * 129}", headers=_auth(token))
+    assert res.status_code == 422
