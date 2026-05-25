@@ -11,6 +11,7 @@ NULL means active; a non-NULL timestamp means archived at that time.
 from __future__ import annotations
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0011_add_project_archived_at"
