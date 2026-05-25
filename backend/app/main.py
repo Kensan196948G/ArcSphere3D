@@ -13,6 +13,7 @@ from app.db.session import close_engine, init_engine
 from app.logging import configure_logging, logger
 from app.routers import (
     admin,
+    ai,
     alignments,
     auth,
     files,
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(verticals.router)
     app.include_router(project_members.router)
     app.include_router(notifications.router)
+    app.include_router(ai.router)
 
     return app
 

@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
     log_level: str = Field(default="INFO")
 
+    anthropic_api_key: str = Field(default="")
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

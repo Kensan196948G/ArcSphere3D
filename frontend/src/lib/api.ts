@@ -671,6 +671,26 @@ export async function patchUserMe(
   return handleResponse<UserOut>(res);
 }
 
+// ---- AI chat --------------------------------------------------------------
+
+export interface AiChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export async function postAiChat(
+  token: string,
+  messages: AiChatMessage[],
+): Promise<string> {
+  const res = await fetch(`${BASE}/ai/chat`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+  });
+  const data = await handleResponse<{ content: string }>(res);
+  return data.content;
+}
+
 // ---- JWT utils (client-side payload decode, no signature check) -----------
 
 export interface JwtPayload {

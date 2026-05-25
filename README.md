@@ -124,13 +124,19 @@ ArcSphere3D は **AI Native** なブラウザ完結型 3D CAD プラットフォ
 | 94  | ☸️ Kubernetes manifest 初期構成 — StatefulSet/Deployment/Ingress (ADR-0003)       | ✅ Done        |
 | 95  | 🧪 PATCH /api/users/me property-based テスト (hypothesis + invariants)            | ✅ Done        |
 | 96  | 📐 OpenCascade.js STEP/IGES CAD kernel integration (Issue #75)                    | 🚧 WIP         |
-| 97  | 🤖 AI アシスト CAD コマンド (Claude API 統合)                                     | 🔮 Planned     |
+| 97  | 🤖 AI アシスト CAD コマンド (Claude API claude-haiku-4-5 統合)                    | ✅ Done        |
 
 > 凡例: ✅ **Done** = main にマージ済 / 🚧 **WIP** = 実装またはレビュー進行中 / 🔮 **Planned** = ロードマップ計画中
 
 ---
 
-## 🆕 直近のリリース (Session 2026-05-25)
+## 🆕 直近のリリース (Session 2026-05-25 [3])
+
+| コミット   | 内容                                                                                  | 種別        |
+| ---------- | ------------------------------------------------------------------------------------- | ----------- |
+| (new)      | 🤖 AI CADアシスト — `POST /api/ai/chat` Claude claude-haiku-4-5 実統合 + AIPanel.tsx 実アシスタント化 | ⚙️ Feature |
+
+### 📋 Session 2026-05-25 [2]
 
 | コミット   | 内容                                                                                  | 種別        |
 | ---------- | ------------------------------------------------------------------------------------- | ----------- |
