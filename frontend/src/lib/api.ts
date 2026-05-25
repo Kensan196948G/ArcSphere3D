@@ -752,3 +752,52 @@ export async function getProjectActivity(
   });
   return handleResponse<AuditLogOut[]>(res);
 }
+
+// ---- Notifications --------------------------------------------------------
+
+export interface NotificationItem {
+  id: string;
+  user_id: string;
+  type: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function listNotifications(
+  token: string,
+  params?: { limit?: number; skip?: number; unread_only?: boolean },
+): Promise<NotificationItem[]> {
+  const p = new URLSearchParams();
+  if (params?.limit != null) p.set("limit", String(params.limit));
+  if (params?.skip != null) p.set("skip", String(params.skip));
+  if (params?.unread_only) p.set("unread_only", "true");
+  const res = await fetch(`${BASE}/notifications?${p}`, { headers: authHeaders(token) });
+  return handleResponse<NotificationItem[]>(res);
+}
+
+export async function getUnreadCount(token: string): Promise<number> {
+  const res = await fetch(`${BASE}/notifications/unread-count`, { headers: authHeaders(token) });
+  const data = await handleResponse<{ count: number }>(res);
+  return data.count;
+}
+
+export async function markNotificationRead(
+  token: string,
+  notificationId: string,
+): Promise<NotificationItem> {
+  const res = await fetch(`${BASE}/notifications/${notificationId}/read`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  return handleResponse<NotificationItem>(res);
+}
+
+export async function markAllNotificationsRead(token: string): Promise<number> {
+  const res = await fetch(`${BASE}/notifications/read-all`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  const data = await handleResponse<{ count: number }>(res);
+  return data.count;
+}

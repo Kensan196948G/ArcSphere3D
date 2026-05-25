@@ -23,6 +23,7 @@ from app.models.file import File
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.user import User
+from app.models.user_notification import UserNotification
 from app.schemas import (
     AdminStats,
     AlignmentCreate,
@@ -36,6 +37,8 @@ from app.schemas import (
     ProjectCreate,
     ProjectOut,
     ProjectStats,
+    UnreadCountOut,
+    UserNotificationOut,
     UserOut,
     UserProfileUpdate,
     VerticalAlignmentCreate,
@@ -1047,3 +1050,99 @@ async def get_admin_stats(session: AsyncSession) -> AdminStats:
         total_files=file_count,
         total_audit_events=audit_count,
     )
+
+
+# ---- User Notifications ----
+
+
+async def create_notification(
+    session: AsyncSession,
+    user_id: UUID,
+    type: str,
+    message: str,
+) -> UserNotification:
+    notif = UserNotification(user_id=user_id, type=type, message=message)
+    session.add(notif)
+    await session.flush()
+    await session.refresh(notif)
+    return notif
+
+
+async def list_notifications(
+    session: AsyncSession,
+    user_id: UUID,
+    limit: int = 50,
+    skip: int = 0,
+    unread_only: bool = False,
+) -> list[UserNotificationOut]:
+    stmt = (
+        select(UserNotification)
+        .where(UserNotification.user_id == user_id)
+        .order_by(UserNotification.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    if unread_only:
+        stmt = stmt.where(UserNotification.is_read.is_(False))
+    rows = (await session.execute(stmt)).scalars().all()
+    return [
+        UserNotificationOut(
+            id=r.id,
+            user_id=r.user_id,
+            type=r.type,
+            message=r.message,
+            is_read=r.is_read,
+            created_at=r.created_at,
+        )
+        for r in rows
+    ]
+
+
+async def mark_notification_read(
+    session: AsyncSession,
+    notification_id: UUID,
+    user_id: UUID,
+) -> UserNotificationOut:
+    notif = (
+        await session.execute(
+            select(UserNotification).where(
+                UserNotification.id == notification_id,
+                UserNotification.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if notif is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    notif.is_read = True
+    await session.flush()
+    return UserNotificationOut(
+        id=notif.id,
+        user_id=notif.user_id,
+        type=notif.type,
+        message=notif.message,
+        is_read=notif.is_read,
+        created_at=notif.created_at,
+    )
+
+
+async def mark_all_notifications_read(session: AsyncSession, user_id: UUID) -> int:
+    result = await session.execute(
+        update(UserNotification)
+        .where(UserNotification.user_id == user_id, UserNotification.is_read.is_(False))
+        .values(is_read=True)
+    )
+    return result.rowcount  # type: ignore[return-value]
+
+
+async def get_unread_count(session: AsyncSession, user_id: UUID) -> UnreadCountOut:
+    count = (
+        await session.execute(
+            select(func.count())
+            .select_from(UserNotification)
+            .where(
+                UserNotification.user_id == user_id,
+                UserNotification.is_read.is_(False),
+            )
+        )
+    ).scalar_one()
+    return UnreadCountOut(count=count)

@@ -267,6 +267,20 @@ class AdminStats(BaseModel):
     total_audit_events: int
 
 
+# ---- User Notifications ----
+class UserNotificationOut(BaseModel):
+    id: UUID
+    user_id: UUID
+    type: str
+    message: str
+    is_read: bool
+    created_at: datetime
+
+
+class UnreadCountOut(BaseModel):
+    count: int
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str

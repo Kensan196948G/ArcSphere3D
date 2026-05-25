@@ -4,6 +4,7 @@ import { useSceneStore } from "@/state/sceneStore";
 import { useThemeStore } from "@/state/themeStore";
 import { useUiStore } from "@/state/uiStore";
 import LoginModal from "@/features/auth/LoginModal";
+import NotificationInbox from "@/app/layout/NotificationInbox";
 import { parseJwtPayload } from "@/lib/api";
 import { notifyInfo, useNotificationStore } from "@/state/notificationStore";
 
@@ -14,7 +15,9 @@ export default function Header() {
   const { theme, toggle } = useThemeStore();
   const setActivePanel = useUiStore((s) => s.setActivePanel);
   const [showLogin, setShowLogin] = useState(false);
-  const unreadCount = useNotificationStore((s) => s.notifications.length);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const inboxOpen = useNotificationStore((s) => s.inboxOpen);
+  const setInboxOpen = useNotificationStore((s) => s.setInboxOpen);
 
   const userEmail = token ? (parseJwtPayload(token)?.email ?? null) : null;
 
@@ -53,25 +56,28 @@ export default function Header() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
-          {/* 通知ベル */}
+          {/* 通知ベル + インボックス */}
           {token && (
-            <button
-              type="button"
-              data-testid="notification-bell"
-              onClick={() => {}}
-              title="通知"
-              className="relative rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
-            >
-              🔔
-              {unreadCount > 0 && (
-                <span
-                  data-testid="notification-badge"
-                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white"
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                data-testid="notification-bell"
+                onClick={() => setInboxOpen(!inboxOpen)}
+                title="通知"
+                className="relative rounded bg-slate-200/80 px-2 py-0.5 text-slate-600 hover:bg-slate-300 dark:bg-slate-700/60 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span
+                    data-testid="notification-badge"
+                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white"
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              <NotificationInbox />
+            </div>
           )}
 
           {token ? (
