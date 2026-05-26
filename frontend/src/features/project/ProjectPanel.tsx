@@ -41,9 +41,10 @@ export default function ProjectPanel() {
   const token = useAuthStore((s) => s.token)!;
   const { projects, selectedProjectId, files, activity, loading, error } =
     useProjectStore();
-  const { showArchived } = useProjectStore();
+  const { showArchived, tagFilter } = useProjectStore();
+  const fetchProjects = useProjectStore((s) => s.fetchProjects);
+  const setTagFilter = useProjectStore((s) => s.setTagFilter);
   const {
-    fetchProjects,
     selectProject,
     createProject,
     renameProject,
@@ -356,6 +357,38 @@ export default function ProjectPanel() {
             {showArchived ? "📦 表示中" : "📦 アーカイブ"}
           </button>
         </div>
+        {allTags.length > 0 && (
+          <div className="mb-1 flex flex-wrap items-center gap-1" data-testid="tag-filter-bar">
+            <span className="text-[9px] text-slate-400">🏷</span>
+            {allTags.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => void setTagFilter(token, tagFilter === t.name ? null : t.name)}
+                data-testid={`tag-filter-${t.name}`}
+                className={`rounded-full px-2 py-0.5 text-[9px] font-medium text-white transition-opacity ${
+                  tagFilter === t.name
+                    ? "opacity-100 ring-2 ring-offset-1 ring-offset-slate-100 dark:ring-offset-slate-900"
+                    : "opacity-40 hover:opacity-70"
+                }`}
+                style={{ backgroundColor: t.color }}
+                title={tagFilter === t.name ? "フィルター解除" : `「${t.name}」で絞り込み`}
+              >
+                {t.name}
+              </button>
+            ))}
+            {tagFilter && (
+              <button
+                type="button"
+                onClick={() => void setTagFilter(token, null)}
+                data-testid="tag-filter-clear"
+                className="rounded-full bg-slate-300 px-2 py-0.5 text-[9px] text-slate-600 hover:bg-slate-400 dark:bg-slate-600 dark:text-slate-300 dark:hover:bg-slate-500"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        )}
         <input
           type="search"
           placeholder="🔍 プロジェクトを検索…"

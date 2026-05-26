@@ -76,10 +76,12 @@ export async function listProjects(
   limit = 50,
   q?: string,
   includeArchived = false,
+  tag?: string,
 ): Promise<ProjectOut[]> {
   const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
   if (q) params.set("q", q);
   if (includeArchived) params.set("include_archived", "true");
+  if (tag) params.set("tag", tag);
   const res = await fetch(`${BASE}/projects?${params}`, {
     headers: authHeaders(token),
   });
