@@ -1131,7 +1131,7 @@ async def mark_all_notifications_read(session: AsyncSession, user_id: UUID) -> i
         .where(UserNotification.user_id == user_id, UserNotification.is_read.is_(False))
         .values(is_read=True)
     )
-    return result.rowcount  # type: ignore[return-value]
+    return result.rowcount  # type: ignore[return-value, attr-defined]
 
 
 async def get_unread_count(session: AsyncSession, user_id: UUID) -> UnreadCountOut:
