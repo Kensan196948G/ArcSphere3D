@@ -296,6 +296,21 @@ class UnreadCountOut(BaseModel):
     count: int
 
 
+# ---- Comments ----
+class CommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=4096, pattern=_NO_NUL_PATTERN)
+
+
+class CommentOut(BaseModel):
+    id: UUID
+    project_id: UUID
+    author_id: UUID
+    author_email: str
+    body: str
+    created_at: datetime
+    updated_at: datetime
+
+
 # ---- Health ----
 class HealthOut(BaseModel):
     status: str
