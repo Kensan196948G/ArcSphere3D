@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0012_add_user_notifications"
-down_revision = "0009_drop_users_sub_column"
+down_revision = "0011_add_project_archived_at"
 branch_labels = None
 depends_on = None
 
