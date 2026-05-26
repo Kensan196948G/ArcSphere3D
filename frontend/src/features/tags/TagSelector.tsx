@@ -18,7 +18,8 @@ export default function TagSelector({
   role,
   onTagsChange,
 }: TagSelectorProps) {
-  const { fetchTags, addToProject, removeFromProject } = useTagStore.getState();
+  const fetchTags = useTagStore((s) => s.fetchTags);
+  const { addToProject, removeFromProject } = useTagStore.getState();
   const allTags = useTagStore((s) => s.tags);
   const [open, setOpen] = useState(false);
   const [newTagName, setNewTagName] = useState("");
@@ -30,7 +31,7 @@ export default function TagSelector({
 
   useEffect(() => {
     void fetchTags(token);
-  }, [token]);
+  }, [token, fetchTags]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

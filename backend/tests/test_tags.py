@@ -42,6 +42,7 @@ def _get_user_id(token: str) -> str:
 
 # ---- GET /api/tags ----
 
+
 def test_list_tags_empty() -> None:
     token = _login(DEMO_CREDS)
     res = client.get("/api/tags", headers=_auth(token))
@@ -56,9 +57,12 @@ def test_list_tags_unauthenticated() -> None:
 
 # ---- POST /api/tags ----
 
+
 def test_create_tag() -> None:
     token = _login(DEMO_CREDS)
-    res = client.post("/api/tags", json={"name": "construction", "color": "#ef4444"}, headers=_auth(token))
+    res = client.post(
+        "/api/tags", json={"name": "construction", "color": "#ef4444"}, headers=_auth(token)
+    )
     assert res.status_code == 201
     data = res.json()
     assert data["name"] == "construction"
@@ -105,6 +109,7 @@ def test_list_tags_after_create() -> None:
 
 # ---- DELETE /api/tags/{id} ----
 
+
 def test_delete_tag_by_creator() -> None:
     token = _login(DEMO_CREDS)
     tag_id = _create_tag(token, "to-delete")
@@ -131,6 +136,7 @@ def test_delete_tag_by_non_creator_non_admin() -> None:
 
 # ---- GET /api/projects/{id}/tags ----
 
+
 def test_list_project_tags_empty() -> None:
     token = _login(DEMO_CREDS)
     project_id = _create_project(token)
@@ -140,6 +146,7 @@ def test_list_project_tags_empty() -> None:
 
 
 # ---- POST /api/projects/{id}/tags/{tag_id} ----
+
 
 def test_add_tag_to_project() -> None:
     token = _login(DEMO_CREDS)
@@ -199,6 +206,7 @@ def test_add_tag_viewer_forbidden() -> None:
 
 # ---- DELETE /api/projects/{id}/tags/{tag_id} ----
 
+
 def test_remove_tag_from_project() -> None:
     token = _login(DEMO_CREDS)
     project_id = _create_project(token)
@@ -219,6 +227,7 @@ def test_remove_tag_not_attached() -> None:
 
 
 # ---- GET /api/projects?tag=xxx ----
+
 
 def test_list_projects_with_tag_filter() -> None:
     token = _login(DEMO_CREDS)

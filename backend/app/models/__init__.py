@@ -16,4 +16,6 @@ from app.models.audit_log import AuditLog as AuditLog
 from app.models.file import File as File
 from app.models.project import Project as Project
 from app.models.project_member import ProjectMember as ProjectMember
+from app.models.tag import ProjectTag as ProjectTag
+from app.models.tag import Tag as Tag
 from app.models.user import User as User
