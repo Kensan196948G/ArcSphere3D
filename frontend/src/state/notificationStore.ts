@@ -93,7 +93,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set((s) => {
       if (s.inboxItems.some((i) => i.id === item.id)) return {};
       return {
-        inboxItems: [item, ...s.inboxItems],
+        inboxItems: [item, ...s.inboxItems].slice(0, 50),
         unreadCount: s.unreadCount + (item.is_read ? 0 : 1),
       };
     }),

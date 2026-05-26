@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
+from typing import cast as t_cast
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import Text, cast, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -1131,7 +1133,7 @@ async def mark_all_notifications_read(session: AsyncSession, user_id: UUID) -> i
         .where(UserNotification.user_id == user_id, UserNotification.is_read.is_(False))
         .values(is_read=True)
     )
-    return result.rowcount  # type: ignore[return-value, attr-defined]
+    return int(t_cast(CursorResult[Any], result).rowcount or 0)
 
 
 async def get_unread_count(session: AsyncSession, user_id: UUID) -> UnreadCountOut:

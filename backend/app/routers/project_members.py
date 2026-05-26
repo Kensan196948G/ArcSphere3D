@@ -10,7 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
 from app.email import send_member_invite
-from app.notify import notify_user
+from app.notify import send_notification_ws
 from app.schemas import CurrentUser, MemberAdd, MemberOut, MemberRoleUpdate
 
 router = APIRouter(
@@ -91,13 +91,14 @@ async def add_member(
         resource_id=str(project_id),
         detail=f"user_id={body.user_id} role={body.role}",
     )
-    await notify_user(
+    notif = await crud.create_notification(
         session,
         body.user_id,
         "info",
         f"プロジェクトに {body.role} として追加されました",
     )
     await session.commit()
+    await send_notification_ws(body.user_id, notif)
     project = await crud.get_project_by_id(session, project_id)
     background_tasks.add_task(
         send_member_invite,
