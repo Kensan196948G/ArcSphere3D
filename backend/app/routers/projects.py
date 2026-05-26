@@ -20,6 +20,7 @@ from app.schemas import (
     ProjectOut,
     ProjectStats,
     ProjectUpdate,
+    TagOut,
 )
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -42,10 +43,11 @@ async def list_projects(
     limit: int = Query(default=50, ge=1, le=200),
     q: str | None = Query(default=None, max_length=128, pattern=r"^[^\x00]*$"),
     include_archived: bool = Query(default=False),
+    tag: str | None = Query(default=None, max_length=50, description="Filter by tag name"),
 ) -> list[ProjectOut]:
     db_user = await crud.upsert_user(session, user)
     return await crud.list_projects(
-        session, db_user.id, skip=skip, limit=limit, q=q, include_archived=include_archived
+        session, db_user.id, skip=skip, limit=limit, q=q, include_archived=include_archived, tag=tag
     )
 
 
@@ -341,3 +343,53 @@ async def get_project_activity(
     if role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
     return await crud.get_project_activity(session, project_id, limit=limit)
+
+
+@router.post(
+    "/{project_id}/tags/{tag_id}",
+    response_model=list[TagOut],
+    status_code=status.HTTP_201_CREATED,
+    responses={**_401, **_403, **_404},
+)
+async def add_tag_to_project(
+    project_id: UUID,
+    tag_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> list[TagOut]:
+    """Attach a tag to a project. Editor+ role required."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role == "viewer":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="editor or owner only")
+    tag = await crud.get_tag(session, tag_id)
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tag not found")
+    tags = await crud.add_tag_to_project(session, project_id, tag_id)
+    await session.commit()
+    return tags
+
+
+@router.delete(
+    "/{project_id}/tags/{tag_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+    responses={**_401, **_403, **_404},
+)
+async def remove_tag_from_project(
+    project_id: UUID,
+    tag_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> None:
+    """Remove a tag from a project. Editor+ role required."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role == "viewer":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="editor or owner only")
+    await crud.remove_tag_from_project(session, project_id, tag_id)
+    await session.commit()

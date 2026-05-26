@@ -90,6 +90,20 @@ class ProjectUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=500, pattern=_NO_NUL_PATTERN)
 
 
+# ---- Tags ----
+class TagCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=50, pattern=_NO_NUL_PATTERN)
+    color: str = Field(default="#6366f1", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class TagOut(BaseModel):
+    id: UUID
+    name: str
+    color: str
+    created_by: UUID
+    created_at: datetime
+
+
 class ProjectOut(BaseModel):
     id: UUID
     name: str
@@ -97,6 +111,7 @@ class ProjectOut(BaseModel):
     owner_id: UUID
     created_at: datetime
     archived_at: datetime | None = None
+    tags: list[TagOut] = []
 
 
 class ProjectStats(BaseModel):

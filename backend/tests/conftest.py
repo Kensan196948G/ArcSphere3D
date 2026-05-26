@@ -62,7 +62,10 @@ init_engine()
 def _db_schema() -> None:
     """Drop and recreate all tables once for the entire test session."""
     engine = create_engine(get_settings().database_url)
-    Base.metadata.drop_all(engine)
+    # drop_all respects FK order when using sorted_tables, but CASCADE is safer
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
     Base.metadata.create_all(engine)
     engine.dispose()
 
@@ -76,7 +79,8 @@ def _db_truncate(_db_schema: None) -> None:
             text(
                 "TRUNCATE users, projects, files, alignments,"
                 " alignment_ip_points, vertical_alignments, vertical_alignment_vips,"
-                " project_members, audit_logs RESTART IDENTITY CASCADE"
+                " project_members, audit_logs, tags, project_tags"
+                " RESTART IDENTITY CASCADE"
             )
         )
     engine.dispose()

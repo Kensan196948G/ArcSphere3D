@@ -16,6 +16,14 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ---- Types ----------------------------------------------------------------
 
+export interface TagOut {
+  id: string;
+  name: string;
+  color: string;
+  created_by: string;
+  created_at: string;
+}
+
 export interface ProjectOut {
   id: string;
   name: string;
@@ -23,6 +31,7 @@ export interface ProjectOut {
   owner_id: string;
   created_at: string;
   archived_at: string | null;
+  tags: TagOut[];
 }
 
 export interface MemberOut {
@@ -751,4 +760,62 @@ export async function getProjectActivity(
     headers: authHeaders(token),
   });
   return handleResponse<AuditLogOut[]>(res);
+}
+
+// ---- Tags ----------------------------------------------------------------
+
+export async function listTags(token: string): Promise<TagOut[]> {
+  const res = await fetch(`${BASE}/tags`, { headers: authHeaders(token) });
+  return handleResponse<TagOut[]>(res);
+}
+
+export async function createTag(
+  token: string,
+  name: string,
+  color: string,
+): Promise<TagOut> {
+  const res = await fetch(`${BASE}/tags`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name, color }),
+  });
+  return handleResponse<TagOut>(res);
+}
+
+export async function deleteTag(token: string, tagId: string): Promise<void> {
+  const res = await fetch(`${BASE}/tags/${tagId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
+export async function addTagToProject(
+  token: string,
+  projectId: string,
+  tagId: string,
+): Promise<TagOut[]> {
+  const res = await fetch(`${BASE}/projects/${projectId}/tags/${tagId}`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+  return handleResponse<TagOut[]>(res);
+}
+
+export async function removeTagFromProject(
+  token: string,
+  projectId: string,
+  tagId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}/tags/${tagId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
 }

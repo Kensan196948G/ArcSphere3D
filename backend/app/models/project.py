@@ -13,6 +13,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.file import File
+    from app.models.tag import Tag
 
 
 class Project(Base):
@@ -33,4 +34,7 @@ class Project(Base):
 
     files: Mapped[list[File]] = relationship(  # noqa: F821
         "File", back_populates="project", cascade="all, delete-orphan", lazy="select"
+    )
+    tags: Mapped[list[Tag]] = relationship(  # noqa: F821
+        "Tag", secondary="project_tags", lazy="selectin"
     )
