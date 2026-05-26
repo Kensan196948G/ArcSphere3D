@@ -20,6 +20,7 @@ from app.routers import (
     notifications,
     project_members,
     projects,
+    tags,
     user_notifications,
     users,
     verticals,
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(project_members.router)
     app.include_router(notifications.router)
     app.include_router(user_notifications.router)
+    app.include_router(tags.router)
 
     return app
 
