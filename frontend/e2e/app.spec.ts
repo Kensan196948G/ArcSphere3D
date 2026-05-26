@@ -139,6 +139,26 @@ async function setupApiMocks(
       });
     },
   );
+
+  await page.route("**/api/notifications/unread-count", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ count: 0 }),
+    });
+  });
+
+  await page.route("**/api/tags", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      });
+    } else {
+      await route.continue();
+    }
+  });
 }
 
 async function setupAlignmentTests(page: Page) {
