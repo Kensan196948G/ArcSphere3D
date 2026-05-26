@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from app.db import crud
 from app.deps import CurrentUserDep, DbDep
@@ -42,7 +43,13 @@ async def create_tag(
     existing = await crud.get_tag_by_name(session, body.name)
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tag name already exists")
-    return await crud.create_tag(session, body, db_user.id)
+    try:
+        return await crud.create_tag(session, body, db_user.id)
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Tag name already exists"
+        ) from None
 
 
 @router.delete(

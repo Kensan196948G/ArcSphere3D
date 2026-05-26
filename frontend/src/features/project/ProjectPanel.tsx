@@ -111,7 +111,7 @@ export default function ProjectPanel() {
   }, [token, fetchProjects]);
 
   useEffect(() => {
-    listTags(token).then(setAllTags).catch(() => {});
+    listTags(token).then(setAllTags).catch((e) => console.error("Failed to load tags:", e));
   }, [token]);
 
   useEffect(() => {

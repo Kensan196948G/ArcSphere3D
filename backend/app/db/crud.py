@@ -1138,6 +1138,22 @@ async def add_tag_to_project(session: AsyncSession, project_id: UUID, tag_id: UU
     ]
 
 
+async def list_project_tags(session: AsyncSession, project_id: UUID) -> list[TagOut]:
+    """Return tags attached to a project."""
+    result = await session.execute(
+        select(Tag)
+        .join(project_tags, project_tags.c.tag_id == Tag.id)
+        .where(project_tags.c.project_id == project_id)
+        .order_by(Tag.name)
+    )
+    return [
+        TagOut(
+            id=t.id, name=t.name, color=t.color, created_by=t.created_by, created_at=t.created_at
+        )
+        for t in result.scalars().all()
+    ]
+
+
 async def remove_tag_from_project(session: AsyncSession, project_id: UUID, tag_id: UUID) -> None:
     await session.execute(
         project_tags.delete().where(

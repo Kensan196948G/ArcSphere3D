@@ -82,6 +82,7 @@ async def get_project(
     db_user = await crud.upsert_user(session, user)
     p = await crud.get_project(session, project_id, db_user.id)
     if p is not None:
+        tags = await crud.list_project_tags(session, p.id)
         return ProjectOut(
             id=p.id,
             name=p.name,
@@ -89,6 +90,7 @@ async def get_project(
             owner_id=p.owner_id,
             created_at=p.created_at,
             archived_at=p.archived_at,
+            tags=tags,
         )
     role = await crud.get_member_role(session, project_id, db_user.id)
     if role is None:
@@ -96,6 +98,7 @@ async def get_project(
     p = await crud.get_project_by_id(session, project_id)
     if p is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    tags = await crud.list_project_tags(session, p.id)
     return ProjectOut(
         id=p.id,
         name=p.name,
@@ -103,6 +106,7 @@ async def get_project(
         owner_id=p.owner_id,
         created_at=p.created_at,
         archived_at=p.archived_at,
+        tags=tags,
     )
 
 
@@ -136,6 +140,7 @@ async def update_project(
         detail=body.name,
     )
     await session.commit()
+    tags = await crud.list_project_tags(session, p.id)
     return ProjectOut(
         id=p.id,
         name=p.name,
@@ -143,6 +148,7 @@ async def update_project(
         owner_id=p.owner_id,
         created_at=p.created_at,
         archived_at=p.archived_at,
+        tags=tags,
     )
 
 
@@ -208,6 +214,7 @@ async def archive_project(
         detail=p.name,
     )
     await session.commit()
+    tags = await crud.list_project_tags(session, p.id)
     return ProjectOut(
         id=p.id,
         name=p.name,
@@ -215,6 +222,7 @@ async def archive_project(
         owner_id=p.owner_id,
         created_at=p.created_at,
         archived_at=p.archived_at,
+        tags=tags,
     )
 
 
@@ -247,6 +255,7 @@ async def unarchive_project(
         detail=p.name,
     )
     await session.commit()
+    tags = await crud.list_project_tags(session, p.id)
     return ProjectOut(
         id=p.id,
         name=p.name,
@@ -254,6 +263,7 @@ async def unarchive_project(
         owner_id=p.owner_id,
         created_at=p.created_at,
         archived_at=p.archived_at,
+        tags=tags,
     )
 
 

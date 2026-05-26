@@ -142,5 +142,12 @@ class TestProjectTagAssignment:
         other_token = _login(OTHER_CREDS)
         project_id = _create_project(token, "Viewer Tag Restrict Project")
         tag_id = _create_tag(token, "viewer-cant-tag")
+        other_user = client.get("/api/users/me", headers=_auth(other_token)).json()
+        r = client.post(
+            f"/api/projects/{project_id}/members",
+            json={"user_id": other_user["id"], "role": "viewer"},
+            headers=_auth(token),
+        )
+        assert r.status_code == 201
         res = client.post(f"/api/projects/{project_id}/tags/{tag_id}", headers=_auth(other_token))
-        assert res.status_code == 404
+        assert res.status_code == 403
