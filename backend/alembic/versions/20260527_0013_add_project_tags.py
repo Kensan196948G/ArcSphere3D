@@ -1,7 +1,7 @@
 """add tags and project_tags tables
 
 Revision ID: 0013_add_project_tags
-Revises: 0011_add_project_archived_at
+Revises: 0012_add_user_notifications
 Create Date: 2026-05-27
 
 Issue #229: project tag management — tagging and tag-based filtering.
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0013_add_project_tags"
-down_revision = "0011_add_project_archived_at"
+down_revision = "0012_add_user_notifications"
 branch_labels = None
 depends_on = None
 
