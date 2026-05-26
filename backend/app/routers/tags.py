@@ -19,6 +19,7 @@ _400: _Responses = {400: {"description": "malformed request body"}}
 _401: _Responses = {401: {"description": "missing or invalid bearer token"}}
 _403: _Responses = {403: {"description": "insufficient role"}}
 _404: _Responses = {404: {"description": "not found"}}
+_409: _Responses = {409: {"description": "conflict — tag name already exists"}}
 
 
 @router.get("", response_model=list[TagOut], responses=_401)
@@ -31,7 +32,10 @@ async def list_tags(
 
 
 @router.post(
-    "", response_model=TagOut, status_code=status.HTTP_201_CREATED, responses={**_400, **_401}
+    "",
+    response_model=TagOut,
+    status_code=status.HTTP_201_CREATED,
+    responses={**_400, **_401, **_409},
 )
 async def create_tag(
     body: TagCreate,
