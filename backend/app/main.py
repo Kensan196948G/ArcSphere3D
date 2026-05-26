@@ -15,6 +15,7 @@ from app.routers import (
     admin,
     alignments,
     auth,
+    comments,
     files,
     health,
     notifications,
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications.router)
     app.include_router(user_notifications.router)
     app.include_router(tags.router)
+    app.include_router(comments.router)
 
     return app
 

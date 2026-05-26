@@ -4,6 +4,7 @@ import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
 import MultipartUploader from "@/features/viewport/MultipartUploader";
+import CommentPanel from "@/features/project/CommentPanel";
 import {
   addTagToProject,
   createTag,
@@ -65,7 +66,7 @@ export default function ProjectPanel() {
   const [newProjectDesc, setNewProjectDesc] = useState("");
   const [creating, setCreating] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"files" | "activity">("files");
+  const [activeTab, setActiveTab] = useState<"files" | "activity" | "comments">("files");
   const [renaming, setRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState("");
   const [renameDescInput, setRenameDescInput] = useState("");
@@ -159,6 +160,8 @@ export default function ProjectPanel() {
     setActiveTab("files");
     await selectProject(token, id);
   }
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -610,7 +613,7 @@ export default function ProjectPanel() {
       {/* タブ切り替え */}
       {selectedProjectId && (
         <div className="flex gap-0.5 rounded bg-slate-100 p-0.5 dark:bg-slate-800" data-testid="project-tabs">
-          {(["files", "activity"] as const).map((tab) => (
+          {(["files", "activity", "comments"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -622,7 +625,7 @@ export default function ProjectPanel() {
                   : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
             >
-              {tab === "files" ? "ファイル" : "アクティビティ"}
+              {tab === "files" ? "ファイル" : tab === "activity" ? "アクティビティ" : "コメント"}
             </button>
           ))}
         </div>
@@ -868,6 +871,16 @@ export default function ProjectPanel() {
             ))}
           </ul>
         </div>
+      )}
+
+      {/* コメント */}
+      {selectedProjectId && activeTab === "comments" && (
+        <CommentPanel
+          token={token}
+          projectId={selectedProjectId}
+          currentUserId={currentUserId}
+          projectOwnerId={selectedProject?.owner_id ?? null}
+        />
       )}
     </div>
   );

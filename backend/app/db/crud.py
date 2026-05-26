@@ -21,6 +21,7 @@ from app.models.alignment import (
     VerticalAlignmentVip,
 )
 from app.models.audit_log import AuditLog
+from app.models.comment import Comment
 from app.models.file import File
 from app.models.project import Project
 from app.models.project_member import ProjectMember
@@ -32,6 +33,8 @@ from app.schemas import (
     AlignmentCreate,
     AlignmentOut,
     AuditLogOut,
+    CommentCreate,
+    CommentOut,
     CurrentUser,
     FileMetadata,
     IpPointCreate,
@@ -1246,3 +1249,72 @@ async def remove_tag_from_project(session: AsyncSession, project_id: UUID, tag_i
             project_tags.c.tag_id == tag_id,
         )
     )
+
+
+# ---- Comments ----
+
+
+async def _comment_to_out(session: AsyncSession, comment: Comment) -> CommentOut:
+    author = await session.get(User, comment.author_id)
+    author_email = author.email if author else ""
+    return CommentOut(
+        id=comment.id,
+        project_id=comment.project_id,
+        author_id=comment.author_id,
+        author_email=author_email,
+        body=comment.body,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+    )
+
+
+async def list_comments(session: AsyncSession, project_id: UUID) -> list[CommentOut]:
+    rows = (
+        (
+            await session.execute(
+                select(Comment)
+                .where(Comment.project_id == project_id)
+                .order_by(Comment.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    result = []
+    for row in rows:
+        result.append(await _comment_to_out(session, row))
+    return result
+
+
+async def create_comment(
+    session: AsyncSession,
+    project_id: UUID,
+    author_id: UUID,
+    body: CommentCreate,
+) -> CommentOut:
+    comment = Comment(project_id=project_id, author_id=author_id, body=body.body)
+    session.add(comment)
+    await session.flush()
+    await session.refresh(comment)
+    await session.commit()
+    return await _comment_to_out(session, comment)
+
+
+async def delete_comment(
+    session: AsyncSession,
+    comment_id: UUID,
+    requester_id: UUID,
+    project_owner_id: UUID,
+) -> bool:
+    comment = (
+        await session.execute(select(Comment).where(Comment.id == comment_id))
+    ).scalar_one_or_none()
+    if comment is None:
+        return False
+    if comment.author_id != requester_id and project_owner_id != requester_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete this comment"
+        )
+    await session.delete(comment)
+    await session.commit()
+    return True

@@ -868,3 +868,50 @@ export async function removeTagFromProject(
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
   }
 }
+
+// ---- Comments ---------------------------------------------------------------
+
+export interface CommentOut {
+  id: string;
+  project_id: string;
+  author_id: string;
+  author_email: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listComments(token: string, projectId: string): Promise<CommentOut[]> {
+  const res = await fetch(`${BASE}/projects/${projectId}/comments`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<CommentOut[]>(res);
+}
+
+export async function createComment(
+  token: string,
+  projectId: string,
+  body: string,
+): Promise<CommentOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}/comments`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
+  return handleResponse<CommentOut>(res);
+}
+
+export async function deleteComment(
+  token: string,
+  projectId: string,
+  commentId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
