@@ -22,6 +22,7 @@ export interface ProjectOut {
   description: string | null;
   owner_id: string;
   created_at: string;
+  archived_at: string | null;
 }
 
 export interface MemberOut {
@@ -65,9 +66,11 @@ export async function listProjects(
   skip = 0,
   limit = 50,
   q?: string,
+  includeArchived = false,
 ): Promise<ProjectOut[]> {
   const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
   if (q) params.set("q", q);
+  if (includeArchived) params.set("include_archived", "true");
   const res = await fetch(`${BASE}/projects?${params}`, {
     headers: authHeaders(token),
   });
@@ -448,6 +451,30 @@ export async function updateMemberRole(
     body: JSON.stringify({ role }),
   });
   return handleResponse<MemberOut>(res);
+}
+
+// ---- Projects (archive / unarchive) ----------------------------------------
+
+export async function archiveProject(
+  token: string,
+  projectId: string,
+): Promise<ProjectOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}/archive`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  return handleResponse<ProjectOut>(res);
+}
+
+export async function unarchiveProject(
+  token: string,
+  projectId: string,
+): Promise<ProjectOut> {
+  const res = await fetch(`${BASE}/projects/${projectId}/unarchive`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+  });
+  return handleResponse<ProjectOut>(res);
 }
 
 // ---- Projects (delete) ----------------------------------------------------

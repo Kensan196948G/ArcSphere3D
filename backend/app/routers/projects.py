@@ -41,9 +41,12 @@ async def list_projects(
     skip: int = Query(default=0, ge=0, le=2_147_483_647),
     limit: int = Query(default=50, ge=1, le=200),
     q: str | None = Query(default=None, max_length=128, pattern=r"^[^\x00]*$"),
+    include_archived: bool = Query(default=False),
 ) -> list[ProjectOut]:
     db_user = await crud.upsert_user(session, user)
-    return await crud.list_projects(session, db_user.id, skip=skip, limit=limit, q=q)
+    return await crud.list_projects(
+        session, db_user.id, skip=skip, limit=limit, q=q, include_archived=include_archived
+    )
 
 
 @router.post(
@@ -83,6 +86,7 @@ async def get_project(
             description=p.description,
             owner_id=p.owner_id,
             created_at=p.created_at,
+            archived_at=p.archived_at,
         )
     role = await crud.get_member_role(session, project_id, db_user.id)
     if role is None:
@@ -96,6 +100,7 @@ async def get_project(
         description=p.description,
         owner_id=p.owner_id,
         created_at=p.created_at,
+        archived_at=p.archived_at,
     )
 
 
@@ -135,6 +140,7 @@ async def update_project(
         description=p.description,
         owner_id=p.owner_id,
         created_at=p.created_at,
+        archived_at=p.archived_at,
     )
 
 
@@ -169,6 +175,84 @@ async def delete_project(
         resource_id=str(project_id),
     )
     await session.commit()
+
+
+@router.patch(
+    "/{project_id}/archive",
+    response_model=ProjectOut,
+    responses={**_401, **_403, **_404},
+)
+async def archive_project(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> ProjectOut:
+    """Archive a project (soft-delete). Owner-only."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
+    p = await crud.archive_project(session, project_id, db_user.id)
+    if p is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    await crud.log_audit_event(
+        session,
+        action="project_archived",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project_id),
+        detail=p.name,
+    )
+    await session.commit()
+    return ProjectOut(
+        id=p.id,
+        name=p.name,
+        description=p.description,
+        owner_id=p.owner_id,
+        created_at=p.created_at,
+        archived_at=p.archived_at,
+    )
+
+
+@router.patch(
+    "/{project_id}/unarchive",
+    response_model=ProjectOut,
+    responses={**_401, **_403, **_404},
+)
+async def unarchive_project(
+    project_id: UUID,
+    session: DbDep,
+    user: CurrentUser = CurrentUserDep,
+) -> ProjectOut:
+    """Restore an archived project. Owner-only."""
+    db_user = await crud.upsert_user(session, user)
+    role = await crud.get_access_role(session, project_id, db_user.id)
+    if role is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    if role != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="owner only")
+    p = await crud.unarchive_project(session, project_id, db_user.id)
+    if p is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+    await crud.log_audit_event(
+        session,
+        action="project_unarchived",
+        user_id=db_user.id,
+        resource_type="project",
+        resource_id=str(project_id),
+        detail=p.name,
+    )
+    await session.commit()
+    return ProjectOut(
+        id=p.id,
+        name=p.name,
+        description=p.description,
+        owner_id=p.owner_id,
+        created_at=p.created_at,
+        archived_at=p.archived_at,
+    )
 
 
 @router.get(

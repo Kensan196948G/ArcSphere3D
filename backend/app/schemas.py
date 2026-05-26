@@ -96,6 +96,7 @@ class ProjectOut(BaseModel):
     description: str | None = None
     owner_id: UUID
     created_at: datetime
+    archived_at: datetime | None = None
 
 
 class ProjectStats(BaseModel):

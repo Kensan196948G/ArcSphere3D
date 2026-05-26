@@ -27,6 +27,9 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
     files: Mapped[list[File]] = relationship(  # noqa: F821
         "File", back_populates="project", cascade="all, delete-orphan", lazy="select"
