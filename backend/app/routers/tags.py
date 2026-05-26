@@ -32,7 +32,10 @@ async def list_tags(
 
 
 @router.post(
-    "", response_model=TagOut, status_code=status.HTTP_201_CREATED, responses={**_400, **_401, **_409}
+    "",
+    response_model=TagOut,
+    status_code=status.HTTP_201_CREATED,
+    responses={**_400, **_401, **_409},
 )
 async def create_tag(
     body: TagCreate,
