@@ -19,5 +19,15 @@ async def notify_user(
     message: str,
 ) -> None:
     """Persist a notification row and push it to any active WebSocket connections."""
-    await create_notification(db, user_id, type, message)
-    await manager.send_to_user(user_id, {"type": type, "message": message})
+    notif = await create_notification(db, user_id, type, message)
+    await manager.send_to_user(
+        user_id,
+        {
+            "id": str(notif.id),
+            "user_id": str(notif.user_id),
+            "type": notif.type,
+            "message": notif.message,
+            "is_read": notif.is_read,
+            "created_at": notif.created_at.isoformat(),
+        },
+    )

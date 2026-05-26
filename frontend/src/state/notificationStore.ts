@@ -59,8 +59,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   setInboxOpen: (open) => set({ inboxOpen: open }),
 
   fetchInbox: async (token) => {
-    const items = await listNotifications(token, { limit: 50 });
-    const unreadCount = items.filter((i) => !i.is_read).length;
+    const [items, unreadCount] = await Promise.all([
+      listNotifications(token, { limit: 50 }),
+      getUnreadCount(token),
+    ]);
     set({ inboxItems: items, unreadCount });
   },
 
@@ -88,10 +90,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   prependInboxItem: (item) =>
-    set((s) => ({
-      inboxItems: [item, ...s.inboxItems],
-      unreadCount: s.unreadCount + 1,
-    })),
+    set((s) => {
+      if (s.inboxItems.some((i) => i.id === item.id)) return {};
+      return {
+        inboxItems: [item, ...s.inboxItems],
+        unreadCount: s.unreadCount + (item.is_read ? 0 : 1),
+      };
+    }),
 }));
 
 // ---- Convenience helpers ---------------------------------------------------

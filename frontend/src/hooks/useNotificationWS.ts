@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/state/authStore";
-import { notifyError, notifyInfo, notifySuccess, useNotificationStore } from "@/state/notificationStore";
+import { notifyError, notifyInfo, notifySuccess, notifyWarning, useNotificationStore } from "@/state/notificationStore";
 import type { NotificationItem } from "@/lib/api";
 
 type WsMessage = {
@@ -47,6 +47,9 @@ export function useNotificationWS() {
             break;
           case "error":
             notifyError(msg.message);
+            break;
+          case "warning":
+            notifyWarning(msg.message);
             break;
           default:
             notifyInfo(msg.message);
