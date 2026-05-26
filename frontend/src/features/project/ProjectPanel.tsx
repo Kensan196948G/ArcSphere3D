@@ -4,7 +4,18 @@ import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
 import MultipartUploader from "@/features/viewport/MultipartUploader";
-import { exportProjectZip, getProjectStats, parseJwtPayload, renameFile, type ProjectStats } from "@/lib/api";
+import {
+  addTagToProject,
+  createTag,
+  exportProjectZip,
+  getProjectStats,
+  listTags,
+  parseJwtPayload,
+  removeTagFromProject,
+  renameFile,
+  type ProjectStats,
+  type TagOut,
+} from "@/lib/api";
 import { notifyError, notifySuccess } from "@/state/notificationStore";
 
 const FILE_ICONS: Record<string, string> = {
@@ -61,6 +72,10 @@ export default function ProjectPanel() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
+  const [allTags, setAllTags] = useState<TagOut[]>([]);
+  const [showTagPanel, setShowTagPanel] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#6366f1");
   const [projectSearch, setProjectSearch] = useState("");
   const [fileSearch, setFileSearch] = useState("");
   const [fileExtFilter, setFileExtFilter] = useState("");
@@ -94,6 +109,10 @@ export default function ProjectPanel() {
   useEffect(() => {
     fetchProjects(token);
   }, [token, fetchProjects]);
+
+  useEffect(() => {
+    listTags(token).then(setAllTags).catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     if (!selectedProjectId) return;
@@ -229,6 +248,40 @@ export default function ProjectPanel() {
     }
   }
 
+  async function handleAddTag(tagId: string) {
+    if (!selectedProjectId) return;
+    try {
+      await addTagToProject(token, selectedProjectId, tagId);
+      await fetchProjects(token, projectSearch.trim() || undefined);
+    } catch (e) {
+      notifyError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function handleRemoveTag(tagId: string) {
+    if (!selectedProjectId) return;
+    try {
+      await removeTagFromProject(token, selectedProjectId, tagId);
+      await fetchProjects(token, projectSearch.trim() || undefined);
+    } catch (e) {
+      notifyError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function handleCreateTag(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTagName.trim()) return;
+    try {
+      const tag = await createTag(token, newTagName.trim(), newTagColor);
+      setAllTags((prev) => [...prev, tag]);
+      notifySuccess(`タグ「${tag.name}」を作成しました`);
+      setNewTagName("");
+      setNewTagColor("#6366f1");
+    } catch (e) {
+      notifyError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function handleArchiveProject() {
     if (!selectedProjectId) return;
     const project = projects.find((p) => p.id === selectedProjectId);
@@ -343,6 +396,91 @@ export default function ProjectPanel() {
               {p.description}
             </p>
           ) : null;
+        })()}
+        {/* タグバッジ */}
+        {selectedProjectId && (() => {
+          const p = projects.find((x) => x.id === selectedProjectId);
+          if (!p) return null;
+          return (
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              {p.tags.map((t) => (
+                <span
+                  key={t.id}
+                  data-testid="project-tag-badge"
+                  className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium text-white"
+                  style={{ backgroundColor: t.color }}
+                >
+                  {t.name}
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowTagPanel((v) => !v)}
+                data-testid="tag-panel-toggle"
+                className="rounded-full bg-slate-200 px-2 py-0.5 text-[9px] text-slate-500 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400"
+              >
+                🏷 タグ
+              </button>
+            </div>
+          );
+        })()}
+        {/* タグ管理パネル */}
+        {selectedProjectId && showTagPanel && (() => {
+          const p = projects.find((x) => x.id === selectedProjectId);
+          const attachedIds = new Set(p?.tags.map((t) => t.id) ?? []);
+          return (
+            <div
+              className="mt-1 rounded border border-slate-200 bg-slate-50 p-2 text-[10px] dark:border-slate-700 dark:bg-slate-800/60"
+              data-testid="tag-management-panel"
+            >
+              <p className="mb-1 font-semibold text-slate-500 dark:text-slate-400">タグを追加 / 外す</p>
+              <div className="mb-2 flex flex-wrap gap-1">
+                {allTags.map((t) => {
+                  const attached = attachedIds.has(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => void (attached ? handleRemoveTag(t.id) : handleAddTag(t.id))}
+                      data-testid={`tag-toggle-${t.id}`}
+                      className={`rounded-full px-2 py-0.5 text-[9px] font-medium text-white transition-opacity ${attached ? "opacity-100 ring-2 ring-white ring-offset-1 ring-offset-slate-800" : "opacity-50 hover:opacity-80"}`}
+                      style={{ backgroundColor: t.color }}
+                      title={attached ? "クリックで外す" : "クリックで追加"}
+                    >
+                      {attached ? "✓ " : ""}{t.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <form onSubmit={(e) => void handleCreateTag(e)} className="flex gap-1">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="新しいタグ名"
+                  maxLength={50}
+                  data-testid="new-tag-name-input"
+                  className="min-w-0 flex-1 rounded bg-white px-2 py-0.5 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
+                />
+                <input
+                  type="color"
+                  value={newTagColor}
+                  onChange={(e) => setNewTagColor(e.target.value)}
+                  data-testid="new-tag-color-input"
+                  className="h-5 w-7 cursor-pointer rounded border-0 bg-transparent p-0"
+                  title="タグの色"
+                />
+                <button
+                  type="submit"
+                  disabled={!newTagName.trim()}
+                  data-testid="new-tag-create-btn"
+                  className="rounded bg-arc-accent/70 px-2 py-0.5 text-white hover:bg-arc-accent disabled:opacity-40 dark:text-slate-900"
+                >
+                  作成
+                </button>
+              </form>
+            </div>
+          );
         })()}
         {selectedProjectId && !renaming && (() => {
           const p = projects.find((x) => x.id === selectedProjectId);
