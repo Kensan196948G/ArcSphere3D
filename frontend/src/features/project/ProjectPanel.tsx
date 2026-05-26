@@ -4,8 +4,10 @@ import { useProjectStore } from "@/state/projectStore";
 import { useSceneStore } from "@/state/sceneStore";
 import { loadFromUrl } from "@/features/viewport/loaders";
 import MultipartUploader from "@/features/viewport/MultipartUploader";
-import { exportProjectZip, getProjectStats, parseJwtPayload, renameFile, type ProjectStats } from "@/lib/api";
+import { exportProjectZip, getProjectStats, parseJwtPayload, renameFile, type ProjectStats, type TagOut } from "@/lib/api";
 import { notifyError, notifySuccess } from "@/state/notificationStore";
+import TagSelector from "@/features/tags/TagSelector";
+import { useTagStore } from "@/state/tagStore";
 
 const FILE_ICONS: Record<string, string> = {
   stl: "🔷",
@@ -62,11 +64,14 @@ export default function ProjectPanel() {
   const [renameFileInput, setRenameFileInput] = useState("");
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [projectSearch, setProjectSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState<string>("");
   const [fileSearch, setFileSearch] = useState("");
   const [fileExtFilter, setFileExtFilter] = useState("");
+  const [projectTags, setProjectTags] = useState<TagOut[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allTags = useTagStore((s) => s.tags);
 
   const { fetchFiles } = useProjectStore.getState();
 
@@ -85,14 +90,23 @@ export default function ProjectPanel() {
       setProjectSearch(value);
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
       searchTimerRef.current = setTimeout(() => {
-        void fetchProjects(token, value.trim() || undefined);
+        void fetchProjects(token, value.trim() || undefined, tagFilter || undefined);
       }, 300);
     },
-    [token, fetchProjects],
+    [token, fetchProjects, tagFilter],
+  );
+
+  const handleTagFilterChange = useCallback(
+    (tag: string) => {
+      setTagFilter(tag);
+      void fetchProjects(token, projectSearch.trim() || undefined, tag || undefined);
+    },
+    [token, fetchProjects, projectSearch],
   );
 
   useEffect(() => {
     fetchProjects(token);
+    void useTagStore.getState().fetchTags(token);
   }, [token, fetchProjects]);
 
   useEffect(() => {
@@ -101,6 +115,15 @@ export default function ProjectPanel() {
       void fetchActivity(token);
     }
   }, [token, selectedProjectId, activeTab, fetchActivity]);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setProjectTags([]);
+      return;
+    }
+    const p = projects.find((x) => x.id === selectedProjectId);
+    setProjectTags(p?.tags ?? []);
+  }, [selectedProjectId, projects]);
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -311,6 +334,35 @@ export default function ProjectPanel() {
           data-testid="project-search-input"
           className="mb-1 w-full rounded bg-slate-100 px-2 py-1 text-slate-700 outline-none focus:ring-1 focus:ring-arc-accent dark:bg-slate-700 dark:text-slate-200"
         />
+        {allTags.length > 0 && (
+          <div className="mb-1 flex flex-wrap gap-1 items-center">
+            <span className="text-[9px] text-slate-400">🏷️</span>
+            <button
+              onClick={() => handleTagFilterChange("")}
+              className={`rounded px-1.5 py-0.5 text-[9px] ${
+                tagFilter === ""
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-200 text-slate-500 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-400"
+              }`}
+            >
+              全て
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => handleTagFilterChange(tagFilter === tag.name ? "" : tag.name)}
+                className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors`}
+                style={
+                  tagFilter === tag.name
+                    ? { backgroundColor: tag.color, color: "#fff" }
+                    : { backgroundColor: tag.color + "22", color: tag.color, border: `1px solid ${tag.color}44` }
+                }
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+        )}
         <select
           value={selectedProjectId ?? ""}
           onChange={(e) => handleSelectProject(e.target.value)}
@@ -343,6 +395,21 @@ export default function ProjectPanel() {
               {p.description}
             </p>
           ) : null;
+        })()}
+        {selectedProjectId && (() => {
+          const p = projects.find((x) => x.id === selectedProjectId);
+          const role = p?.owner_id === currentUserId ? "owner" : "editor";
+          return (
+            <div className="mt-1">
+              <TagSelector
+                token={token}
+                projectId={selectedProjectId}
+                attachedTags={projectTags}
+                role={role as "owner" | "editor" | "viewer"}
+                onTagsChange={setProjectTags}
+              />
+            </div>
+          );
         })()}
         {selectedProjectId && !renaming && (() => {
           const p = projects.find((x) => x.id === selectedProjectId);

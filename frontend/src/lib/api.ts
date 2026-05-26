@@ -16,6 +16,14 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ---- Types ----------------------------------------------------------------
 
+export interface TagOut {
+  id: string;
+  name: string;
+  color: string;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface ProjectOut {
   id: string;
   name: string;
@@ -23,6 +31,7 @@ export interface ProjectOut {
   owner_id: string;
   created_at: string;
   archived_at: string | null;
+  tags: TagOut[];
 }
 
 export interface MemberOut {
@@ -67,10 +76,12 @@ export async function listProjects(
   limit = 50,
   q?: string,
   includeArchived = false,
+  tag?: string,
 ): Promise<ProjectOut[]> {
   const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
   if (q) params.set("q", q);
   if (includeArchived) params.set("include_archived", "true");
+  if (tag) params.set("tag", tag);
   const res = await fetch(`${BASE}/projects?${params}`, {
     headers: authHeaders(token),
   });
@@ -751,4 +762,73 @@ export async function getProjectActivity(
     headers: authHeaders(token),
   });
   return handleResponse<AuditLogOut[]>(res);
+}
+
+// ---- Tags -----------------------------------------------------------------
+
+export interface TagCreate {
+  name: string;
+  color?: string;
+}
+
+export async function listTags(token: string): Promise<TagOut[]> {
+  const res = await fetch(`${BASE}/tags`, { headers: authHeaders(token) });
+  return handleResponse<TagOut[]>(res);
+}
+
+export async function createTag(token: string, body: TagCreate): Promise<TagOut> {
+  const res = await fetch(`${BASE}/tags`, {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handleResponse<TagOut>(res);
+}
+
+export async function deleteTag(token: string, tagId: string): Promise<void> {
+  const res = await fetch(`${BASE}/tags/${tagId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
+export async function listProjectTags(token: string, projectId: string): Promise<TagOut[]> {
+  const res = await fetch(`${BASE}/projects/${projectId}/tags`, {
+    headers: authHeaders(token),
+  });
+  return handleResponse<TagOut[]>(res);
+}
+
+export async function addProjectTag(
+  token: string,
+  projectId: string,
+  tagId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}/tags/${tagId}`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+}
+
+export async function removeProjectTag(
+  token: string,
+  projectId: string,
+  tagId: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/projects/${projectId}/tags/${tagId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
 }

@@ -79,6 +79,20 @@ class UserRoleUpdate(BaseModel):
 _NO_NUL_PATTERN = r"^[^\x00]+$"
 
 
+# ---- Tags ----
+class TagCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=64, pattern=_NO_NUL_PATTERN)
+    color: str = Field(default="#6366f1", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class TagOut(BaseModel):
+    id: UUID
+    name: str
+    color: str
+    created_by: UUID | None = None
+    created_at: datetime
+
+
 # ---- Projects ----
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=128, pattern=_NO_NUL_PATTERN)
@@ -97,6 +111,7 @@ class ProjectOut(BaseModel):
     owner_id: UUID
     created_at: datetime
     archived_at: datetime | None = None
+    tags: list[TagOut] = []
 
 
 class ProjectStats(BaseModel):

@@ -22,6 +22,7 @@ from app.models.audit_log import AuditLog
 from app.models.file import File
 from app.models.project import Project
 from app.models.project_member import ProjectMember
+from app.models.tag import ProjectTag, Tag
 from app.models.user import User
 from app.schemas import (
     AdminStats,
@@ -36,6 +37,8 @@ from app.schemas import (
     ProjectCreate,
     ProjectOut,
     ProjectStats,
+    TagCreate,
+    TagOut,
     UserOut,
     UserProfileUpdate,
     VerticalAlignmentCreate,
@@ -181,6 +184,7 @@ async def list_projects(
     limit: int = 50,
     q: str | None = None,
     include_archived: bool = False,
+    tag: str | None = None,
 ) -> list[ProjectOut]:
     """Return projects owned by *user_id* OR where *user_id* is a member."""
     stmt = (
@@ -194,7 +198,38 @@ async def list_projects(
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(or_(Project.name.ilike(pattern), Project.description.ilike(pattern)))
-    result = await session.execute(stmt.offset(skip).limit(limit))
+    if tag:
+        stmt = stmt.where(
+            Project.id.in_(
+                select(ProjectTag.project_id)
+                .join(Tag, Tag.id == ProjectTag.tag_id)
+                .where(Tag.name == tag)
+            )
+        )
+    projects = (await session.execute(stmt.offset(skip).limit(limit))).scalars().all()
+
+    # Batch-load tags for returned projects to avoid N+1
+    if projects:
+        project_ids = [p.id for p in projects]
+        tags_result = await session.execute(
+            select(ProjectTag.project_id, Tag)
+            .join(Tag, Tag.id == ProjectTag.tag_id)
+            .where(ProjectTag.project_id.in_(project_ids))
+        )
+        tags_by_project: dict[UUID, list[TagOut]] = {}
+        for pt_project_id, t in tags_result.all():
+            tags_by_project.setdefault(pt_project_id, []).append(
+                TagOut(
+                    id=t.id,
+                    name=t.name,
+                    color=t.color,
+                    created_by=t.created_by,
+                    created_at=t.created_at,
+                )
+            )
+    else:
+        tags_by_project = {}
+
     return [
         ProjectOut(
             id=r.id,
@@ -203,8 +238,9 @@ async def list_projects(
             owner_id=r.owner_id,
             created_at=r.created_at,
             archived_at=r.archived_at,
+            tags=tags_by_project.get(r.id, []),
         )
-        for r in result.scalars().all()
+        for r in projects
     ]
 
 
@@ -1047,3 +1083,83 @@ async def get_admin_stats(session: AsyncSession) -> AdminStats:
         total_files=file_count,
         total_audit_events=audit_count,
     )
+
+
+# ---- Tags ----
+
+
+def _tag_to_out(t: Tag) -> TagOut:
+    return TagOut(
+        id=t.id,
+        name=t.name,
+        color=t.color,
+        created_by=t.created_by,
+        created_at=t.created_at,
+    )
+
+
+async def create_tag(
+    session: AsyncSession,
+    body: TagCreate,
+    created_by: UUID,
+) -> TagOut:
+    tag = Tag(name=body.name, color=body.color, created_by=created_by)
+    session.add(tag)
+    await session.flush()
+    await session.refresh(tag)
+    return _tag_to_out(tag)
+
+
+async def list_tags(session: AsyncSession) -> list[TagOut]:
+    result = await session.execute(select(Tag).order_by(Tag.name))
+    return [_tag_to_out(t) for t in result.scalars().all()]
+
+
+async def get_tag_by_id(session: AsyncSession, tag_id: UUID) -> Tag | None:
+    result = await session.execute(select(Tag).where(Tag.id == tag_id))
+    return result.scalar_one_or_none()
+
+
+async def delete_tag(session: AsyncSession, tag_id: UUID, user_id: UUID, user_role: str) -> bool:
+    """Delete tag if caller is creator or admin. Returns False if not found."""
+    tag = await get_tag_by_id(session, tag_id)
+    if tag is None:
+        return False
+    if user_role != "admin" and tag.created_by != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="tag creator or admin only"
+        )
+    await session.delete(tag)
+    return True
+
+
+async def list_project_tags(session: AsyncSession, project_id: UUID) -> list[TagOut]:
+    result = await session.execute(
+        select(Tag)
+        .join(ProjectTag, ProjectTag.tag_id == Tag.id)
+        .where(ProjectTag.project_id == project_id)
+        .order_by(Tag.name)
+    )
+    return [_tag_to_out(t) for t in result.scalars().all()]
+
+
+async def add_project_tag(session: AsyncSession, project_id: UUID, tag_id: UUID) -> None:
+    """Attach a tag to a project. Silently ignores duplicate."""
+    stmt = pg_insert(ProjectTag).values(project_id=project_id, tag_id=tag_id)
+    stmt = stmt.on_conflict_do_nothing(constraint="uq_project_tags")
+    await session.execute(stmt)
+
+
+async def remove_project_tag(session: AsyncSession, project_id: UUID, tag_id: UUID) -> bool:
+    """Detach a tag from a project. Returns False if the association did not exist."""
+    result = await session.execute(
+        select(ProjectTag).where(
+            ProjectTag.project_id == project_id,
+            ProjectTag.tag_id == tag_id,
+        )
+    )
+    pt = result.scalar_one_or_none()
+    if pt is None:
+        return False
+    await session.delete(pt)
+    return True

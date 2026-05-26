@@ -25,7 +25,7 @@ interface ProjectState {
   error: string | null;
   showArchived: boolean;
 
-  fetchProjects: (token: string, q?: string) => Promise<void>;
+  fetchProjects: (token: string, q?: string, tag?: string) => Promise<void>;
   selectProject: (token: string, projectId: string) => Promise<void>;
   fetchFiles: (token: string, search?: string, ext?: string) => Promise<void>;
   fetchActivity: (token: string) => Promise<void>;
@@ -57,11 +57,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   error: null,
   showArchived: false,
 
-  fetchProjects: async (token, q) => {
+  fetchProjects: async (token, q, tag) => {
     set({ loading: true, error: null });
     try {
       const { showArchived } = get();
-      const projects = await listProjects(token, 0, 50, q, showArchived);
+      const projects = await listProjects(token, 0, 50, q, showArchived, tag);
       set({ projects, loading: false });
     } catch (e) {
       set({ loading: false, error: String(e) });
