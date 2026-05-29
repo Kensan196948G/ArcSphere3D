@@ -60,6 +60,18 @@ jobs:
           echo "rendered base: $(grep -c '^kind:' .rendered/base.yaml) resources"
           echo "rendered prod: $(grep -c '^kind:' .rendered/prod.yaml) resources"
 
+      - name: Prod image must be pinned (no :latest — blocking)
+        run: |
+          # Production must never ship a mutable tag (ADR-0004 #5). The overlay
+          # carries a REPLACE_WITH_COMMIT_SHA_AT_RELEASE placeholder that the
+          # release pipeline substitutes with a commit SHA before deploy; the
+          # placeholder->SHA substitution itself is verified at release time.
+          if grep -nE 'image:.*:latest([[:space:]]|$)' .rendered/prod.yaml; then
+            echo "::error::production overlay renders a :latest image tag — pin it" >&2
+            exit 1
+          fi
+          echo "ok: no :latest image tags in rendered prod"
+
       - name: Schema validation (kubeconform — blocking)
         run: |
           for f in .rendered/base.yaml .rendered/prod.yaml; do
