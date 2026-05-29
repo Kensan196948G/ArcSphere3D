@@ -1,0 +1,15 @@
+# kube-linter configuration for the ArcSphere3D manifests.
+# Run against the rendered production overlay in CI (advisory for now).
+checks:
+  # Keep kube-linter's curated default checks, then exclude only the ones we
+  # have consciously deferred with written justification.
+  addAllBuiltIn: false
+  doNotAutoAddDefaults: false
+  exclude:
+    # ADR-0004 #4: postgres/redis/minio official images start as root and drop
+    # privileges via gosu/su-exec. Forcing these without per-image cluster
+    # validation breaks startup (CrashLoop). The prod overlay already applies
+    # the safe subset (seccompProfile + allowPrivilegeEscalation:false); the
+    # remaining hardening is tracked in ADR-0004 until validated on a cluster.
+    - run-as-non-root
+    - no-read-only-root-filesystem

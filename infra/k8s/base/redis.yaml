@@ -19,6 +19,22 @@ spec:
       containers:
         - name: redis
           image: redis:7-alpine
+          # Require AUTH (ADR-0004 #2). $(REDIS_PASSWORD) interpolates the env
+          # var declared below (Kubernetes substitutes vars declared earlier).
+          args: ["--requirepass", "$(REDIS_PASSWORD)"]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: REDIS_PASSWORD
+            # redis-cli reads REDISCLI_AUTH automatically, so the probe below
+            # authenticates without exposing the password in the process args.
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: REDIS_PASSWORD
           ports:
             - containerPort: 6379
           resources:

@@ -1,0 +1,79 @@
+name: K8s Manifests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/k8s/**"
+      - ".github/workflows/k8s-validate.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/k8s/**"
+      - ".github/workflows/k8s-validate.yml"
+
+concurrency:
+  group: k8s-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  KUSTOMIZE_VERSION: "5.4.3"
+  KUBECONFORM_VERSION: "0.6.7"
+  KUBE_LINTER_VERSION: "0.7.1"
+  K8S_SCHEMA_VERSION: "1.30.0"
+
+jobs:
+  validate:
+    name: kustomize build + kubeconform + kube-linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install kustomize
+        run: |
+          curl -sSLf "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | tar -xz
+          sudo install -m 0755 kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Install kubeconform
+        run: |
+          curl -sSLf "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz
+          sudo install -m 0755 kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+
+      - name: Install kube-linter
+        run: |
+          curl -sSLf "https://github.com/stackrox/kube-linter/releases/download/v${KUBE_LINTER_VERSION}/kube-linter-linux.tar.gz" | tar -xz
+          sudo install -m 0755 kube-linter /usr/local/bin/kube-linter
+          kube-linter version
+
+      - name: Render manifests (kustomize build — blocking)
+        run: |
+          mkdir -p .rendered
+          # A build failure here means a broken resource reference or an
+          # overlay patch that does not match its target — fail fast.
+          kustomize build infra/k8s/base       > .rendered/base.yaml
+          kustomize build infra/k8s/overlays/prod > .rendered/prod.yaml
+          echo "rendered base: $(grep -c '^kind:' .rendered/base.yaml) resources"
+          echo "rendered prod: $(grep -c '^kind:' .rendered/prod.yaml) resources"
+
+      - name: Schema validation (kubeconform — blocking)
+        run: |
+          for f in .rendered/base.yaml .rendered/prod.yaml; do
+            echo "== kubeconform $f =="
+            kubeconform -strict -summary \
+              -kubernetes-version "${K8S_SCHEMA_VERSION}" \
+              -schema-location default \
+              "$f"
+          done
+
+      - name: Best-practice lint (kube-linter — advisory)
+        continue-on-error: true
+        run: |
+          # Advisory for now: stateful securityContext items are consciously
+          # deferred (ADR-0004 #4) and excluded in .kube-linter.yaml. Promote to
+          # blocking once the per-image hardening is validated on a cluster.
+          kube-linter lint --config infra/k8s/.kube-linter.yaml .rendered/prod.yaml

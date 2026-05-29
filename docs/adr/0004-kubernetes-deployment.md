@@ -86,7 +86,25 @@ overlay / 後続 Issue で必ず解消する。完全修正の多くはクラス
 ## Out of scope (deferred / follow-ups)
 
 - frontend (nginx) Deployment + Ingress (TLS) — 後続 Issue
-- overlays/{dev,staging,prod} と ExternalSecret 連携
+- overlays/{dev,staging} と ExternalSecret 連携 (prod overlay は Issue #242 で導入)
 - HorizontalPodAutoscaler / PodDisruptionBudget
-- k8s マニフェスト CI 検証 (kubeconform / kustomize build / kube-linter)
+- ~~k8s マニフェスト CI 検証 (kubeconform / kustomize build / kube-linter)~~ → **Issue #242 で導入済み** (`.github/workflows/k8s-validate.yml`)
 - StatefulSet 化 (postgres/minio を Deployment+PVC から StatefulSet へ) の要否評価
+
+## Update 2026-05-29 — Issue #242 (本番前ハードニング 第1弾)
+
+base は依然「未デプロイの dev quickstart テンプレート」とし、本番ハードニングは
+**prod overlay** (`infra/k8s/overlays/prod/`) と **CI 構造検証**で段階導入する方針を確定。
+本 PR で backlog 各項目を以下のとおり進めた:
+
+| #                          | 状態                                           | 実装                                                                                                                                                                                                                                                            |
+| -------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 MinIO root 共有          | ✅ **base で解消**                             | root を `S3_ROOT_USER/PASSWORD` に分離 (MinIO server 専用)。`minio-provision.yaml` Job が bucket 作成 + scoped policy (`s3:*Object` on `arcsphere3d/*`) + service user (`S3_ACCESS_KEY/SECRET_KEY`) を発行。backend は scoped 鍵のみ使用。Job は冪等 (再適用可) |
+| 2 Redis 無認証             | ✅ **base で AUTH / overlay で NetworkPolicy** | `redis.yaml` に `--requirepass $(REDIS_PASSWORD)` + `REDISCLI_AUTH` で probe も認証。NetworkPolicy (backend のみ ingress) は CNI 依存のため overlay へ。backend は現状 in-memory rate limiter で Redis 未配線 — AUTH は defense-in-depth                        |
+| 3 placeholder Secret       | 🟡 **overlay 例 + 文書**                       | `secret.externalsecret.yaml.example` に external-secrets-operator の fail-closed 構成を記載 (CRD 依存のため `.example`、kustomization 非参照)                                                                                                                   |
+| 4 stateful securityContext | 🟡 **overlay 安全サブセット適用**              | gosu/su-exec を壊さない `seccompProfile: RuntimeDefault` + `allowPrivilegeEscalation: false` を overlay patch で適用。`runAsNonRoot`/`readOnlyRootFilesystem`/cap drop はイメージ毎の実機検証が必要なため commented TODO + `.kube-linter.yaml` で除外して追跡   |
+| 5 mutable `:latest`        | ✅ **overlay で pin 機構**                     | prod overlay の `images:` で base の `:latest` を固定タグに上書き (release CI が commit SHA を設定)。base は dev のため `:latest` 維持 (kustomize idiom)                                                                                                        |
+| 6 CI 検証                  | ✅ **新規 workflow**                           | `kustomize build` (base+prod) + `kubeconform -strict` を blocking、`kube-linter` を advisory。`infra/k8s/**` 変更時に実行                                                                                                                                       |
+
+**残課題 (要クラスタ実機検証 → 後続 Issue)**: stateful pods の `runAsNonRoot`/`readOnlyRootFilesystem`/cap drop、
+NetworkPolicy の minio httpGet probe 経路 (CNI 別)、ExternalSecret の実接続、kube-linter の blocking 昇格。
