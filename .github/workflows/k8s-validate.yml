@@ -72,6 +72,26 @@ jobs:
           fi
           echo "ok: no :latest image tags in rendered prod"
 
+      - name: JWT key wiring + prod APP_ENV (Issue #246 — blocking)
+        run: |
+          # The backend reads JWT_PRIVATE_KEY_PEM / JWT_PUBLIC_KEY_PEM
+          # (config.py). A bare JWT_PRIVATE_KEY env is silently ignored and
+          # degrades prod to ephemeral per-pod signing keys — guard against
+          # regressing the env name.
+          if grep -nE '^[[:space:]]*-?[[:space:]]*name:[[:space:]]*JWT_(PRIVATE|PUBLIC)_KEY[[:space:]]*$' .rendered/prod.yaml; then
+            echo "::error::backend env uses JWT_PRIVATE_KEY/JWT_PUBLIC_KEY without _PEM — backend ignores it (Issue #246)" >&2
+            exit 1
+          fi
+          for v in JWT_PRIVATE_KEY_PEM JWT_PUBLIC_KEY_PEM; do
+            grep -q "name: $v" .rendered/prod.yaml || { echo "::error::missing env $v in rendered prod" >&2; exit 1; }
+          done
+          # prod must run with APP_ENV=production so fail-closed invariants fire.
+          if ! grep -qE '^[[:space:]]*APP_ENV:[[:space:]]*production[[:space:]]*$' .rendered/prod.yaml; then
+            echo "::error::rendered prod ConfigMap APP_ENV is not 'production' (Issue #246)" >&2
+            exit 1
+          fi
+          echo "ok: JWT_*_PEM wired and APP_ENV=production in rendered prod"
+
       - name: Schema validation (kubeconform — blocking)
         run: |
           for f in .rendered/base.yaml .rendered/prod.yaml; do

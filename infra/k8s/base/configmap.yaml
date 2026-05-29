@@ -8,6 +8,12 @@ data:
   # DATABASE_URL is NOT defined here: it must interpolate the secret password,
   # and `$(VAR)` substitution does not apply to ConfigMap values consumed via
   # envFrom. It is assembled in backend.yaml's explicit env block instead.
+  #
+  # APP_ENV gates the backend's fail-closed security invariants (config.py:
+  # is_production_like). base = development (dev quickstart); the prod overlay
+  # patches this to "production" so the JWT-key/secret checks actually fire
+  # (Issue #246).
+  APP_ENV: development
   S3_BUCKET: arcsphere3d
   S3_ENDPOINT_URL: http://minio:9000
   CORS_ORIGINS: http://localhost

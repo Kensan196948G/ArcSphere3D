@@ -69,16 +69,20 @@ spec:
                 secretKeyRef:
                   name: arcsphere3d-secret
                   key: S3_SECRET_KEY
-            - name: JWT_PRIVATE_KEY
+            # Env var names MUST match the backend settings fields
+            # (config.py: jwt_private_key_pem -> JWT_PRIVATE_KEY_PEM). The old
+            # JWT_PRIVATE_KEY (no _PEM) was silently ignored, degrading prod to
+            # ephemeral per-pod keys (Issue #246).
+            - name: JWT_PRIVATE_KEY_PEM
               valueFrom:
                 secretKeyRef:
                   name: arcsphere3d-secret
-                  key: JWT_PRIVATE_KEY
-            - name: JWT_PUBLIC_KEY
+                  key: JWT_PRIVATE_KEY_PEM
+            - name: JWT_PUBLIC_KEY_PEM
               valueFrom:
                 secretKeyRef:
                   name: arcsphere3d-secret
-                  key: JWT_PUBLIC_KEY
+                  key: JWT_PUBLIC_KEY_PEM
           readinessProbe:
             httpGet:
               path: /healthz

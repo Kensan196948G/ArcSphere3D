@@ -20,6 +20,7 @@ resources:
 patches:
   - path: securitycontext-patch.yaml
   - path: replicas-patch.yaml
+  - path: configmap-patch.yaml
 
 # ADR-0004 #5: pin the backend image. The release pipeline overwrites newTag
 # with the built commit SHA (or switch to `digest:` for content addressing).
