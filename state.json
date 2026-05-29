@@ -61,7 +61,7 @@
     "current_session_start_at": "2026-05-29T01:52:10.225Z",
     "last_trigger": "manual",
     "last_cron_session_id": "20260527-020001-ArcSphere3D",
-    "last_stop_at": "2026-05-29T11:27:28.651Z"
+    "last_stop_at": "2026-05-29T12:34:39.271Z"
   },
   "automation": {
     "auto_issue_generation": true,
@@ -195,6 +195,10 @@
     ],
     "success_patterns": [
       {
+        "at": "2026-05-29T12:34:39.283Z",
+        "summary": "Session 2026-05-29: Issue #238 E2E 連鎖失敗の真因を特定・修正。ProjectOut の必須 tags フィールドを欠いたモック (MOCK_PROJECT/NEW_PROJECT/OWNER_PROJECT) が ProjectPanel の p.tags.map で TypeError → 46 テスト連鎖失敗。3 モックを契約準拠に修正し全 173 E2E "
+      },
+      {
         "at": "2026-05-29T11:27:28.661Z",
         "summary": "Session 2026-05-29: Issue #238 E2E 連鎖失敗の真因を特定・修正。ProjectOut の必須 tags フィールドを欠いたモック (MOCK_PROJECT/NEW_PROJECT/OWNER_PROJECT) が ProjectPanel の p.tags.map で TypeError → 46 テスト連鎖失敗。3 モックを契約準拠に修正し全 173 E2E "
       },
@@ -266,8 +270,7 @@
         "at": "2026-05-16T09:16:43.784Z",
         "summary": "Bootstrap session: scaffolded monorepo (frontend Vite+React+TS+Three.js, backend FastAPI+Pydantic v2+bcrypt direct, docker-compose, CI on GitHub Actions, pre-commit). Verify: backend ruff/format/pytes"
       },
-      "verify-before-commit: ruff + format + mypy + pytest + tsc + vite build をすべて green にしてから git stage",
-      "topical-commit-split: 単一 big bang ではなく scaffold/feat/ci/docs に分けて bisect 効率を維持"
+      "verify-before-commit: ruff + format + mypy + pytest + tsc + vite build をすべて green にしてから git stage"
     ],
     "usage_history": {
       "agents": {
@@ -752,6 +755,27 @@
         "security-reviewer",
         "e2e-runner"
       ]
+    },
+    {
+      "at": "2026-05-29T12:34:39.272Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
+    },
+    {
+      "at": "2026-05-29T12:34:39.283Z",
+      "kind": "tdd_required",
+      "message": "テスト未整備の変更が 2 件あります。/tdd または tdd-guide agent で対応してください。",
+      "files": [
+        "backend/app/routers/auth.py",
+        "backend/tests/test_auth.py"
+      ],
+      "truncated": false
     }
   ]
 }

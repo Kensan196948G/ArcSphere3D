@@ -237,6 +237,16 @@ async def multipart_complete(
     db_user = await crud.upsert_user(session, user)
     await _require_project(project_id, session, db_user.id, min_role="editor")
 
+    # Verify the s3_key belongs to this project. Without this check an editor
+    # can supply any s3_key (cross-tenant IDOR) — the init endpoint generates
+    # keys as f"{project_id}/{file_id}/..." so the prefix is the contract
+    # (Issue #247).
+    if not body.s3_key.startswith(f"{project_id}/"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="s3_key does not belong to this project",
+        )
+
     parts = [{"PartNumber": p.part_number, "ETag": p.etag} for p in body.parts]
     await complete_multipart_upload(body.s3_key, body.upload_id, parts)
 
@@ -267,15 +277,26 @@ async def multipart_complete(
         **_400,
         **_401,
         **_403,
+        **_404,
     },
 )
 async def multipart_abort(
+    project_id: UUID,
     body: MultipartAbortRequest,
     session: DbDep,
     user: CurrentUser = CurrentUserDep,
 ) -> None:
     """Abort a multipart upload and clean up incomplete parts from MinIO."""
-    await crud.upsert_user(session, user)
+    db_user = await crud.upsert_user(session, user)
+    # Object-level authz: abort had no project check at all — any authenticated
+    # user could abort any upload (Issue #247).
+    await _require_project(project_id, session, db_user.id, min_role="editor")
+    # s3_key prefix check: same IDOR guard as complete.
+    if not body.s3_key.startswith(f"{project_id}/"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="s3_key does not belong to this project",
+        )
     try:
         await abort_multipart_upload(body.s3_key, body.upload_id)
     except Exception as exc:

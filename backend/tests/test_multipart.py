@@ -151,20 +151,83 @@ def test_multipart_complete_success() -> None:
 
 
 def test_multipart_abort_requires_auth() -> None:
+    project_id = str(uuid.uuid4())
     res = client.post(
         "/api/files/multipart/abort",
-        json={"upload_id": "xyz", "s3_key": "some/key"},
+        params={"project_id": project_id},
+        json={"upload_id": "xyz", "s3_key": f"{project_id}/some/key"},
     )
     assert res.status_code == 401
 
 
 def test_multipart_abort_success() -> None:
     token = _login()
+    project_id = _create_project(token)
+    s3_key = f"{project_id}/test-id/model.ifc"
     with patch("app.routers.files.abort_multipart_upload", new_callable=AsyncMock) as mock_abort:
         res = client.post(
             "/api/files/multipart/abort",
-            json={"upload_id": "test-id", "s3_key": "test/key/model.ifc"},
+            params={"project_id": project_id},
+            json={"upload_id": "test-id", "s3_key": s3_key},
             headers={"Authorization": f"Bearer {token}"},
         )
-        mock_abort.assert_called_once_with("test/key/model.ifc", "test-id")
+        mock_abort.assert_called_once_with(s3_key, "test-id")
     assert res.status_code == 204
+
+
+# ---- Issue #247 IDOR regression tests ----
+
+
+def test_multipart_complete_rejects_cross_tenant_s3_key() -> None:
+    """complete must reject s3_key that does not start with the project prefix."""
+    token = _login()
+    project_id = _create_project(token)
+    other_project_id = str(uuid.uuid4())
+    with patch("app.routers.files.complete_multipart_upload", new_callable=AsyncMock):
+        res = client.post(
+            "/api/files/multipart/complete",
+            params={"project_id": project_id},
+            json={
+                "upload_id": "uid",
+                "s3_key": f"{other_project_id}/uuid/evil.ifc",
+                "filename": "evil.ifc",
+                "total_size_bytes": 1,
+                "content_type": "model/vnd.iges",
+                "parts": [{"part_number": 1, "etag": "abc"}],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert res.status_code == 422
+
+
+def test_multipart_abort_rejects_cross_tenant_s3_key() -> None:
+    """abort must reject s3_key that does not start with the project prefix."""
+    token = _login()
+    project_id = _create_project(token)
+    other_project_id = str(uuid.uuid4())
+    with patch("app.routers.files.abort_multipart_upload", new_callable=AsyncMock):
+        res = client.post(
+            "/api/files/multipart/abort",
+            params={"project_id": project_id},
+            json={"upload_id": "uid", "s3_key": f"{other_project_id}/uuid/model.ifc"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert res.status_code == 422
+
+
+def test_multipart_abort_rejects_unauthz_project() -> None:
+    """abort must reject a user who has no membership in the target project."""
+    owner_token = _login()
+    other_token = client.post(
+        "/api/auth/login",
+        json={"email": "other@arcsphere3d.dev", "password": "arcsphere-demo"},
+    ).json()["access_token"]
+    project_id = _create_project(owner_token)
+    with patch("app.routers.files.abort_multipart_upload", new_callable=AsyncMock):
+        res = client.post(
+            "/api/files/multipart/abort",
+            params={"project_id": project_id},
+            json={"upload_id": "uid", "s3_key": f"{project_id}/uuid/model.ifc"},
+            headers={"Authorization": f"Bearer {other_token}"},
+        )
+    assert res.status_code in (403, 404)
