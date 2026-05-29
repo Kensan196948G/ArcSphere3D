@@ -1,0 +1,85 @@
+# ADR-0004 #4: securityContext hardening for the stateful pods.
+#
+# IMPORTANT — why this is an overlay, not a base change:
+# The postgres/redis/minio official images start as root and drop privileges
+# via gosu/su-exec inside their entrypoints. Forcing `runAsNonRoot: true`,
+# `readOnlyRootFilesystem: true`, or `capabilities.drop: [ALL]` on them without
+# per-image validation breaks startup (CrashLoop). See ADR-0004.
+#
+# This patch therefore applies only the subset that is safe with gosu-based
+# entrypoints and does NOT require cluster validation:
+#   - seccompProfile: RuntimeDefault   (Pod Security "baseline"/"restricted")
+#   - allowPrivilegeEscalation: false  (gosu drops privileges; no_new_privs is
+#                                       compatible because CAP_SETUID is held)
+#
+# The stricter layer below (runAsNonRoot / readOnlyRootFilesystem / cap drop +
+# writable emptyDir mounts) MUST be validated on the target cluster per image
+# before enabling. Left commented intentionally — do not uncomment untested.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: arcsphere3d
+spec:
+  template:
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        # --- validate-before-enable (per-image) ---
+        # runAsNonRoot: true
+        # runAsUser: 70          # alpine postgres uid
+        # fsGroup: 70
+      containers:
+        - name: postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true   # needs emptyDir for /tmp, /var/run/postgresql
+            # capabilities:
+            #   drop: [ALL]                   # gosu needs SETUID/SETGID/CHOWN/DAC_OVERRIDE/FOWNER
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: arcsphere3d
+spec:
+  template:
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        # redis:7-alpine can run fully non-root after validation:
+        # runAsNonRoot: true
+        # runAsUser: 999
+        # fsGroup: 999
+      containers:
+        - name: redis
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true   # redis only needs a writable data dir
+            # capabilities:
+            #   drop: [ALL]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: arcsphere3d
+spec:
+  template:
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        # runAsNonRoot: true
+        # runAsUser: 1000
+        # fsGroup: 1000
+      containers:
+        - name: minio
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true   # minio writes to /data (PVC) + /tmp
+            # capabilities:
+            #   drop: [ALL]

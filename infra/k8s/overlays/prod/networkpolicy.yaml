@@ -1,0 +1,71 @@
+# ADR-0004 #2: restrict ingress to the data stores to the backend only.
+#
+# postgres/redis use exec probes (pg_isready / redis-cli) that run INSIDE the
+# container, so these NetworkPolicies do not affect their health checks.
+#
+# minio uses an httpGet probe (kubelet -> pod:9000). Whether a NetworkPolicy
+# blocks kubelet-originated probe traffic is CNI-dependent — VALIDATE on the
+# target CNI (Calico/Cilium/etc.) before relying on this in production.
+# If the probe is blocked, add an ingress rule for the node/kubelet source or
+# switch minio to an exec/command probe.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-allow-backend
+  namespace: arcsphere3d
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-allow-backend
+  namespace: arcsphere3d
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-allow-backend
+  namespace: arcsphere3d
+spec:
+  podSelector:
+    matchLabels:
+      app: minio
+  policyTypes: [Ingress]
+  ingress:
+    # Application traffic + the provisioning Job (mc admin) need the S3 API.
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+        - podSelector:
+            matchLabels:
+              app: minio-provision
+      ports:
+        - protocol: TCP
+          port: 9000

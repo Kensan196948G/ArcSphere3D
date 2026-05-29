@@ -6,6 +6,11 @@ metadata:
   labels:
     app: redis
     app.kubernetes.io/part-of: arcsphere3d
+  annotations:
+    # ADR-0004 #4: redis:7-alpine root-then-drop entrypoint; the full hardening
+    # (readOnlyRootFilesystem / runAsNonRoot) needs per-image cluster validation.
+    ignore-check.kube-linter.io/no-read-only-root-fs: "ADR-0004 #4 — validate per-image"
+    ignore-check.kube-linter.io/run-as-non-root: "ADR-0004 #4 — validate per-image"
 spec:
   replicas: 1
   selector:
@@ -19,6 +24,22 @@ spec:
       containers:
         - name: redis
           image: redis:7-alpine
+          # Require AUTH (ADR-0004 #2). $(REDIS_PASSWORD) interpolates the env
+          # var declared below (Kubernetes substitutes vars declared earlier).
+          args: ["--requirepass", "$(REDIS_PASSWORD)"]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: REDIS_PASSWORD
+            # redis-cli reads REDISCLI_AUTH automatically, so the probe below
+            # authenticates without exposing the password in the process args.
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: REDIS_PASSWORD
           ports:
             - containerPort: 6379
           resources:

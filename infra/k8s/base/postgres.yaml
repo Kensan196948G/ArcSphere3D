@@ -17,6 +17,12 @@ metadata:
   labels:
     app: postgres
     app.kubernetes.io/part-of: arcsphere3d
+  annotations:
+    # ADR-0004 #4: postgres:16-alpine starts as root and drops to the postgres
+    # user via the entrypoint; readOnlyRootFilesystem / runAsNonRoot need
+    # per-image cluster validation before enabling. Tracked, not ignored.
+    ignore-check.kube-linter.io/no-read-only-root-fs: "ADR-0004 #4 — gosu entrypoint, validate per-image"
+    ignore-check.kube-linter.io/run-as-non-root: "ADR-0004 #4 — gosu entrypoint, validate per-image"
 spec:
   replicas: 1
   selector:

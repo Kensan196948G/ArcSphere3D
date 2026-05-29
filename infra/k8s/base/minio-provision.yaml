@@ -1,0 +1,144 @@
+# MinIO provisioning Job (ADR-0004 #1 — HIGH).
+#
+# Resolves "MinIO root credentials shared with the application" by creating a
+# scoped service user at deploy time:
+#   1. authenticate to MinIO with ROOT (never exposed to the app),
+#   2. create the application bucket,
+#   3. create an IAM policy limited to the arcsphere3d bucket,
+#   4. create a service user with the application's S3_ACCESS_KEY/S3_SECRET_KEY,
+#   5. attach the scoped policy to that user.
+#
+# The backend then authenticates with the scoped keys only. Re-runnable: every
+# step tolerates "already exists" so re-applying the manifest is idempotent.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-provision
+  namespace: arcsphere3d
+  labels:
+    app: minio-provision
+    app.kubernetes.io/part-of: arcsphere3d
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: minio-provision
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        # minio/mc supports an arbitrary UID; it only needs a writable config
+        # dir, which we point at the emptyDir below via MC_CONFIG_DIR.
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: mc
+          image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          env:
+            - name: MC_CONFIG_DIR
+              value: /tmp/.mc
+            - name: S3_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: S3_ROOT_USER
+            - name: S3_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: S3_ROOT_PASSWORD
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: arcsphere3d-secret
+                  key: S3_SECRET_KEY
+            - name: S3_BUCKET
+              value: arcsphere3d
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              max_retries=60
+              retries=0
+
+              # Wait for MinIO to accept root credentials (deploy ordering is
+              # not guaranteed). Bounded: on unreachable MinIO or bad creds, exit
+              # non-zero so the Job fails and Kubernetes honours backoffLimit —
+              # never hang forever.
+              until mc alias set local http://minio:9000 "$S3_ROOT_USER" "$S3_ROOT_PASSWORD" >/dev/null 2>&1; do
+                retries=$((retries + 1))
+                if [ "$retries" -ge "$max_retries" ]; then
+                  echo "minio not ready or credentials invalid after $max_retries attempts; aborting" >&2
+                  exit 1
+                fi
+                echo "waiting for minio... ($retries/$max_retries)"
+                sleep 3
+              done
+
+              # 1. Application bucket (idempotent).
+              mc mb --ignore-existing "local/$S3_BUCKET"
+
+              # 2. Scoped policy: object CRUD on this bucket only, no admin.
+              cat > /tmp/arcsphere3d-app-policy.json <<'POLICY'
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetObject",
+                      "s3:PutObject",
+                      "s3:DeleteObject",
+                      "s3:ListMultipartUploadParts",
+                      "s3:AbortMultipartUpload"
+                    ],
+                    "Resource": ["arn:aws:s3:::arcsphere3d/*"]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+                    "Resource": ["arn:aws:s3:::arcsphere3d"]
+                  }
+                ]
+              }
+              POLICY
+              mc admin policy create local arcsphere3d-app /tmp/arcsphere3d-app-policy.json 2>/dev/null \
+                || mc admin policy update local arcsphere3d-app /tmp/arcsphere3d-app-policy.json
+
+              # 3. Scoped service user (idempotent: tolerate pre-existing user).
+              mc admin user add local "$S3_ACCESS_KEY" "$S3_SECRET_KEY" 2>/dev/null \
+                || echo "service user already exists; keeping existing credentials"
+
+              # 4. Bind the scoped policy to the application user.
+              mc admin policy attach local arcsphere3d-app --user "$S3_ACCESS_KEY" 2>/dev/null \
+                || echo "policy already attached"
+
+              echo "minio provisioning complete: bucket=$S3_BUCKET user=scoped"
+          volumeMounts:
+            - name: mc-config
+              mountPath: /tmp
+      volumes:
+        - name: mc-config
+          emptyDir: {}

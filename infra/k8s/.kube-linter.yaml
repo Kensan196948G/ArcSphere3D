@@ -1,0 +1,11 @@
+# kube-linter configuration for the ArcSphere3D manifests.
+# Run against the rendered production overlay in CI (blocking).
+#
+# Exclusions are NOT global here — they are applied per object via
+# `ignore-check.kube-linter.io/<check>` annotations on the postgres/redis/minio
+# Deployments (ADR-0004 #4: gosu/su-exec entrypoints need per-image validation
+# before runAsNonRoot/readOnlyRootFilesystem). This keeps every check active for
+# all other (and future) resources so the gate stays meaningful.
+checks:
+  addAllBuiltIn: false
+  doNotAutoAddDefaults: false

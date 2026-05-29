@@ -1,0 +1,25 @@
+# ADR-0004: production HA — run the stateless backend with 3 replicas.
+# (postgres/redis/minio stay single-replica until StatefulSet conversion is
+# evaluated — see ADR-0004 "Out of scope".)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  # namespace must match the base (set via base kustomization) so the strategic
+  # merge patch resolves its target — otherwise kustomize looks for [noNs].
+  namespace: arcsphere3d
+spec:
+  replicas: 3
+  template:
+    spec:
+      # Spread the 3 backend replicas across nodes for HA (soft constraint so a
+      # single-node cluster still schedules them).
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: backend
+                topologyKey: kubernetes.io/hostname

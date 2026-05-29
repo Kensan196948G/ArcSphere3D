@@ -7,7 +7,6 @@
     "duration_months": 6,
     "days_remaining": 171,
     "registered_at": "2026-05-14",
-    "release_deadline": "2026-11-14",
     "phase_mode": "development",
     "goal_type": "mvp-release",
     "release_milestone": "ArcSphere3D v1.0.0 (Production Release)"
@@ -40,7 +39,13 @@
     "blocker_count": 0
   },
   "schedule": {
-    "days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ],
     "start_time": "02:00",
     "duration_minutes": 240,
     "timezone": "Asia/Tokyo",
@@ -56,7 +61,7 @@
     "current_session_start_at": "2026-05-29T01:52:10.225Z",
     "last_trigger": "manual",
     "last_cron_session_id": "20260527-020001-ArcSphere3D",
-    "last_stop_at": "2026-05-29T11:55:00+09:00"
+    "last_stop_at": "2026-05-29T10:23:30.574Z"
   },
   "automation": {
     "auto_issue_generation": true,
@@ -190,6 +195,10 @@
     ],
     "success_patterns": [
       {
+        "at": "2026-05-29T10:23:30.585Z",
+        "summary": "Session 2026-05-29: Issue #238 E2E 連鎖失敗の真因を特定・修正。ProjectOut の必須 tags フィールドを欠いたモック (MOCK_PROJECT/NEW_PROJECT/OWNER_PROJECT) が ProjectPanel の p.tags.map で TypeError → 46 テスト連鎖失敗。3 モックを契約準拠に修正し全 173 E2E "
+      },
+      {
         "at": "2026-05-19T17:52:11.583Z",
         "summary": "Build session 2026-05-19: Issue #66 (multi-owner model + last-owner protection) — create_project now auto-adds owner to project_members; count_owners(); remove_member returns None→409 for last owner; "
       },
@@ -280,12 +289,19 @@
       "Uvicorn",
       "bcrypt 4.x direct"
     ],
-    "storage": ["PostgreSQL 16", "MinIO", "Redis 7"],
+    "storage": [
+      "PostgreSQL 16",
+      "MinIO",
+      "Redis 7"
+    ],
     "auth": [
       "JWT RS256 (asymmetric keypair, ADR-0003)",
       "OAuth2 / Microsoft Entra ID SSO (post-MVP)"
     ],
-    "infra": ["Docker Compose (MVP)", "Kubernetes (future ADR-0003)"],
+    "infra": [
+      "Docker Compose (MVP)",
+      "Kubernetes (future ADR-0003)"
+    ],
     "ci": [
       "GitHub Actions",
       "CodeQL",
@@ -328,7 +344,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T09:16:43.784Z",
@@ -352,7 +372,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T09:19:11.108Z",
@@ -376,7 +400,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T09:28:56.693Z",
@@ -401,7 +429,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T10:04:29.686Z",
@@ -435,7 +467,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T12:22:15.390Z",
@@ -469,7 +505,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T12:24:24.686Z",
@@ -503,7 +543,11 @@
       "kind": "verify_subagent_missing",
       "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
       "phase": "Verify",
-      "required": ["qa", "security-reviewer", "e2e-runner"]
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     },
     {
       "at": "2026-05-16T12:27:00.686Z",
@@ -607,6 +651,17 @@
         "frontend/src/state/uiStore.ts"
       ],
       "truncated": false
+    },
+    {
+      "at": "2026-05-29T10:23:30.574Z",
+      "kind": "verify_subagent_missing",
+      "message": "Verify フェーズで qa / security-reviewer / e2e-runner SubAgent が一度も起動されませんでした。STABLE 判定の必要条件を満たしていない可能性があります。",
+      "phase": "Verify",
+      "required": [
+        "qa",
+        "security-reviewer",
+        "e2e-runner"
+      ]
     }
   ]
 }

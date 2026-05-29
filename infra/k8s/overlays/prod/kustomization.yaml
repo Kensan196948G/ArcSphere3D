@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Production overlay for ArcSphere3D (ADR-0004 security hardening).
+# Build with:  kubectl kustomize infra/k8s/overlays/prod
+# Apply with:  kubectl apply -k infra/k8s/overlays/prod
+#
+# This overlay layers the hardening that the base intentionally omits because
+# it requires cluster-/image-specific validation (ADR-0004 #2 #4 #5):
+#   - NetworkPolicy   : restrict ingress to the data stores to the backend only
+#   - securityContext : seccomp RuntimeDefault baseline for the stateful pods
+#   - image pin       : replace the backend's mutable :latest with a fixed tag
+#   - replicas        : run the backend with HA (3 replicas)
+namespace: arcsphere3d
+
+resources:
+  - ../../base
+  - networkpolicy.yaml
+
+patches:
+  - path: securitycontext-patch.yaml
+  - path: replicas-patch.yaml
+
+# ADR-0004 #5: pin the backend image. The release pipeline overwrites newTag
+# with the built commit SHA (or switch to `digest:` for content addressing).
+# Never deploy :latest to production.
+images:
+  - name: ghcr.io/kensan196948g/arcsphere3d/backend
+    newTag: REPLACE_WITH_COMMIT_SHA_AT_RELEASE
