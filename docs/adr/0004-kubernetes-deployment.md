@@ -68,6 +68,21 @@
 | k8s マニフェストの CI 検証 (kubeconform 等) が未整備 | 後続で `kubeconform` / `kustomize build` を CI に追加    |
 | 単一 replica (HA でない)                             | overlay (prod) で replicas/PDB/anti-affinity を上書き    |
 
+## Security hardening backlog (自動セキュリティレビュー指摘, 本番前必須)
+
+base は **未デプロイの初期テンプレート**であり以下は現状で悪用不能だが、本番配置前に
+overlay / 後続 Issue で必ず解消する。完全修正の多くはクラスタ実機検証を要する
+(無検証適用は CrashLoop リスク: postgres/redis/minio 公式イメージは root 起動→
+`gosu`/`su-exec` で権限降格するため `drop:[ALL]`/`runAsNonRoot` は entrypoint を壊す)。
+
+| #   | 重大度 | 項目                                         | 本番対応                                                                                                                                                                                                                                |
+| --- | ------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | HIGH   | MinIO root 資格情報を backend と共有         | provisioning Job で scoped service user (`mc admin user add` + `s3:*Object` on `arcsphere3d/*`) を作り、その鍵を `S3_ACCESS_KEY/SECRET_KEY` として backend に渡す。root は app に渡さない                                               |
+| 2   | HIGH   | Redis 無認証 (ClusterIP)                     | `--requirepass $(REDIS_PASSWORD)` + backend の REDIS 接続にパスワード付与。加えて NetworkPolicy で ingress を backend ラベルに限定。NetworkPolicy は probe 経路 (kubelet 発) を CNI 依存でブロックし得るため実機検証して overlay で導入 |
+| 3   | MED    | base に既知プレースホルダ Secret             | 本番は SealedSecret/ExternalSecret/SOPS。overlay が Secret を供給する fail-closed 構成へ。base の値は dev quickstart 専用                                                                                                               |
+| 4   | MED    | postgres/redis/minio に securityContext 無し | overlay で `runAsNonRoot`/`readOnlyRootFilesystem` + 必要 emptyDir (`/tmp`, `/var/run/postgresql`) をイメージ毎に検証して導入                                                                                                           |
+| 5   | MED    | backend image が mutable `:latest`           | release CI で commit SHA / digest pin。`imagePullPolicy` も併せて固定 (本 PR で `Always` を明示)                                                                                                                                        |
+
 ## Out of scope (deferred / follow-ups)
 
 - frontend (nginx) Deployment + Ingress (TLS) — 後続 Issue

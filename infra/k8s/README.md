@@ -38,13 +38,18 @@ curl http://localhost:8000/healthz
 
 ## ⚠️ 本番前の必須対応
 
-| 項目            | 対応                                                              |
-| --------------- | ----------------------------------------------------------------- |
-| 🔐 シークレット | `secret.yaml` の `CHANGE_ME_*` を全て差し替え / ExternalSecret 化 |
-| 🌐 公開         | frontend(nginx) Deployment + Ingress(TLS) を overlay で追加       |
-| 📈 スケール     | overlay (prod) で `replicas` / HPA / PDB を上書き                 |
-| 🏷️ イメージ     | `backend.yaml` の `:latest` を固定タグ (commit SHA) に            |
-| 🧪 CI 検証      | `kubeconform` / `kustomize build` を CI に追加 (後続)             |
+| 項目            | 対応                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------ |
+| 🔐 シークレット | `secret.yaml` の `CHANGE_ME_*` を全て差し替え / ExternalSecret 化                    |
+| 🪣 MinIO 権限   | root 資格情報を backend と共有しない。scoped service user を provisioning Job で発行 |
+| 🧱 Redis 認証   | `--requirepass` + NetworkPolicy で backend からのみ ingress 許可                     |
+| 🛡️ 強化         | postgres/redis/minio に securityContext を実機検証して overlay 導入                  |
+| 🌐 公開         | frontend(nginx) Deployment + Ingress(TLS) を overlay で追加                          |
+| 📈 スケール     | overlay (prod) で `replicas` / HPA / PDB を上書き                                    |
+| 🏷️ イメージ     | `backend.yaml` の `:latest` を固定タグ (commit SHA / digest) に                      |
+| 🧪 CI 検証      | `kubeconform` / `kustomize build` を CI に追加 (後続)                                |
+
+> 詳細は [ADR-0004 の Security hardening backlog](../../docs/adr/0004-kubernetes-deployment.md#security-hardening-backlog-自動セキュリティレビュー指摘-本番前必須) を参照。
 
 ## 🧩 overlay 拡張の指針
 

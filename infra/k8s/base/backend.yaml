@@ -22,7 +22,10 @@ spec:
         fsGroup: 1000
       containers:
         - name: backend
+          # TODO(security): overlay/release CI で commit SHA / digest に pin する。
+          # mutable :latest は本番不可 (ADR-0004 security backlog #5)。
           image: ghcr.io/kensan196948g/arcsphere3d/backend:latest
+          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
