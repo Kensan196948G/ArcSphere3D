@@ -43,6 +43,13 @@ spec:
               drop: [ALL]
             seccompProfile:
               type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
           env:
             - name: MC_CONFIG_DIR
               value: /tmp/.mc

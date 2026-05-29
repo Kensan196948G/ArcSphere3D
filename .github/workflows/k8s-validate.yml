@@ -70,10 +70,9 @@ jobs:
               "$f"
           done
 
-      - name: Best-practice lint (kube-linter — advisory)
-        continue-on-error: true
+      - name: Best-practice lint (kube-linter — blocking)
         run: |
-          # Advisory for now: stateful securityContext items are consciously
-          # deferred (ADR-0004 #4) and excluded in .kube-linter.yaml. Promote to
-          # blocking once the per-image hardening is validated on a cluster.
+          # Blocking. Consciously-deferred stateful hardening (ADR-0004 #4) is
+          # excluded per object via ignore-check.kube-linter.io/* annotations,
+          # so every other check stays enforced for current and future manifests.
           kube-linter lint --config infra/k8s/.kube-linter.yaml .rendered/prod.yaml

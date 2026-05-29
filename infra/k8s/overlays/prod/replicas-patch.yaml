@@ -10,3 +10,16 @@ metadata:
   namespace: arcsphere3d
 spec:
   replicas: 3
+  template:
+    spec:
+      # Spread the 3 backend replicas across nodes for HA (soft constraint so a
+      # single-node cluster still schedules them).
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: backend
+                topologyKey: kubernetes.io/hostname

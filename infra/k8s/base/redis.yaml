@@ -6,6 +6,11 @@ metadata:
   labels:
     app: redis
     app.kubernetes.io/part-of: arcsphere3d
+  annotations:
+    # ADR-0004 #4: redis:7-alpine root-then-drop entrypoint; the full hardening
+    # (readOnlyRootFilesystem / runAsNonRoot) needs per-image cluster validation.
+    ignore-check.kube-linter.io/no-read-only-root-fs: "ADR-0004 #4 — validate per-image"
+    ignore-check.kube-linter.io/run-as-non-root: "ADR-0004 #4 — validate per-image"
 spec:
   replicas: 1
   selector:
