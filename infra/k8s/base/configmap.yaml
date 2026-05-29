@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arcsphere3d-config
+  namespace: arcsphere3d
+data:
+  # Application settings — override in overlays as needed.
+  # DATABASE_URL is NOT defined here: it must interpolate the secret password,
+  # and `$(VAR)` substitution does not apply to ConfigMap values consumed via
+  # envFrom. It is assembled in backend.yaml's explicit env block instead.
+  S3_BUCKET: arcsphere3d
+  S3_ENDPOINT_URL: http://minio:9000
+  CORS_ORIGINS: http://localhost
