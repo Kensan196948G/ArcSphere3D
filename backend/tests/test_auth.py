@@ -529,3 +529,40 @@ def test_member_project_appears_in_list() -> None:
         "/api/projects", headers={"Authorization": f"Bearer {other_token}"}
     ).json()
     assert any(p["id"] == pid for p in projects)
+
+
+def test_demo_login_disabled_in_production(monkeypatch) -> None:
+    """Issue #245: the demo backdoor must be inert when app_env is production.
+
+    The in-memory fallback that turns the well-known demo password into a
+    persisted admin is DEV/TEST-only; in production it is skipped so an attacker
+    who knows the public demo password cannot mint an admin on a fresh DB.
+    """
+    import app.routers.auth as auth_mod
+    from app.config import Settings
+
+    # JWT_*_PEM are injected into the env by conftest, so a production-like
+    # Settings constructs cleanly (its fail-closed validator is satisfied).
+    prod_settings = Settings(app_env="production")
+    assert prod_settings.is_production_like
+
+    auth_mod._login_limiter.reset()
+    monkeypatch.setattr(auth_mod, "get_settings", lambda: prod_settings)
+
+    res = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    assert res.status_code == 401, res.text
+
+
+def test_demo_login_still_works_outside_production() -> None:
+    """Complement to the production gate: demo login remains usable in dev/test."""
+    import app.routers.auth as auth_mod
+
+    auth_mod._login_limiter.reset()
+    res = client.post(
+        "/api/auth/login",
+        json={"email": "demo@arcsphere3d.dev", "password": "arcsphere-demo"},
+    )
+    assert res.status_code == 200, res.text

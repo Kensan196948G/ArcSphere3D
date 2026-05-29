@@ -1,7 +1,8 @@
 """Auth endpoints.
 
-Login flow: DB users take priority; in-memory _DEMO_USERS act as a fallback
-during the MVP phase and will be removed when the user admin UI ships.
+Login flow: DB users take priority; in-memory _DEMO_USERS act as a DEV/TEST-only
+fallback during the MVP phase. The fallback is disabled when app_env is
+production (Issue #245) and will be removed entirely when the user admin UI ships.
 """
 
 from __future__ import annotations
@@ -24,7 +25,8 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 # 5 attempts per 60 seconds per client IP — brute-force mitigation.
 _login_limiter = SimpleRateLimiter(max_calls=5, window_seconds=60)
 
-# MVP fallback — DB users take priority. Removed when user admin UI ships.
+# MVP fallback — DB users take priority. DEV/TEST only: gated off in production
+# (Issue #245). Removed entirely when the user admin UI ships.
 _DEMO_USERS: dict[str, dict[str, str]] = {
     "demo@arcsphere3d.dev": {
         "password_hash": hash_password("arcsphere-demo"),
@@ -67,8 +69,12 @@ async def login(request: Request, payload: LoginRequest, db: DbDep) -> TokenResp
         authenticated = verify_password(payload.password, db_user.password_hash)
         role = db_user.role
     else:
-        # Fallback: check in-memory demo users and persist to DB on success.
-        demo = _DEMO_USERS.get(payload.email)
+        # Fallback: in-memory demo users (DEV/TEST only). Disabled in production
+        # so the well-known demo password can never mint a real admin on a fresh
+        # prod DB (Issue #245 — fail-closed backdoor). Real production users come
+        # from the DB / admin API.
+        settings = get_settings()
+        demo = None if settings.is_production_like else _DEMO_USERS.get(payload.email)
         if demo and verify_password(payload.password, demo["password_hash"]):
             db_user = await crud.get_or_create_db_user(
                 db,
