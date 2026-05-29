@@ -20,6 +20,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
+  namespace: arcsphere3d
 spec:
   template:
     spec:
@@ -42,6 +43,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
+  namespace: arcsphere3d
 spec:
   template:
     spec:
@@ -64,6 +66,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
+  namespace: arcsphere3d
 spec:
   template:
     spec:

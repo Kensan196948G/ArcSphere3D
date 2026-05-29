@@ -5,5 +5,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
+  # namespace must match the base (set via base kustomization) so the strategic
+  # merge patch resolves its target — otherwise kustomize looks for [noNs].
+  namespace: arcsphere3d
 spec:
   replicas: 3
