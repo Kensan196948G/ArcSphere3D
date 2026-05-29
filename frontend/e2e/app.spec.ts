@@ -42,8 +42,14 @@ const MOCK_TOKEN =
 const MOCK_PROJECT = {
   id: "00000000-0000-0000-0000-000000000001",
   name: "Demo Project",
+  description: null,
   owner_id: "00000000-0000-0000-0000-000000000099",
   created_at: "2026-05-16T00:00:00Z",
+  archived_at: null,
+  // ProjectOut now carries a required `tags` array (Issue #229). Without it,
+  // ProjectPanel's `p.tags.map(...)` throws on project selection, which
+  // crashed the panel and cascaded into 46 downstream E2E failures (Issue #238).
+  tags: [] as { id: string; name: string; color: string }[],
 };
 const MOCK_FILE = {
   id: "00000000-0000-0000-0000-000000000002",
@@ -919,8 +925,11 @@ test("ProjectPanel: 新プロジェクト名を入力して作成ボタンを押
   const NEW_PROJECT = {
     id: "00000000-0000-0000-0000-000000000003",
     name: "新プロジェクト",
+    description: null,
     owner_id: "00000000-0000-0000-0000-000000000099",
     created_at: "2026-05-17T00:00:00Z",
+    archived_at: null,
+    tags: [] as { id: string; name: string; color: string }[],
   };
   await setupApiMocks(page);
   // Override POST /api/projects to return new project (fallback lets GET pass to setupApiMocks handler)
@@ -3081,6 +3090,7 @@ test.describe("Issue #225: プロジェクトアーカイブ機能", () => {
     owner_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     created_at: "2026-05-26T00:00:00Z",
     archived_at: null,
+    tags: [] as { id: string; name: string; color: string }[],
   };
 
   async function setupArchiveMocks(page: Page) {
