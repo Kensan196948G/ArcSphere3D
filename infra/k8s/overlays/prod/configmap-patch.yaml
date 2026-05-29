@@ -1,0 +1,11 @@
+# Issue #246: switch APP_ENV to production so the backend's fail-closed security
+# invariants fire (config.py is_production_like). Without this, prod runs as
+# "development" and silently tolerates a missing JWT signing key, degrading to
+# ephemeral per-pod keys.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arcsphere3d-config
+  namespace: arcsphere3d
+data:
+  APP_ENV: production
